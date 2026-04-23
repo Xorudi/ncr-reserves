@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  body { @apply bg-cream-100 font-sans text-warm-800 antialiased; }
+  * { box-sizing: border-box; }
+}
