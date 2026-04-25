@@ -1,25 +1,15 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import DesktopShell from '@/views/desktop/DesktopShell';
 import MobileShell from '@/views/mobile/MobileShell';
-import { useEffect, useState } from 'react';
 
 function AppRouter() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    const h = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
   }, []);
-
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/mobile/*" element={<MobileShell />} />
-        <Route path="/*" element={isMobile ? <MobileShell /> : <DesktopShell />} />
-      </Routes>
-    </BrowserRouter>
-  );
+  return isMobile ? <MobileShell /> : <DesktopShell />;
 }
 
 export default function App() {

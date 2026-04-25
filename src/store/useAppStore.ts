@@ -1,45 +1,50 @@
 import { create } from 'zustand';
-import { BusinessId, Reservation, Client } from '@/types';
-import { BUSINESSES, RESERVATIONS, CLIENTS, ALERTS, SHIFT_NOTES, EVENTS } from '@/data/mockData';
+import type { BusinessId, Reservation, Customer, ReservationStatus } from '@/types';
+import { RESERVATIONS, CUSTOMERS } from '@/data/mockData';
 
 interface AppState {
   selectedBusiness: BusinessId;
-  selectedDate: string;
+  selectedDate: Date;
   reservations: Reservation[];
-  clients: Client[];
-  alerts: typeof ALERTS;
-  shiftNotes: typeof SHIFT_NOTES;
-  events: typeof EVENTS;
-  businesses: typeof BUSINESSES;
+  customers: Customer[];
+  selectedReservation: Reservation | null;
+  selectedCustomer: Customer | null;
+  showWalkin: boolean;
 
   setSelectedBusiness: (id: BusinessId) => void;
-  setSelectedDate: (date: string) => void;
-  addReservation: (r: Reservation) => void;
-  updateReservation: (id: string, updates: Partial<Reservation>) => void;
-  deleteReservation: (id: string) => void;
-  addClient: (c: Client) => void;
-  updateClient: (id: string, updates: Partial<Client>) => void;
+  setSelectedDate: (d: Date) => void;
+  setSelectedReservation: (r: Reservation | null) => void;
+  setSelectedCustomer: (c: Customer | null) => void;
+  setShowWalkin: (v: boolean) => void;
+  updateReservationStatus: (id: string, status: ReservationStatus) => void;
+  addReservation: (r: Omit<Reservation, 'id'>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  selectedBusiness: 'el-ganxo',
-  selectedDate: '2026-04-24',
+  selectedBusiness: 'ganxo',
+  selectedDate: new Date(2026, 3, 24), // 24 Apr 2026
   reservations: RESERVATIONS,
-  clients: CLIENTS,
-  alerts: ALERTS,
-  shiftNotes: SHIFT_NOTES,
-  events: EVENTS,
-  businesses: BUSINESSES,
+  customers: CUSTOMERS,
+  selectedReservation: null,
+  selectedCustomer: null,
+  showWalkin: false,
 
-  setSelectedBusiness: (id) => set({ selectedBusiness: id }),
-  setSelectedDate: (date) => set({ selectedDate: date }),
-  addReservation: (r) => set((s) => ({ reservations: [...s.reservations, r] })),
-  updateReservation: (id, updates) => set((s) => ({
-    reservations: s.reservations.map((r) => r.id === id ? { ...r, ...updates } : r),
-  })),
-  deleteReservation: (id) => set((s) => ({ reservations: s.reservations.filter((r) => r.id !== id) })),
-  addClient: (c) => set((s) => ({ clients: [...s.clients, c] })),
-  updateClient: (id, updates) => set((s) => ({
-    clients: s.clients.map((c) => c.id === id ? { ...c, ...updates } : c),
-  })),
+  setSelectedBusiness: (id) => set({ selectedBusiness: id, selectedReservation: null }),
+  setSelectedDate: (d) => set({ selectedDate: d }),
+  setSelectedReservation: (r) => set({ selectedReservation: r }),
+  setSelectedCustomer: (c) => set({ selectedCustomer: c }),
+  setShowWalkin: (v) => set({ showWalkin: v }),
+
+  updateReservationStatus: (id, status) =>
+    set((s) => ({
+      reservations: s.reservations.map((r) => (r.id === id ? { ...r, status } : r)),
+      selectedReservation: s.selectedReservation?.id === id
+        ? { ...s.selectedReservation, status }
+        : s.selectedReservation,
+    })),
+
+  addReservation: (res) =>
+    set((s) => ({
+      reservations: [...s.reservations, { ...res, id: `${res.bizId}-${res.time}-${res.name}-${Date.now()}` }],
+    })),
 }));

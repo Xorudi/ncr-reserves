@@ -1,254 +1,111 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Users, Plus, X } from 'lucide-react';
-import clsx from 'clsx';
+import React, { useState, useMemo } from 'react';
+import { Icon, I } from '@/components/shared/Icons';
+import { StatusChip, Tag } from '@/components/shared/StatusChip';
+import { initials, avIdx, getStats } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
-import { SERVICE_BLOCKS } from '@/data/mockData';
-import { Reservation } from '@/types';
-import StatusBadge from '@/components/shared/StatusBadge';
-import { addDays, getDayHeaderLabel, getDaySubLabel } from '@/utils/dateUtils';
+import type { Reservation } from '@/types';
 
-function nameInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
+const DAYS_CA    = ['dg.','dl.','dm.','dc.','dj.','dv.','ds.'];
+const MONTHS_CA  = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
 
-const TAG_LABELS: Record<string, string> = {
-  'vip': 'VIP',
-  'aniversari': 'Aniversari',
-  'al·lergia': 'Al·lèrgia',
-  'habitual': 'Habitual',
-  'terrassa': 'Terrassa',
-};
+export default function MobileTodayView() {
+  const { selectedBusiness, reservations, selectedDate } = useAppStore();
+  const stats  = getStats(selectedBusiness);
+  const bizRes = useMemo(() => reservations.filter(r => r.bizId === selectedBusiness), [reservations, selectedBusiness]);
+  const [sel, setSel] = useState<Reservation | null>(null);
 
-function ReservationCard({ reservation, onTap }: { reservation: Reservation; onTap: () => void }) {
+  const d = selectedDate;
+  const dateStr = `${DAYS_CA[d.getDay()]} ${d.getDate()} ${MONTHS_CA[d.getMonth()]}`;
+
+  const pending = bizRes.filter(r => r.status === 'pending');
+
   return (
-    <div
-      onClick={onTap}
-      className="bg-white rounded-xl border border-warm-200 shadow-card px-4 py-3 cursor-pointer active:bg-warm-100/40 transition-colors"
-    >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-warm-800 text-sm font-bold">{reservation.time}</span>
-        <StatusBadge status={reservation.status} />
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* Summary strip */}
+      <div style={{ padding:'12px 16px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0 }}>
+        <div style={{ fontSize:12, color:'var(--ink-600)', marginBottom:6 }}>{dateStr}</div>
+        <div style={{ display:'flex', gap:14 }}>
+          <StatM value={stats.totalRes}  label="reserves" />
+          <StatM value={stats.totalPax}  label="pax" />
+          <StatM value={`${stats.occupancyPct}%`} label="ocupació" accent={stats.level==='high'} />
+        </div>
+        {pending.length > 0 && (
+          <div style={{ marginTop:8, padding:'6px 10px', background:'var(--clay-50)', borderRadius:8, fontSize:12, color:'var(--clay-700)', fontWeight:550 }}>
+            ⚠️ {pending.length} {pending.length===1?'reserva pendent':'reserves pendents'} de confirmar
+          </div>
+        )}
       </div>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="text-warm-800 text-sm font-semibold truncate">{reservation.customerName}</div>
-          {reservation.notes && (
-            <div className="text-warm-500 text-xs mt-0.5 truncate">{reservation.notes}</div>
-          )}
-          {reservation.tags.length > 0 && (
-            <div className="flex gap-1 mt-1 flex-wrap">
-              {reservation.tags.map(tag => (
-                <span key={tag} className="text-[10px] bg-warm-100 text-warm-600 rounded px-1.5 py-0.5">
-                  {TAG_LABELS[tag] || tag}
-                </span>
-              ))}
+
+      {/* List */}
+      <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'8px 0' }}>
+        {bizRes.map(r => (
+          <button key={r.id} onClick={() => setSel(sel?.id===r.id ? null : r)}
+            style={{ display:'flex', alignItems:'center', gap:12, width:'100%', padding:'12px 16px', background:sel?.id===r.id?'var(--ink-100)':'transparent', border:'none', borderBottom:'var(--hair)', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+            <span className="mono" style={{ fontSize:13, fontWeight:700, color:'var(--ink-700)', width:40, flex:'none' }}>{r.time}</span>
+            <span className={`avatar av-${avIdx(r.name)}`}>{initials(r.name)}</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)', display:'flex', alignItems:'center', gap:6 }}>
+                <span className="nowrap" style={{ flex:1 }}>{r.name}</span>
+                {r.tags?.includes('vip') && <span className="tag vip" style={{ fontSize:10 }}>VIP</span>}
+              </div>
+              {r.notes && <div className="nowrap" style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:1 }}>{r.notes}</div>}
             </div>
-          )}
-        </div>
-        <div className="flex items-center gap-1 text-warm-500 flex-shrink-0">
-          <Users className="w-3.5 h-3.5" />
-          <span className="text-sm font-medium">{reservation.guestCount}</span>
-        </div>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+              <StatusChip state={r.status} size="sm" />
+              <span style={{ fontSize:12, color:'var(--ink-600)' }}>{r.pax} pax</span>
+            </div>
+          </button>
+        ))}
+        {bizRes.length === 0 && (
+          <div style={{ textAlign:'center', padding:'60px 16px', color:'var(--ink-500)' }}>
+            <div style={{ fontSize:28, marginBottom:8 }}>📭</div>
+            <div style={{ fontFamily:'var(--font-serif)', fontSize:16 }}>Cap reserva per avui</div>
+          </div>
+        )}
+        <div style={{ height:80 }} />
       </div>
+
+      {/* FAB */}
+      <button style={{ position:'fixed', bottom:72, right:20, width:52, height:52, borderRadius:'50%', background:'var(--terracotta-600)', color:'white', border:'none', boxShadow:'var(--sh-3)', cursor:'pointer', display:'grid', placeItems:'center' }}>
+        <Icon d={I.plus} size={22} stroke={2} />
+      </button>
+
+      {/* Bottom sheet detail */}
+      {sel && (
+        <div style={{ position:'fixed', bottom:60, left:0, right:0, background:'var(--paper)', borderTop:'var(--hair)', borderRadius:'16px 16px 0 0', boxShadow:'var(--sh-3)', padding:'16px 18px 24px', zIndex:100 }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+            <span className={`avatar lg av-${avIdx(sel.name)}`}>{initials(sel.name)}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:15, fontWeight:600, color:'var(--ink-900)' }}>{sel.name}</div>
+              <div style={{ fontSize:12, color:'var(--ink-600)' }}>{sel.time} · {sel.pax} pax{sel.source ? ` · ${sel.source}` : ''}</div>
+            </div>
+            <button onClick={() => setSel(null)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-500)' }}>
+              <Icon d={I.x} size={16} />
+            </button>
+          </div>
+          {sel.notes && <div style={{ background:'#fef6d6', borderRadius:8, padding:'8px 10px', fontSize:13, color:'#5a4a2a', marginBottom:10 }}>{sel.notes}</div>}
+          <div style={{ display:'flex', gap:8 }}>
+            {sel.phone && (
+              <a href={`tel:${sel.phone}`} style={{ flex:1, padding:'9px', textAlign:'center', background:'var(--ink-100)', borderRadius:10, textDecoration:'none', fontSize:13, fontWeight:550, color:'var(--ink-800)', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                <Icon d={I.phone} size={14} /> Trucar
+              </a>
+            )}
+            <button style={{ flex:2, padding:'9px', background:'var(--ink-900)', color:'var(--cream)', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:550 }}>
+              A taula
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function DetailSheet({ reservation, onClose }: { reservation: Reservation; onClose: () => void }) {
-  const { updateReservation } = useAppStore();
-  const navigate = useNavigate();
-
+function StatM({ value, label, accent }: { value: string|number; label: string; accent?: boolean }) {
   return (
-    <>
-      <div className="fixed inset-0 bg-black/40 z-30" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-40 pb-[env(safe-area-inset-bottom)]">
-        <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-          <div className="w-10 h-1 bg-warm-200 rounded-full mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
-          <div className="w-6" />
-          <button onClick={onClose} className="ml-auto">
-            <X className="w-5 h-5 text-warm-500" />
-          </button>
-        </div>
-        <div className="px-4 pb-4">
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <h2 className="text-warm-800 text-lg font-bold">{reservation.customerName}</h2>
-              <div className="text-warm-500 text-sm">{reservation.time} · {reservation.guestCount} pax</div>
-              {reservation.phone && <div className="text-warm-500 text-sm">{reservation.phone}</div>}
-            </div>
-            <StatusBadge status={reservation.status} />
-          </div>
-
-          {reservation.notes && (
-            <div className="bg-warm-100 rounded-lg px-3 py-2 mb-3">
-              <p className="text-warm-700 text-sm">{reservation.notes}</p>
-            </div>
-          )}
-
-          {reservation.tags.length > 0 && (
-            <div className="flex gap-1.5 mb-4 flex-wrap">
-              {reservation.tags.map(tag => (
-                <span key={tag} className="text-xs bg-warm-100 text-warm-600 rounded-full px-2 py-0.5">
-                  {TAG_LABELS[tag] || tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Quick actions */}
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => { updateReservation(reservation.id, { status: 'confirmada' }); onClose(); }}
-              className="flex-1 py-2 rounded-lg border border-status-confirmed text-status-confirmed text-sm font-medium"
-            >
-              Confirmar
-            </button>
-            <button
-              onClick={() => { updateReservation(reservation.id, { status: 'a-taula' }); onClose(); }}
-              className="flex-1 py-2 rounded-lg bg-brand text-white text-sm font-medium"
-            >
-              A taula
-            </button>
-            <button
-              onClick={() => { updateReservation(reservation.id, { status: 'cancel·lada' }); onClose(); }}
-              className="flex-1 py-2 rounded-lg border border-warm-200 text-warm-500 text-sm font-medium"
-            >
-              Cancel·lar
-            </button>
-          </div>
-
-          <button
-            onClick={() => navigate(`/reserves/${reservation.id}/editar`)}
-            className="w-full py-2 rounded-lg border border-warm-200 text-warm-700 text-sm font-medium"
-          >
-            Editar reserva
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-export default function TodayView() {
-  const navigate = useNavigate();
-  const { selectedBusiness, selectedDate, setSelectedDate, reservations, alerts } = useAppStore();
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
-  const [alertDismissed, setAlertDismissed] = useState(false);
-
-  const dayReservations = reservations.filter(
-    r => r.businessId === selectedBusiness && r.date === selectedDate
-  );
-  const dayAlerts = alerts.filter(a => a.businessId === selectedBusiness && a.date === selectedDate);
-
-  const totalComensals = dayReservations.reduce((s, r) => s + r.guestCount, 0);
-  const pendents = dayReservations.filter(r => r.status === 'pendent').length;
-
-  const dayLabel = getDayHeaderLabel(selectedDate);
-  const subLabel = getDaySubLabel(selectedDate);
-
-  return (
-    <div className="px-4 py-4 pb-4">
-      {/* Alert banner */}
-      {!alertDismissed && dayAlerts.length > 0 && (
-        <div className="bg-brand/10 border border-brand/20 rounded-xl px-3 py-2.5 mb-4 flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <span className="text-brand text-xs font-semibold">{dayAlerts.length} alerta{dayAlerts.length > 1 ? 'es' : ''} · </span>
-            <span className="text-brand/80 text-xs">{dayAlerts[0].title}</span>
-          </div>
-          <button onClick={() => setAlertDismissed(true)} className="flex-shrink-0">
-            <X className="w-4 h-4 text-brand/60" />
-          </button>
-        </div>
-      )}
-
-      {/* Date strip */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => setSelectedDate(addDays(selectedDate, -1))}
-          className="w-8 h-8 flex items-center justify-center text-warm-500"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div className="text-center">
-          <div className="text-warm-800 font-bold capitalize">{dayLabel.replace('Avui · ', '')}</div>
-          <div className="text-warm-500 text-sm">{subLabel}</div>
-        </div>
-        <button
-          onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-          className="w-8 h-8 flex items-center justify-center text-warm-500"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Stats row */}
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-        {[
-          { label: 'Reserves', value: dayReservations.length },
-          { label: 'Comensals', value: totalComensals },
-          { label: 'Pendents', value: pendents },
-        ].map(stat => (
-          <div key={stat.label} className="bg-white rounded-xl border border-warm-200 shadow-card px-3 py-2.5 flex-shrink-0 text-center min-w-[80px]">
-            <div className="text-warm-800 text-lg font-bold leading-none">{stat.value}</div>
-            <div className="text-warm-400 text-[10px] mt-0.5 font-medium uppercase tracking-wide">{stat.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Service blocks */}
-      {SERVICE_BLOCKS.map(block => {
-        const blockReservations = dayReservations
-          .filter(r => r.serviceBlock === block.id)
-          .sort((a, b) => a.time.localeCompare(b.time));
-
-        if (blockReservations.length === 0) return null;
-
-        return (
-          <div key={block.id} className="mb-5">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <span className="text-warm-800 text-sm font-semibold">{block.name}</span>
-                <span className="text-warm-400 text-xs ml-2">{block.timeRange}</span>
-              </div>
-              <span className="text-xs text-warm-500">{blockReservations.length} reserves</span>
-            </div>
-            <div className="space-y-2">
-              {blockReservations.map(r => (
-                <ReservationCard
-                  key={r.id}
-                  reservation={r}
-                  onTap={() => setSelectedReservation(r)}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-
-      {dayReservations.length === 0 && (
-        <div className="bg-white rounded-xl border border-warm-200 shadow-card px-4 py-10 text-center">
-          <p className="text-warm-400 text-sm">Sense reserves per avui</p>
-        </div>
-      )}
-
-      {/* FAB */}
-      <button
-        onClick={() => navigate('/mobile/reserves/nova')}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-brand hover:bg-brand-dark text-white rounded-full shadow-panel flex items-center justify-center z-20 transition-colors"
-      >
-        <Plus className="w-6 h-6" />
-      </button>
-
-      {/* Detail sheet */}
-      {selectedReservation && (
-        <DetailSheet
-          reservation={selectedReservation}
-          onClose={() => setSelectedReservation(null)}
-        />
-      )}
+    <div style={{ display:'flex', flexDirection:'column' }}>
+      <span style={{ fontFamily:'var(--font-serif)', fontSize:20, fontWeight:500, color:accent?'var(--terracotta-700)':'var(--ink-900)', lineHeight:1 }}>{value}</span>
+      <span style={{ fontSize:10.5, color:'var(--ink-500)' }}>{label}</span>
     </div>
   );
 }

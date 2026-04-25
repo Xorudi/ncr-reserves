@@ -1,96 +1,81 @@
-export type BusinessId = 'el-ganxo' | 'la-pista' | 'lesquitx';
-export type ReservationStatus = 'pendent' | 'confirmada' | 'a-taula' | 'cancel·lada' | 'no-show';
-export type ReservationSource = 'telefon' | 'whatsapp' | 'walk-in' | 'web' | 'instagram' | 'thefork';
-export type ReservationTag = 'vip' | 'aniversari' | 'al·lergia' | 'habitual' | 'terrassa';
-export type AlertType = 'peak' | 'pending' | 'special' | 'info';
-export type ClientTag = 'vip' | 'aniversari' | 'al·lergia' | 'habitual' | 'conflictiu';
+export type BusinessId = 'ganxo' | 'pista' | 'esquitx';
+export type ReservationStatus = 'pending' | 'confirmed' | 'seated' | 'completed' | 'cancelled' | 'noshow';
+export type TableStatus = 'free' | 'seated' | 'confirmed' | 'reserved' | 'pending' | 'blocked' | 'playing';
+export type TableShape = 'round' | 'square' | 'rect' | 'stool' | 'court';
 
 export interface Business {
   id: BusinessId;
   name: string;
-  type: string;
+  kind: string;
+  hue: string;
+  hueSoft: string;
+  monogram: string;
   address: string;
-  initials: string;
-  color: string;
-  reservationCount: number;
-}
-
-export interface Client {
-  id: string;
-  fullName: string;
-  phone: string;
-  allergies: string[];
-  importantNotes: string;
-  preferences: string;
-  tags: ClientTag[];
-  visitHistory: Visit[];
-  internalComments: ClientComment[];
-  businessId?: BusinessId;
-}
-
-export interface Visit {
-  date: string;
-  businessId: BusinessId;
-  guestCount: number;
-  notes: string;
-  reservationId: string;
-}
-
-export interface ClientComment {
-  id: string;
-  text: string;
-  authorName: string;
-  date: string;
+  capacity: number;
 }
 
 export interface Reservation {
   id: string;
-  businessId: BusinessId;
-  date: string;
   time: string;
-  serviceBlock: string;
-  guestCount: number;
-  customerId?: string;
-  customerName: string;
-  phone?: string;
-  notes: string;
+  name: string;
+  pax: number;
   status: ReservationStatus;
-  source?: ReservationSource;
-  tags: ReservationTag[];
-  tableInfo?: string;
+  phone?: string;
+  notes?: string;
+  source?: string;
+  tags?: string[];
+  bizId: BusinessId;
 }
 
-export interface Alert {
-  id: string;
-  businessId: BusinessId;
-  date: string;
-  type: AlertType;
-  title: string;
-  description: string;
-  priority: number;
-}
-
-export interface ShiftNote {
-  id: string;
-  businessId: BusinessId;
-  date: string;
-  authorName: string;
-  authorRole: string;
-  text: string;
-  minutesAgo: number;
-}
-
-export interface CalendarEvent {
-  id: string;
-  businessId: BusinessId;
-  date: string;
-  title: string;
-  description: string;
-  dayLabel: string;
-}
-
-export interface ServiceBlockDef {
+export interface Customer {
   id: string;
   name: string;
-  timeRange: string;
+  phone: string;
+  email: string;
+  visits: number;
+  lastVisit: string;
+  spend: number;
+  tags: string[];
+  biz: BusinessId[];
+  notes: string;
+}
+
+export interface FloorZone {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface FloorTable {
+  id: string;
+  x: number;
+  y: number;
+  shape: TableShape;
+  cap: number;
+  zone: string;
+  status: TableStatus;
+  res?: string;
+  time?: string;
+  note?: string;
+  w?: number;
+  h?: number;
+  reservedLater?: boolean;
+}
+
+export interface FloorPlan {
+  gridW: number;
+  gridH: number;
+  zones: FloorZone[];
+  tables: FloorTable[];
+}
+
+export interface BusinessStats {
+  totalRes: number;
+  totalPax: number;
+  peak: number;
+  occupancyPct: number;
+  level: 'low' | 'medium' | 'high';
 }

@@ -1,169 +1,119 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Home, Calendar, LayoutGrid, Users, Clock, Settings, Plus } from 'lucide-react';
-import clsx from 'clsx';
-import { useAppStore } from '@/store/useAppStore';
-import { BusinessId } from '@/types';
+import React from 'react';
+import { Icon, I } from '@/components/shared/Icons';
+import { BUSINESSES } from '@/data/mockData';
+import type { BusinessId, BusinessStats } from '@/types';
 
-export default function LeftSidebar() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { businesses, selectedBusiness, setSelectedBusiness } = useAppStore();
+interface Props {
+  activeBizId: BusinessId;
+  onChangeBiz: (id: BusinessId) => void;
+  stats?: BusinessStats;
+  activePage?: string;
+  onNavigate?: (page: string) => void;
+  onNewReservation?: () => void;
+  onWalkin?: () => void;
+}
 
-  const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
-  };
-
-  const selectedBiz = businesses.find(b => b.id === selectedBusiness);
-
+export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'today', onNavigate, onNewReservation, onWalkin }: Props) {
   return (
-    <aside className="w-[220px] min-w-[220px] flex flex-col h-full border-r border-warm-200 bg-cream-100 py-4 px-3">
-      {/* Brand header */}
-      <div className="flex items-center gap-2.5 px-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-warm-800 flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm">N</span>
+    <aside style={{ width:244, flex:'none', borderRight:'var(--hair)', background:'var(--cream)', display:'flex', flexDirection:'column', height:'100%' }}>
+
+      {/* Brand */}
+      <div style={{ padding:'18px 18px 14px', display:'flex', alignItems:'center', gap:10 }}>
+        <div style={{ width:28,height:28,borderRadius:8,background:'var(--ink-900)',color:'var(--cream)',display:'grid',placeItems:'center',fontWeight:700,fontSize:12,letterSpacing:.5,fontFamily:'var(--font-serif)' }}>N</div>
+        <div style={{ display:'flex',flexDirection:'column',lineHeight:1.1 }}>
+          <span style={{ fontWeight:600,fontSize:13,color:'var(--ink-900)' }}>NCR Reserves</span>
+          <span style={{ fontSize:11,color:'var(--ink-500)' }}>Gestió interna</span>
         </div>
-        <div className="min-w-0">
-          <div className="text-warm-800 font-semibold text-sm leading-tight">NCR Reserves</div>
-          <div className="text-warm-400 text-xs leading-tight">Gestió interna</div>
+      </div>
+
+      {/* Search */}
+      <div style={{ padding:'0 12px 10px' }}>
+        <div style={{ display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:'var(--paper)',border:'var(--hair)',color:'var(--ink-500)',fontSize:12 }}>
+          <Icon d={I.search} size={14} />
+          <span style={{ flex:1 }}>Cerca reserves…</span>
+          <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:18,height:18,padding:'0 5px',borderRadius:4,fontFamily:'var(--font-mono)',fontSize:10.5,color:'var(--ink-600)',background:'var(--paper)',border:'1px solid rgba(60,40,20,.1)',boxShadow:'0 1px 0 rgba(60,40,20,.05)' }}>⌘K</span>
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="relative mb-4 px-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-warm-400" />
-        <input
-          type="text"
-          placeholder="Cerca reserves..."
-          className="w-full bg-white border border-warm-200 rounded-lg pl-8 pr-8 py-1.5 text-xs text-warm-600 placeholder:text-warm-400 focus:outline-none focus:border-warm-300"
-        />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-400 text-xs font-medium">⌘K</span>
+      {/* Business selector */}
+      <div style={{ padding:'10px 12px 6px' }}>
+        <div style={{ fontSize:10.5,fontWeight:600,letterSpacing:.08,textTransform:'uppercase',color:'var(--ink-500)',padding:'0 4px 8px' }}>Negocis</div>
+        <div style={{ display:'flex',flexDirection:'column',gap:4 }}>
+          {BUSINESSES.map(b => {
+            const isActive = b.id === activeBizId;
+            return (
+              <button key={b.id} onClick={() => onChangeBiz(b.id as BusinessId)}
+                style={{ display:'flex',alignItems:'center',gap:10,padding:'8px 10px',border:'none',cursor:'pointer',borderRadius:10,background:isActive?'var(--paper)':'transparent',boxShadow:isActive?`var(--sh-1), inset 3px 0 0 ${b.hue}`:'none',textAlign:'left',fontFamily:'inherit',transition:'background .12s' }}
+                onMouseEnter={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background='rgba(60,40,20,0.04)';}}
+                onMouseLeave={e=>{if(!isActive)(e.currentTarget as HTMLElement).style.background='transparent';}}>
+                <span style={{ width:26,height:26,borderRadius:7,flex:'none',background:b.hueSoft,color:b.hue,display:'grid',placeItems:'center',fontWeight:700,fontSize:11,fontFamily:'var(--font-serif)',letterSpacing:.3 }}>{b.monogram}</span>
+                <div style={{ display:'flex',flexDirection:'column',minWidth:0,flex:1 }}>
+                  <span style={{ fontSize:13,fontWeight:isActive?600:500,color:isActive?'var(--ink-900)':'var(--ink-800)',lineHeight:1.15 }}>{b.name}</span>
+                  <span style={{ fontSize:10.5,color:'var(--ink-500)',lineHeight:1.2,marginTop:1 }}>{b.kind}</span>
+                </div>
+                {isActive && stats && (
+                  <span style={{ fontSize:10.5,fontWeight:600,color:'var(--ink-600)',background:'var(--ink-100)',padding:'2px 6px',borderRadius:6 }}>{stats.totalRes}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Businesses section */}
-      <div className="px-2 mb-1">
-        <span className="text-warm-400 text-[10px] font-semibold tracking-widest uppercase">Negocis</span>
-      </div>
-      <div className="mb-3 space-y-0.5">
-        {businesses.map((biz) => (
-          <button
-            key={biz.id}
-            onClick={() => setSelectedBusiness(biz.id as BusinessId)}
-            className={clsx(
-              'w-full rounded-lg px-2 py-2 flex items-center gap-2.5 cursor-pointer transition-colors text-left',
-              selectedBusiness === biz.id ? 'bg-warm-100' : 'hover:bg-warm-100/60'
-            )}
-          >
-            <div className={clsx('w-7 h-7 rounded-lg text-white text-xs font-bold flex items-center justify-center flex-shrink-0', biz.color)}>
-              {biz.initials}
-            </div>
-            <span className={clsx('text-sm flex-1 min-w-0 truncate', selectedBusiness === biz.id ? 'text-warm-800 font-medium' : 'text-warm-600')}>
-              {biz.name}
-            </span>
-            {biz.reservationCount > 0 && (
-              <span className="text-xs bg-warm-200 text-warm-600 rounded-full px-1.5 py-0.5 font-medium flex-shrink-0">
-                {biz.reservationCount}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Nova reserva button */}
-      <div className="px-1 mb-4">
-        <button
-          onClick={() => navigate('/reserves/nova')}
-          className="w-full bg-brand hover:bg-brand-dark text-white font-medium text-sm rounded-lg px-3 py-2 flex items-center justify-between transition-colors"
-        >
-          <span className="flex items-center gap-1.5">
-            <Plus className="w-4 h-4" />
-            Nova reserva
-          </span>
-          <span className="text-white/60 text-xs font-normal">N</span>
+      {/* Actions */}
+      <div style={{ padding:'12px',display:'flex',flexDirection:'column',gap:6 }}>
+        <button onClick={onNewReservation}
+          style={{ display:'flex',alignItems:'center',gap:6,width:'100%',padding:'9px 12px',fontSize:13,fontWeight:550,background:'var(--terracotta-600)',color:'white',border:'none',borderRadius:10,cursor:'pointer',fontFamily:'inherit',transition:'background .12s',letterSpacing:'-0.005em' }}
+          onMouseEnter={e=>(e.currentTarget.style.background='var(--terracotta-700)')}
+          onMouseLeave={e=>(e.currentTarget.style.background='var(--terracotta-600)')}>
+          <Icon d={I.plus} size={14} /> Nova reserva
+          <span style={{ marginLeft:'auto',opacity:.7,fontSize:11 }}>N</span>
+        </button>
+        <button onClick={onWalkin}
+          style={{ display:'flex',alignItems:'center',gap:6,width:'100%',padding:'7px 12px',fontSize:12.5,fontWeight:550,background:'transparent',color:'var(--ink-800)',border:'1px solid rgba(60,40,20,0.14)',borderRadius:10,cursor:'pointer',fontFamily:'inherit',transition:'background .12s',letterSpacing:'-0.005em' }}
+          onMouseEnter={e=>(e.currentTarget.style.background='var(--ink-100)')}
+          onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+          <Icon d={I.users} size={13} /> Walk-in
+          <span style={{ marginLeft:'auto',opacity:.7,fontSize:11 }}>W</span>
         </button>
       </div>
 
-      {/* Separator */}
-      <div className="border-t border-warm-200 mx-1 mb-3" />
+      <div style={{ height:1,background:'rgba(60,40,20,0.08)',margin:'4px 12px' }} />
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 px-1">
-        <button
-          onClick={() => navigate('/')}
-          className={clsx(
-            'w-full rounded-lg px-3 py-2 text-sm flex items-center justify-between cursor-pointer transition-colors',
-            isActive('/') && location.pathname === '/' ? 'bg-warm-100 text-warm-800 font-medium' : 'text-warm-600 hover:bg-warm-100/60 hover:text-warm-800'
-          )}
-        >
-          <span className="flex items-center gap-2.5">
-            <Home className="w-4 h-4" />
-            Avui
-          </span>
-          {selectedBiz && selectedBiz.reservationCount > 0 && (
-            <span className="text-xs bg-brand/10 text-brand rounded-full px-1.5 py-0.5 font-medium">
-              {selectedBiz.reservationCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => navigate('/reserves')}
-          className={clsx(
-            'w-full rounded-lg px-3 py-2 text-sm flex items-center gap-2.5 cursor-pointer transition-colors',
-            isActive('/reserves') ? 'bg-warm-100 text-warm-800 font-medium' : 'text-warm-600 hover:bg-warm-100/60 hover:text-warm-800'
-          )}
-        >
-          <Calendar className="w-4 h-4" />
-          Totes les reserves
-        </button>
-
-        <button
-          className="w-full rounded-lg px-3 py-2 text-sm flex items-center justify-between cursor-pointer text-warm-600 hover:bg-warm-100/60 hover:text-warm-800 transition-colors"
-        >
-          <span className="flex items-center gap-2.5">
-            <LayoutGrid className="w-4 h-4" />
-            Plànol de taules
-          </span>
-          <span className="text-xs bg-amber-100 text-amber-700 rounded px-1.5 py-0.5 font-medium">AVIAT</span>
-        </button>
-
-        <button
-          onClick={() => navigate('/clients')}
-          className={clsx(
-            'w-full rounded-lg px-3 py-2 text-sm flex items-center gap-2.5 cursor-pointer transition-colors',
-            isActive('/clients') ? 'bg-warm-100 text-warm-800 font-medium' : 'text-warm-600 hover:bg-warm-100/60 hover:text-warm-800'
-          )}
-        >
-          <Users className="w-4 h-4" />
-          Clients
-        </button>
-
-        <button
-          onClick={() => navigate('/historial')}
-          className={clsx(
-            'w-full rounded-lg px-3 py-2 text-sm flex items-center gap-2.5 cursor-pointer transition-colors',
-            isActive('/historial') ? 'bg-warm-100 text-warm-800 font-medium' : 'text-warm-600 hover:bg-warm-100/60 hover:text-warm-800'
-          )}
-        >
-          <Clock className="w-4 h-4" />
-          Historial
-        </button>
+      {/* Nav */}
+      <nav style={{ padding:'8px 12px',display:'flex',flexDirection:'column',gap:1 }}>
+        {([
+          { id:'today',   ico:I.calendar, label:'Avui', count:stats?.totalRes },
+          { id:'floor',   ico:I.tableIco, label:'Plànol de taules' },
+          { id:'clients', ico:I.users,    label:'Clients' },
+          { id:'history', ico:I.logs,     label:'Historial' },
+        ] as const).map(n => {
+          const active = (n as {id:string}).id === activePage;
+          return (
+            <button key={(n as {id:string}).id} onClick={() => onNavigate?.((n as {id:string}).id)}
+              style={{ display:'flex',alignItems:'center',gap:10,padding:'7px 10px',borderRadius:8,fontSize:13,fontWeight:500,color:active?'var(--ink-900)':'var(--ink-700)',background:active?'var(--ink-100)':'transparent',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'background .12s',letterSpacing:'-0.005em' }}
+              onMouseEnter={e=>{if(!active)(e.currentTarget as HTMLElement).style.background='rgba(60,40,20,0.04)';}}
+              onMouseLeave={e=>{if(!active)(e.currentTarget as HTMLElement).style.background='transparent';}}>
+              <span style={{ color:active?'var(--ink-800)':'var(--ink-500)' }}><Icon d={(n as {ico:React.ReactNode}).ico} size={15} /></span>
+              <span style={{ flex:1 }}>{(n as {label:string}).label}</span>
+              {(n as {count?:number}).count !== undefined && <span style={{ fontSize:11,color:'var(--ink-500)' }}>{(n as {count?:number}).count}</span>}
+            </button>
+          );
+        })}
       </nav>
 
-      {/* User footer */}
-      <div className="border-t border-warm-200 mx-1 pt-3 mt-2">
-        <div className="flex items-center gap-2.5 px-2">
-          <div className="w-8 h-8 rounded-full bg-warm-200 flex items-center justify-center flex-shrink-0">
-            <span className="text-warm-700 text-xs font-semibold">EM</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-warm-800 text-xs font-semibold truncate">Èlia Masdeu</div>
-            <div className="text-warm-400 text-[10px] truncate">Encarregada · torn migdia</div>
-          </div>
-          <button className="text-warm-400 hover:text-warm-600 transition-colors flex-shrink-0">
-            <Settings className="w-3.5 h-3.5" />
-          </button>
+      <div style={{ flex:1 }} />
+
+      {/* Profile */}
+      <div style={{ padding:'12px 14px',borderTop:'var(--hair)',display:'flex',alignItems:'center',gap:10 }}>
+        <span className="avatar av-1">EM</span>
+        <div style={{ display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,flex:1 }}>
+          <span style={{ fontSize:12.5,fontWeight:550,color:'var(--ink-900)' }}>Èlia Masdeu</span>
+          <span style={{ fontSize:10.5,color:'var(--ink-500)' }}>Encarregada · torn migdia</span>
         </div>
+        <button style={{ width:30,height:30,padding:0,display:'grid',placeItems:'center',background:'transparent',border:'none',borderRadius:8,cursor:'pointer',color:'var(--ink-600)' }}>
+          <Icon d={I.settings} size={14} />
+        </button>
       </div>
     </aside>
   );
