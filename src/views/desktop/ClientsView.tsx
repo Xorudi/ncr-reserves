@@ -28,7 +28,7 @@ export default function ClientsView() {
       if (query && !c.name.toLowerCase().includes(query.toLowerCase()) && !c.phone.includes(query)) return false;
       return true;
     }).sort((a,b) => b.visits - a.visits);
-  }, [selectedBusiness, query, filter]);
+  }, [selectedBusiness, query, filter, customers]);
 
   return (
     <div style={{ flex:1,display:'flex',height:'100%',overflow:'hidden' }}>
