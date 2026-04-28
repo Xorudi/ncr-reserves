@@ -10,7 +10,7 @@ import StaffView from './StaffView';
 import CalendarView from './CalendarView';
 import SettingsView from './SettingsView';
 import LoginView from './LoginView';
-import { ConfirmReservationModal, CancelReservationModal, WaitlistModal } from '@/components/desktop/Modals';
+import { ConfirmReservationModal, CancelReservationModal, WaitlistModal, BlockTableModal, MergeTablesModal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, getStats } from '@/data/mockData';
 
@@ -22,6 +22,8 @@ export default function DesktopShell() {
     confirmModalRes, setConfirmModalRes,
     cancelModalRes, setCancelModalRes,
     showWaitlist, setShowWaitlist,
+    blockModalTable, setBlockModalTable,
+    mergeModalTable, setMergeModalTable,
   } = useAppStore();
 
   const [loggedIn, setLoggedIn] = useState(false);
@@ -103,6 +105,18 @@ export default function DesktopShell() {
       <WaitlistModal
         open={showWaitlist}
         onClose={() => setShowWaitlist(false)}
+      />
+      <BlockTableModal
+        open={blockModalTable !== null}
+        table={blockModalTable}
+        onClose={() => setBlockModalTable(null)}
+        onConfirm={() => setBlockModalTable(null)}
+      />
+      <MergeTablesModal
+        open={mergeModalTable !== null}
+        primary={mergeModalTable}
+        onClose={() => setMergeModalTable(null)}
+        onConfirm={() => setMergeModalTable(null)}
       />
     </div>
   );

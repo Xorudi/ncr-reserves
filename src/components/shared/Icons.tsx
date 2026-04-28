@@ -24,6 +24,10 @@ export const I = {
   arrowR:   <path d="M5 12h14M12 5l7 7-7 7" />,
   home:     <><path d="M3 12l9-9 9 9" /><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10" /></>,
   sparkle:  <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.64 5.64l2.83 2.83M15.54 15.54l2.83 2.83M5.64 18.36l2.83-2.83M15.54 8.46l2.83-2.83" />,
+  eye:      <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>,
+  move:     <><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3" /><path d="M2 12h20M12 2v20" /></>,
+  merge:    <><path d="M18 21V3M6 3v5a2 2 0 0 0 2 2h4a2 2 0 0 1 2 2v9" /><path d="M6 21l-3-3 3-3" /></>,
+  lock:     <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
 };
 
 interface IconProps { d: React.ReactNode; size?: number; stroke?: number; fill?: string; }
