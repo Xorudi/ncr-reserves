@@ -30,6 +30,7 @@ interface AppState {
   setShowWalkin: (v: boolean) => void;
   updateReservationStatus: (id: string, status: ReservationStatus) => void;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
+  addCustomer: (c: Omit<Customer, 'id'>) => void;
 
   // Modal setters
   setConfirmModalRes: (v: any | null) => void;
@@ -77,6 +78,11 @@ export const useAppStore = create<AppState>((set) => ({
   addReservation: (res) =>
     set((s) => ({
       reservations: [...s.reservations, { ...res, id: `${res.bizId}-${res.time}-${res.name}-${Date.now()}` }],
+    })),
+
+  addCustomer: (cust) =>
+    set((s) => ({
+      customers: [...s.customers, { ...cust, id: `cust-${Date.now()}` }],
     })),
 
   // Modal setters

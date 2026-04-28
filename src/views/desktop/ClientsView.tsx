@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip, Tag } from '@/components/shared/StatusChip';
 import { CUSTOMERS, BUSINESSES, initials, avIdx } from '@/data/mockData';
+import { Modal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
-import type { Customer } from '@/types';
+import type { Customer, BusinessId } from '@/types';
 
 function fmtDate(iso: string) {
   const [y,m,d] = iso.split('-');
@@ -12,13 +13,14 @@ function fmtDate(iso: string) {
 }
 
 export default function ClientsView() {
-  const { selectedBusiness } = useAppStore();
+  const { selectedBusiness, customers, addCustomer } = useAppStore();
   const [query, setQuery]   = useState('');
   const [filter, setFilter] = useState('all');
+  const [showNewClient, setShowNewClient] = useState(false);
   const { selectedCustomer, setSelectedCustomer } = useAppStore();
 
   const filtered = useMemo(() => {
-    return CUSTOMERS.filter(c => {
+    return customers.filter(c => {
       if (!c.biz.includes(selectedBusiness as any)) return false;
       if (filter === 'vip'     && !c.tags.includes('vip'))     return false;
       if (filter === 'regular' && !c.tags.includes('regular')) return false;
@@ -46,7 +48,8 @@ export default function ClientsView() {
           </div>
           <div style={{ flex:1 }} />
           <span style={{ fontSize:12,color:'var(--ink-500)' }}>{filtered.length} clients</span>
-          <button style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 12px',fontSize:12.5,fontWeight:550,background:'var(--terracotta-600)',color:'white',border:'none',borderRadius:8,cursor:'pointer',fontFamily:'inherit' }}>
+          <button onClick={() => setShowNewClient(true)}
+            style={{ display:'flex',alignItems:'center',gap:6,padding:'7px 12px',fontSize:12.5,fontWeight:550,background:'var(--terracotta-600)',color:'white',border:'none',borderRadius:8,cursor:'pointer',fontFamily:'inherit' }}>
             <Icon d={I.plus} size={13} /> Nou client
           </button>
         </div>
@@ -107,6 +110,21 @@ export default function ClientsView() {
 
       {/* Detail panel */}
       {selectedCustomer && <ClientDetailPanel cust={selectedCustomer} onClose={() => setSelectedCustomer(null)} />}
+
+      {/* New client modal */}
+      <NewClientModal
+        open={showNewClient}
+        onClose={() => setShowNewClient(false)}
+        onSave={(data) => {
+          addCustomer({
+            ...data,
+            visits: 0,
+            spend: 0,
+            lastVisit: new Date().toISOString().slice(0, 10),
+          });
+          setShowNewClient(false);
+        }}
+      />
     </div>
   );
 }
@@ -213,4 +231,153 @@ function PrefRow({ icon, text, warn }: { icon:string; text:string; warn?:boolean
       <span>{icon}</span><span>{text}</span>
     </div>
   );
+}
+
+// ─── New Client Modal ─────────────────────────────────────────
+interface NewClientData {
+  name: string; phone: string; email: string;
+  biz: BusinessId[]; tags: string[]; notes: string;
+}
+function NewClientModal({ open, onClose, onSave }: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (data: NewClientData) => void;
+}) {
+  const [name,  setName]  = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [biz,   setBiz]   = useState<BusinessId[]>([]);
+  const [tags,  setTags]  = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
+  const [errors, setErrors] = useState<Record<string,string>>({});
+
+  function toggleBiz(id: BusinessId) {
+    setBiz(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+  }
+  function toggleTag(t: string) {
+    setTags(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]);
+  }
+  function handleSave() {
+    const errs: Record<string,string> = {};
+    if (!name.trim())  errs.name  = 'El nom és obligatori';
+    if (!phone.trim()) errs.phone = 'El telèfon és obligatori';
+    if (biz.length === 0) errs.biz = 'Selecciona almenys un negoci';
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    onSave({ name: name.trim(), phone: phone.trim(), email: email.trim(), biz, tags, notes: notes.trim() });
+    // Reset
+    setName(''); setPhone(''); setEmail(''); setBiz([]); setTags([]); setNotes(''); setErrors({});
+  }
+  function handleClose() {
+    setName(''); setPhone(''); setEmail(''); setBiz([]); setTags([]); setNotes(''); setErrors({});
+    onClose();
+  }
+
+  const inputStyle = (err?: string): React.CSSProperties => ({
+    width: '100%', padding: '9px 12px',
+    border: `1px solid ${err ? 'var(--rose-500)' : 'rgba(60,40,20,.14)'}`,
+    borderRadius: 8, fontFamily: 'inherit', fontSize: 13,
+    background: 'var(--paper)', outline: 'none', color: 'var(--ink-900)',
+    boxSizing: 'border-box',
+  });
+
+  return (
+    <Modal open={open} onClose={handleClose} title="Nou client" width={500}
+      footer={<>
+        <button onClick={handleClose}
+          style={{ padding:'7px 14px',background:'transparent',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:550,color:'var(--ink-800)' }}>
+          Cancel·lar
+        </button>
+        <button onClick={handleSave}
+          style={{ padding:'7px 16px',background:'var(--terracotta-600)',color:'white',border:'none',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:550,display:'flex',alignItems:'center',gap:6 }}>
+          <Icon d={I.check} size={13} /> Crear client
+        </button>
+      </>}>
+
+      {/* Nom */}
+      <div style={{ marginBottom:14 }}>
+        <FieldLabel required>Nom complet</FieldLabel>
+        <input value={name} onChange={e => setName(e.target.value)}
+          placeholder="Ex: Maria Puig Solà"
+          style={inputStyle(errors.name)} />
+        {errors.name && <ErrMsg>{errors.name}</ErrMsg>}
+      </div>
+
+      {/* Telèfon + Email */}
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:14 }}>
+        <div>
+          <FieldLabel required>Telèfon</FieldLabel>
+          <input value={phone} onChange={e => setPhone(e.target.value)}
+            placeholder="612 345 678" type="tel"
+            style={{ ...inputStyle(errors.phone), fontFamily:'var(--font-mono)' }} />
+          {errors.phone && <ErrMsg>{errors.phone}</ErrMsg>}
+        </div>
+        <div>
+          <FieldLabel>Email</FieldLabel>
+          <input value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="correu@exemple.com" type="email"
+            style={inputStyle()} />
+        </div>
+      </div>
+
+      {/* Negocis */}
+      <div style={{ marginBottom:14 }}>
+        <FieldLabel required>Negoci(s)</FieldLabel>
+        <div style={{ display:'flex',gap:8 }}>
+          {BUSINESSES.map(b => {
+            const on = biz.includes(b.id as BusinessId);
+            return (
+              <button key={b.id} onClick={() => toggleBiz(b.id as BusinessId)}
+                style={{ flex:1,display:'flex',alignItems:'center',gap:8,padding:'9px 12px',borderRadius:10,border:on?`2px solid ${b.hue}`:'1.5px solid rgba(60,40,20,.14)',background:on?b.hueSoft:'var(--paper)',cursor:'pointer',fontFamily:'inherit',textAlign:'left' }}>
+                <span style={{ width:24,height:24,borderRadius:6,background:b.hueSoft,color:b.hue,display:'grid',placeItems:'center',fontSize:10,fontWeight:700,fontFamily:'var(--font-serif)',flexShrink:0 }}>{b.monogram}</span>
+                <span style={{ fontSize:12.5,fontWeight:on?600:500,color:on?'var(--ink-900)':'var(--ink-700)' }}>{b.name}</span>
+              </button>
+            );
+          })}
+        </div>
+        {errors.biz && <ErrMsg>{errors.biz}</ErrMsg>}
+      </div>
+
+      {/* Etiquetes */}
+      <div style={{ marginBottom:14 }}>
+        <FieldLabel>Etiquetes</FieldLabel>
+        <div style={{ display:'flex',gap:6,flexWrap:'wrap' }}>
+          {[
+            { id:'vip',      label:'⭐ VIP' },
+            { id:'regular',  label:'🔁 Habitual' },
+            { id:'birthday', label:'🎂 Aniversari' },
+            { id:'allergy',  label:'⚠️ Al·lèrgia' },
+          ].map(t => {
+            const on = tags.includes(t.id);
+            return (
+              <button key={t.id} onClick={() => toggleTag(t.id)}
+                style={{ padding:'6px 12px',borderRadius:999,border:on?'none':'1px solid rgba(60,40,20,.14)',background:on?'var(--ink-900)':'transparent',color:on?'var(--cream)':'var(--ink-700)',cursor:'pointer',fontFamily:'inherit',fontSize:12.5,fontWeight:600 }}>
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div>
+        <FieldLabel>Notes internes</FieldLabel>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="Al·lèrgies, preferències de taula, altres observacions…"
+          rows={3}
+          style={{ ...inputStyle(), resize:'vertical', lineHeight:1.5 }} />
+      </div>
+    </Modal>
+  );
+}
+
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <div style={{ fontSize:10.5,fontWeight:700,letterSpacing:.06,color:'var(--ink-500)',textTransform:'uppercase',marginBottom:6 }}>
+      {children}{required && <span style={{ color:'var(--terracotta-600)',marginLeft:3 }}>*</span>}
+    </div>
+  );
+}
+function ErrMsg({ children }: { children: React.ReactNode }) {
+  return <div style={{ fontSize:11,color:'var(--rose-600)',marginTop:4 }}>{children}</div>;
 }
