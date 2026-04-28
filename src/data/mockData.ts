@@ -1,4 +1,4 @@
-import type { Business, Reservation, Customer, FloorPlan, BusinessStats, BusinessId } from '@/types';
+import type { Business, Reservation, Customer, FloorPlan, BusinessStats, BusinessId, ShiftNote, AppEvent } from '@/types';
 
 export const BUSINESSES: Business[] = [
   { id: 'ganxo',   name: 'El Ganxo',   kind: 'Restaurant · Peix i marisc', hue: '#a84a2a', hueSoft: '#f7e2d2', monogram: 'EG', address: 'Passeig Marítim 14',       capacity: 64 },
@@ -7,7 +7,7 @@ export const BUSINESSES: Business[] = [
 ];
 
 function r(bizId: BusinessId, time: string, name: string, pax: number, status: Reservation['status'], extras: Partial<Reservation> = {}): Reservation {
-  return { id: `${bizId}-${time}-${name}`, bizId, time, name, pax, status, ...extras };
+  return { id: `${bizId}-${time}-${name}`, bizId, date: '2026-04-24', time, name, pax, status, ...extras };
 }
 
 export const RESERVATIONS: Reservation[] = [
@@ -307,3 +307,37 @@ export const APRIL_2026 = (() => {
   }
   return days;
 })();
+
+// ─── Shift Notes ──────────────────────────────────────────────
+// createdAt relatiu al "ara" del demo (24 abr 2026 ~14:30)
+const _demoNow = new Date(2026, 3, 24, 14, 30).getTime();
+
+export const SHIFT_NOTES: ShiftNote[] = [
+  { id:'sn1', bizId:'ganxo',   date:'2026-04-24', author:'Pep · Cuiner', createdAt: _demoNow - 34*60*1000,  body:'Avui no hi ha rap. Canviar la recomanació per llenguado a la planxa.' },
+  { id:'sn2', bizId:'ganxo',   date:'2026-04-24', author:'Èlia · Sala',  createdAt: _demoNow - 2*3600*1000, body:'Taula 7 té la pota coixa — evitar grups grans fins que vingui el fuster.' },
+  { id:'sn3', bizId:'pista',   date:'2026-04-24', author:'Quim · Enc.',  createdAt: _demoNow - 20*60*1000,  body:'Pista 3 tancada per manteniment fins les 16h.' },
+  { id:'sn4', bizId:'esquitx', date:'2026-04-24', author:'Berta · Sala', createdAt: _demoNow - 45*60*1000,  body:"Manca gel picat. Trucar al proveïdor." },
+];
+
+// ─── App Events ───────────────────────────────────────────────
+export const APP_EVENTS: AppEvent[] = [
+  { id:'ev1', bizId:'ganxo',   date:'2026-04-30', title:"Sopar de fi de curs — Institut Vilamar", description:'28 pax · menú tancat · sala privada', kind:'event' },
+  { id:'ev2', bizId:'ganxo',   date:'2026-05-01', title:'Festiu · horari reduït', description:'Només migdia · cuina fins les 15:30', kind:'festiu' },
+  { id:'ev3', bizId:'pista',   date:'2026-04-26', title:'Torneig de pàdel intern', description:'Ocupació completa de pistes 9:00–14:00', kind:'event' },
+  { id:'ev4', bizId:'esquitx', date:'2026-04-25', title:'Presentació de vins — Celler Marçal', description:'Aforament limitat a 20 persones. Cata guiada.', kind:'event' },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────
+export function timeAgo(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1)  return 'ara mateix';
+  if (mins < 60) return `fa ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `fa ${hrs} h`;
+  return `fa ${Math.floor(hrs / 24)} d`;
+}
+
+export function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}

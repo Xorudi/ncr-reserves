@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
-import { BUSINESSES } from '@/data/mockData';
+import { BUSINESSES, isoDate } from '@/data/mockData';
 
 const SOURCES = ['Telèfon','WhatsApp','Web','Booking','TheFork','Instagram','App'];
 
 export default function ReservationForm({ onClose }: { onClose?: () => void }) {
-  const { selectedBusiness, addReservation } = useAppStore();
+  const { selectedBusiness, selectedDate, addReservation } = useAppStore();
   const biz = BUSINESSES.find(b => b.id === selectedBusiness)!;
 
   const [name,   setName]   = useState('');
@@ -19,7 +19,7 @@ export default function ReservationForm({ onClose }: { onClose?: () => void }) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !time) return;
-    addReservation({ name, phone, pax, time, source, notes, bizId: selectedBusiness, status:'confirmed', tags:[] });
+    addReservation({ name, phone, pax, time, source, notes, bizId: selectedBusiness, status:'confirmed', tags:[], date: isoDate(selectedDate) });
     onClose?.();
   }
 

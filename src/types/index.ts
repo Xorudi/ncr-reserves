@@ -16,7 +16,9 @@ export interface Business {
 
 export interface Reservation {
   id: string;
-  time: string;
+  bizId: BusinessId;
+  date: string;       // YYYY-MM-DD
+  time: string;       // HH:MM
   name: string;
   pax: number;
   status: ReservationStatus;
@@ -24,7 +26,6 @@ export interface Reservation {
   notes?: string;
   source?: string;
   tags?: string[];
-  bizId: BusinessId;
 }
 
 export interface Customer {
@@ -78,4 +79,23 @@ export interface BusinessStats {
   peak: number;
   occupancyPct: number;
   level: 'low' | 'medium' | 'high';
+}
+
+export interface ShiftNote {
+  id: string;
+  bizId: BusinessId;
+  date: string;        // YYYY-MM-DD
+  author: string;
+  body: string;
+  createdAt: number;   // Date.now() timestamp
+}
+
+export interface AppEvent {
+  id: string;
+  bizId: BusinessId;
+  date: string;        // YYYY-MM-DD
+  title: string;
+  time?: string;
+  description?: string;
+  kind?: string;       // 'event' | 'festiu' | 'closure' | 'promo'
 }

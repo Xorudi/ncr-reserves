@@ -82,7 +82,7 @@ export function ServiceBlock({ label, sub, ico, list, selectedId, onSelect, nowT
       </button>
 
       {open && (
-        <div style={{ padding:'6px 0' }}>
+        <div className="scroll" style={{ padding:'6px 0', maxHeight:460, overflowY:'auto' }}>
           {groups.map(([time, rows]) => {
             const isNow = time === nowTime;
             return (
