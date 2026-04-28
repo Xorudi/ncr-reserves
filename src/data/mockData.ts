@@ -221,3 +221,89 @@ export const STATE_LABELS: Record<string, string> = {
   pending: 'Pendent', confirmed: 'Confirmada', seated: 'A taula',
   completed: 'Acabada', cancelled: "Cancel·lada", noshow: 'No ha vingut',
 };
+
+export const ROLES: Record<string, { label: string; hue: string; bg: string }> = {
+  encarregat: { label: 'Encarregat',         hue: '#8a4a2a', bg: '#f3e3d6' },
+  sala:       { label: 'Cambrer/a sala',     hue: '#5d6e3a', bg: '#e7ecd3' },
+  terrassa:   { label: 'Cambrer/a terrassa', hue: '#3a6b8a', bg: '#d4e5ee' },
+  barra:      { label: 'Cambrer/a barra',    hue: '#7a4288', bg: '#ecdaf0' },
+  bar:        { label: 'Cambrer/a bar',      hue: '#a8662b', bg: '#f4e2cf' },
+  cuina:      { label: 'Cuina',              hue: '#7d4a3a', bg: '#efdcd3' },
+  capCuina:   { label: 'Cap de cuina',       hue: '#552d20', bg: '#e6d3c8' },
+  pizzer:     { label: 'Pizzer',             hue: '#aa3d2e', bg: '#f3d7d1' },
+};
+
+export const SHIFTS = [
+  { id: 'M', label: 'Migdia', range: '12:00 – 16:00' },
+  { id: 'N', label: 'Nit',    range: '20:00 – 00:00' },
+];
+
+export interface StaffMember {
+  id: string; name: string; role: string; biz: string[];
+  clockedIn: boolean; startedAt: string | null;
+}
+
+export const STAFF: StaffMember[] = [
+  { id:'s1',  name:'Núria Vila',     role:'encarregat', biz:['ganxo'],   clockedIn:true,  startedAt:'11:48' },
+  { id:'s2',  name:'Pol Esteve',     role:'sala',       biz:['ganxo'],   clockedIn:true,  startedAt:'11:55' },
+  { id:'s3',  name:'Aina Llopart',   role:'sala',       biz:['ganxo'],   clockedIn:true,  startedAt:'12:02' },
+  { id:'s4',  name:'Genís Roca',     role:'terrassa',   biz:['ganxo'],   clockedIn:true,  startedAt:'11:50' },
+  { id:'s5',  name:'Marta Cusidó',   role:'terrassa',   biz:['ganxo'],   clockedIn:false, startedAt:null    },
+  { id:'s6',  name:'Bernat Solé',    role:'barra',      biz:['ganxo'],   clockedIn:true,  startedAt:'11:45' },
+  { id:'s7',  name:'Roger Mas',      role:'capCuina',   biz:['ganxo'],   clockedIn:true,  startedAt:'10:30' },
+  { id:'s8',  name:'Carla Vives',    role:'cuina',      biz:['ganxo'],   clockedIn:true,  startedAt:'10:45' },
+  { id:'s9',  name:'Jordi Esquius',  role:'cuina',      biz:['ganxo'],   clockedIn:true,  startedAt:'10:50' },
+  { id:'s10', name:'Mireia Pi',      role:'pizzer',     biz:['ganxo'],   clockedIn:false, startedAt:null    },
+  { id:'s11', name:'Quim Tena',      role:'encarregat', biz:['pista'],   clockedIn:true,  startedAt:'11:30' },
+  { id:'s12', name:'Laia Codina',    role:'bar',        biz:['pista'],   clockedIn:true,  startedAt:'11:40' },
+  { id:'s13', name:'Arnau Pons',     role:'bar',        biz:['pista'],   clockedIn:false, startedAt:null    },
+  { id:'s14', name:'Berta Olivella', role:'encarregat', biz:['esquitx'], clockedIn:false, startedAt:null    },
+  { id:'s15', name:'Iván Martín',    role:'barra',      biz:['esquitx'], clockedIn:false, startedAt:null    },
+  { id:'s16', name:'Sara Bonet',     role:'sala',       biz:['esquitx'], clockedIn:false, startedAt:null    },
+];
+
+export const WEEK_SCHEDULE: Record<string, Record<number, { M: string[]; N: string[] }>> = {
+  ganxo: {
+    0: { M:['s2','s4','s7','s8'],                N:['s1','s3','s6','s9','s10'] },
+    1: { M:['s1','s3','s5','s7','s9'],           N:['s2','s6','s8','s10'] },
+    2: { M:['s2','s4','s7','s8'],                N:['s1','s5','s6','s9'] },
+    3: { M:['s1','s2','s3','s7','s8','s9'],      N:['s4','s5','s6','s10'] },
+    4: { M:['s1','s2','s4','s6','s7','s8','s9'], N:['s1','s3','s5','s6','s9','s10'] },
+    5: { M:['s1','s2','s3','s4','s5','s7','s8','s9','s10'], N:['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10'] },
+    6: { M:['s1','s2','s3','s4','s5','s7','s8','s9'], N:[] },
+  },
+  pista: {
+    0:{M:['s11','s12'],N:['s11','s13']}, 1:{M:['s11','s13'],N:['s12']},
+    2:{M:['s12'],N:['s11','s13']},       3:{M:['s11','s13'],N:['s12']},
+    4:{M:['s11','s12'],N:['s11','s12','s13']},
+    5:{M:['s11','s12','s13'],N:['s11','s12','s13']}, 6:{M:['s12'],N:[]},
+  },
+  esquitx: {
+    0:{M:[],N:['s14','s15']}, 1:{M:[],N:['s14','s16']}, 2:{M:[],N:['s15','s16']},
+    3:{M:[],N:['s14','s15','s16']}, 4:{M:[],N:['s14','s15','s16']},
+    5:{M:[],N:['s14','s15','s16']}, 6:{M:[],N:['s14']},
+  },
+};
+
+export const DAY_NAMES       = ['Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte','Diumenge'];
+export const DAY_NAMES_SHORT = ['dl','dt','dc','dj','dv','ds','dg'];
+export const TODAY_DOW = 4;
+
+export const WAITLIST = [
+  { id:'w1', name:'Família Pérez', pax:4, since:'13:42', wait:18, phone:'+34 661 22 33 44' },
+  { id:'w2', name:'Adrià + 1',     pax:2, since:'13:55', wait:5,  phone:'+34 622 11 09 88' },
+];
+
+export const APRIL_2026 = (() => {
+  const days = [];
+  for (let d = 1; d <= 30; d++) {
+    const dow = (d + 2) % 7;
+    const isWeekend = dow === 4 || dow === 5 || dow === 6;
+    let count = 8 + Math.floor(Math.sin(d * 0.7) * 6) + (isWeekend ? 18 : 0);
+    if (d === 23) count = 64;
+    if (d === 24) count = 42;
+    if (d === 25) count = 56;
+    days.push({ day: d, dow, count, special: d === 23 ? 'Sant Jordi' : null });
+  }
+  return days;
+})();

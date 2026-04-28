@@ -6,6 +6,11 @@ import ReservationForm from './ReservationForm';
 import FloorPlanView from './FloorPlanView';
 import WalkinView from './WalkinView';
 import ClientsView from './ClientsView';
+import StaffView from './StaffView';
+import CalendarView from './CalendarView';
+import SettingsView from './SettingsView';
+import LoginView from './LoginView';
+import { ConfirmReservationModal, CancelReservationModal, WaitlistModal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, getStats } from '@/data/mockData';
 
@@ -14,28 +19,48 @@ export default function DesktopShell() {
     selectedBusiness, setSelectedBusiness,
     selectedReservation, setSelectedReservation,
     showWalkin, setShowWalkin,
+    confirmModalRes, setConfirmModalRes,
+    cancelModalRes, setCancelModalRes,
+    showWaitlist, setShowWaitlist,
   } = useAppStore();
 
-  const [page, setPage] = useState<'today'|'floor'|'clients'|'history'>('today');
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [page, setPage] = useState<string>('today');
   const [showForm, setShowForm] = useState(false);
 
   const biz   = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const stats = getStats(selectedBusiness);
 
+  if (!loggedIn) {
+    return (
+      <div style={{ width:'100vw', height:'100vh' }}>
+        <LoginView onLogin={(user) => { setCurrentUser(user); setLoggedIn(true); }} />
+      </div>
+    );
+  }
+
   function handleNavigate(p: string) {
-    setPage(p as any);
+    setPage(p);
     setSelectedReservation(null);
     setShowForm(false);
     setShowWalkin(false);
   }
 
   function renderMain() {
-    if (showWalkin)   return <WalkinView onClose={() => setShowWalkin(false)} />;
-    if (showForm)     return <ReservationForm onClose={() => setShowForm(false)} />;
-    if (page === 'floor')   return <FloorPlanView />;
-    if (page === 'clients') return <ClientsView />;
+    if (showWalkin)          return <WalkinView onClose={() => setShowWalkin(false)} />;
+    if (showForm)            return <ReservationForm onClose={() => setShowForm(false)} />;
+    if (page === 'floor')    return <FloorPlanView />;
+    if (page === 'clients')  return <ClientsView />;
+    if (page === 'staff')    return <StaffView />;
+    if (page === 'calendar') return <CalendarView />;
+    if (page === 'settings') return <SettingsView />;
     return <DailyView />;
   }
+
+  const hideRightPanel = showWalkin || showForm
+    || page === 'clients' || page === 'floor'
+    || page === 'staff' || page === 'calendar' || page === 'settings';
 
   return (
     <div style={{ display:'flex', height:'100vh', background:'var(--cream)', overflow:'hidden' }}>
@@ -54,13 +79,31 @@ export default function DesktopShell() {
       </main>
 
       {/* Right panel — only on daily/today when not in walkin/form */}
-      {!showWalkin && !showForm && page !== 'clients' && page !== 'floor' && (
+      {!hideRightPanel && (
         <RightPanel
           biz={biz}
           selectedRes={selectedReservation}
           onClose={() => setSelectedReservation(null)}
         />
       )}
+
+      {/* Modals */}
+      <ConfirmReservationModal
+        open={confirmModalRes !== null}
+        res={confirmModalRes}
+        onClose={() => setConfirmModalRes(null)}
+        onConfirm={() => setConfirmModalRes(null)}
+      />
+      <CancelReservationModal
+        open={cancelModalRes !== null}
+        res={cancelModalRes}
+        onClose={() => setCancelModalRes(null)}
+        onConfirm={() => setCancelModalRes(null)}
+      />
+      <WaitlistModal
+        open={showWaitlist}
+        onClose={() => setShowWaitlist(false)}
+      />
     </div>
   );
 }
