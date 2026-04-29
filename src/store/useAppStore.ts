@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { BusinessId, Reservation, Customer, ReservationStatus, ShiftNote, AppEvent } from '@/types';
-import { RESERVATIONS, CUSTOMERS, SHIFT_NOTES, APP_EVENTS } from '@/data/mockData';
+import type { BusinessId, Reservation, Customer, ReservationStatus, ShiftNote, AppEvent, FloorPlan, FloorTable, FloorZone } from '@/types';
+import { RESERVATIONS, CUSTOMERS, SHIFT_NOTES, APP_EVENTS, FLOOR_PLANS } from '@/data/mockData';
 
 interface AppState {
   selectedBusiness: BusinessId;
@@ -53,6 +53,16 @@ interface AppState {
   // Events CRUD
   addAppEvent: (e: Omit<AppEvent, 'id'>) => void;
   deleteAppEvent: (id: string) => void;
+
+  // Floor plans
+  floorPlans: Record<string, FloorPlan>;
+  setFloorPlan: (bizId: string, plan: FloorPlan) => void;
+  updateFloorTable: (bizId: string, tableId: string, updates: Partial<FloorTable>) => void;
+  addFloorTable: (bizId: string, table: FloorTable) => void;
+  deleteFloorTable: (bizId: string, tableId: string) => void;
+  updateFloorZone: (bizId: string, zoneId: string, updates: Partial<FloorZone>) => void;
+  addFloorZone: (bizId: string, zone: FloorZone) => void;
+  deleteFloorZone: (bizId: string, zoneId: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -138,4 +148,54 @@ export const useAppStore = create<AppState>((set) => ({
     })),
   deleteAppEvent: (id) =>
     set((s) => ({ appEvents: s.appEvents.filter((e) => e.id !== id) })),
+
+  // Floor plans
+  floorPlans: JSON.parse(JSON.stringify(FLOOR_PLANS)), // deep copy so edits don't mutate seed data
+  setFloorPlan: (bizId, plan) =>
+    set((s) => ({ floorPlans: { ...s.floorPlans, [bizId]: plan } })),
+  updateFloorTable: (bizId, tableId, updates) =>
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
+        tables: plan.tables.map(t => t.id === tableId ? { ...t, ...updates } : t),
+      }}};
+    }),
+  addFloorTable: (bizId, table) =>
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan, tables: [...plan.tables, table] }}};
+    }),
+  deleteFloorTable: (bizId, tableId) =>
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
+        tables: plan.tables.filter(t => t.id !== tableId),
+      }}};
+    }),
+  updateFloorZone: (bizId, zoneId, updates) =>
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
+        zones: plan.zones.map(z => z.id === zoneId ? { ...z, ...updates } : z),
+      }}};
+    }),
+  addFloorZone: (bizId, zone) =>
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan, zones: [...plan.zones, zone] }}};
+    }),
+  deleteFloorZone: (bizId, zoneId) =>
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
+        zones: plan.zones.filter(z => z.id !== zoneId),
+        tables: plan.tables.filter(t => t.zone !== zoneId),
+      }}};
+    }),
 }));
