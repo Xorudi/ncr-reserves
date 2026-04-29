@@ -535,7 +535,7 @@ export const EMPLOYEES: Employee[] = [
   { id:'e2', bizId:'ganxo',   fullName:'Aina',      initials:'AI', roleId:'er1', active:true, clockedIn:false, startedAt:null },
   { id:'e3', bizId:'ganxo',   fullName:'Arnau',     initials:'AR', roleId:'er2', active:true, clockedIn:false, startedAt:null },
   // ── La Pista (divendres): NINA fa torn M (10:00), la resta torn N ─
-  { id:'e4',  bizId:'pista',  fullName:'Mounir',    initials:'MO', roleId:'er3', active:true, clockedIn:false, startedAt:null },
+  { id:'e4',  bizId:'pista',  fullName:'Mounir',    initials:'MO', roleId:'er6', active:true, clockedIn:false, startedAt:null },
   { id:'e5',  bizId:'pista',  fullName:'Joan',      initials:'JN', roleId:'er4', active:true, clockedIn:false, startedAt:null },
   { id:'e6',  bizId:'pista',  fullName:'Ahmed',     initials:'AH', roleId:'er5', active:true, clockedIn:false, startedAt:null },
   { id:'e7',  bizId:'pista',  fullName:'Alejandro', initials:'AL', roleId:'er5', active:true, clockedIn:false, startedAt:null },
@@ -544,7 +544,7 @@ export const EMPLOYEES: Employee[] = [
   { id:'e10', bizId:'pista',  fullName:'Sara',      initials:'SA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
   { id:'e11', bizId:'pista',  fullName:'Dana',      initials:'DA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
   { id:'e12', bizId:'pista',  fullName:'Bene',      initials:'BE', roleId:'er7', active:true, clockedIn:false, startedAt:null },
-  { id:'e13', bizId:'pista',  fullName:'Jordi',     initials:'JO', roleId:'er7', active:true, clockedIn:false, startedAt:null },
+  { id:'e13', bizId:'pista',  fullName:'Jordi',     initials:'JO', roleId:'er3', active:true, clockedIn:false, startedAt:null },
   { id:'e14', bizId:'pista',  fullName:'Biel',      initials:'BI', roleId:'er8', active:true, clockedIn:false, startedAt:null },
   { id:'e15', bizId:'pista',  fullName:'Iker',      initials:'IK', roleId:'er8', active:true, clockedIn:false, startedAt:null },
   // ── L'Esquitx (divendres): Guillermo, Christian, Vanessa, Adriana fitxats
