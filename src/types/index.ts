@@ -17,8 +17,8 @@ export interface Business {
 export interface Reservation {
   id: string;
   bizId: BusinessId;
-  date: string;       // YYYY-MM-DD
-  time: string;       // HH:MM
+  date: string;
+  time: string;
   name: string;
   pax: number;
   status: ReservationStatus;
@@ -44,16 +44,18 @@ export interface Customer {
 export interface FloorZone {
   id: string;
   label: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+  order: number;
+  // Legacy canvas positioning (optional — used in old single-canvas mode)
+  x?: number; y?: number; w?: number; h?: number;
 }
 
 export interface FloorTable {
   id: string;
+  name?: string;      // display name (e.g. "10-bis", "T4"); falls back to id
   x: number;
   y: number;
+  w?: number;
+  h?: number;
   shape: TableShape;
   cap: number;
   zone: string;
@@ -61,8 +63,6 @@ export interface FloorTable {
   res?: string;
   time?: string;
   note?: string;
-  w?: number;
-  h?: number;
   reservedLater?: boolean;
 }
 
@@ -84,18 +84,18 @@ export interface BusinessStats {
 export interface ShiftNote {
   id: string;
   bizId: BusinessId;
-  date: string;        // YYYY-MM-DD
+  date: string;
   author: string;
   body: string;
-  createdAt: number;   // Date.now() timestamp
+  createdAt: number;
 }
 
 export interface AppEvent {
   id: string;
   bizId: BusinessId;
-  date: string;        // YYYY-MM-DD
+  date: string;
   title: string;
   time?: string;
   description?: string;
-  kind?: string;       // 'event' | 'festiu' | 'closure' | 'promo'
+  kind?: string;
 }
