@@ -508,74 +508,88 @@ export const BIZ_SHIFTS: Record<string, BizShift[]> = {
 };
 
 // ─── Employee roles per negoci ────────────────────────────────────────────────
+// Rols derivats de NCR Serveis. Ganxo=pub, Pista+Esquitx=bar-restaurant.
 export const EMPLOYEE_ROLES: EmployeeRole[] = [
-  // ganxo
-  { id:'er1',  bizId:'ganxo',   name:'Encarregat',         color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
-  { id:'er2',  bizId:'ganxo',   name:'Cambrer/a sala',     color:'#e7ecd3', textColor:'#5d6e3a', order:1, active:true },
-  { id:'er3',  bizId:'ganxo',   name:'Cambrer/a terrassa', color:'#d4e5ee', textColor:'#3a6b8a', order:2, active:true },
-  { id:'er4',  bizId:'ganxo',   name:'Cambrer/a barra',    color:'#ecdaf0', textColor:'#7a4288', order:3, active:true },
-  { id:'er5',  bizId:'ganxo',   name:'Cap de cuina',       color:'#e6d3c8', textColor:'#552d20', order:4, active:true },
-  { id:'er6',  bizId:'ganxo',   name:'Cuina',              color:'#efdcd3', textColor:'#7d4a3a', order:5, active:true },
-  { id:'er7',  bizId:'ganxo',   name:'Pizzer',             color:'#f3d7d1', textColor:'#aa3d2e', order:6, active:true },
-  // pista
-  { id:'er8',  bizId:'pista',   name:'Encarregat',         color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
-  { id:'er9',  bizId:'pista',   name:'Cambrer/a bar',      color:'#f4e2cf', textColor:'#a8662b', order:1, active:true },
-  { id:'er10', bizId:'pista',   name:'Runner',             color:'#e7ecd3', textColor:'#5d6e3a', order:2, active:true },
-  // esquitx
-  { id:'er11', bizId:'esquitx', name:'Encarregat',         color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
-  { id:'er12', bizId:'esquitx', name:'Cambrer/a barra',    color:'#ecdaf0', textColor:'#7a4288', order:1, active:true },
-  { id:'er13', bizId:'esquitx', name:'Cambrer/a sala',     color:'#e7ecd3', textColor:'#5d6e3a', order:2, active:true },
+  // ── El Ganxo (pub/discoteca) ──────────────────────────────────────
+  { id:'er1', bizId:'ganxo',   name:'Encarregat/da', color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
+  { id:'er2', bizId:'ganxo',   name:'Cambrer/a',     color:'#d4e5ee', textColor:'#3a6b8a', order:1, active:true },
+  // ── La Pista (bar-restaurant + pàdel) ────────────────────────────
+  { id:'er3', bizId:'pista',   name:'Encarregat/da', color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
+  { id:'er4', bizId:'pista',   name:'Cap de cuina',  color:'#e6d3c8', textColor:'#552d20', order:1, active:true },
+  { id:'er5', bizId:'pista',   name:'Cuiner/a',      color:'#efdcd3', textColor:'#7d4a3a', order:2, active:true },
+  { id:'er6', bizId:'pista',   name:'Cambrer/a sala',color:'#e7ecd3', textColor:'#5d6e3a', order:3, active:true },
+  { id:'er7', bizId:'pista',   name:'Cambrer/a bar', color:'#f4e2cf', textColor:'#a8662b', order:4, active:true },
+  { id:'er8', bizId:'pista',   name:'Runner',        color:'#daeee7', textColor:'#2e6e5a', order:5, active:true },
+  // ── L'Esquitx (bar-restaurant) ───────────────────────────────────
+  { id:'er9',  bizId:'esquitx', name:'Encarregat/da', color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
+  { id:'er10', bizId:'esquitx', name:'Cap de cuina',  color:'#e6d3c8', textColor:'#552d20', order:1, active:true },
+  { id:'er11', bizId:'esquitx', name:'Cuiner/a',      color:'#efdcd3', textColor:'#7d4a3a', order:2, active:true },
+  { id:'er12', bizId:'esquitx', name:'Cambrer/a',     color:'#ecdaf0', textColor:'#7a4288', order:3, active:true },
 ];
 
-// ─── Employees ────────────────────────────────────────────────────────────────
+// ─── Employees (noms reals de NCR Serveis) ────────────────────────────────────
 export const EMPLOYEES: Employee[] = [
-  // ganxo
-  { id:'e1',  bizId:'ganxo',   fullName:'Núria Vila',     initials:'NV', roleId:'er1',  active:true,  clockedIn:true,  startedAt:'11:48', phone:'+34 600 11 22 33', email:'nuria@elganxo.cat' },
-  { id:'e2',  bizId:'ganxo',   fullName:'Pol Esteve',     initials:'PE', roleId:'er2',  active:true,  clockedIn:true,  startedAt:'11:55' },
-  { id:'e3',  bizId:'ganxo',   fullName:'Aina Llopart',   initials:'AL', roleId:'er2',  active:true,  clockedIn:true,  startedAt:'12:02' },
-  { id:'e4',  bizId:'ganxo',   fullName:'Genís Roca',     initials:'GR', roleId:'er3',  active:true,  clockedIn:true,  startedAt:'11:50' },
-  { id:'e5',  bizId:'ganxo',   fullName:'Marta Cusidó',   initials:'MC', roleId:'er3',  active:true,  clockedIn:false, startedAt:null },
-  { id:'e6',  bizId:'ganxo',   fullName:'Bernat Solé',    initials:'BS', roleId:'er4',  active:true,  clockedIn:true,  startedAt:'11:45' },
-  { id:'e7',  bizId:'ganxo',   fullName:'Roger Mas',      initials:'RM', roleId:'er5',  active:true,  clockedIn:true,  startedAt:'10:30' },
-  { id:'e8',  bizId:'ganxo',   fullName:'Carla Vives',    initials:'CV', roleId:'er6',  active:true,  clockedIn:true,  startedAt:'10:45' },
-  { id:'e9',  bizId:'ganxo',   fullName:'Jordi Esquius',  initials:'JE', roleId:'er6',  active:true,  clockedIn:true,  startedAt:'10:50' },
-  { id:'e10', bizId:'ganxo',   fullName:'Mireia Pi',      initials:'MP', roleId:'er7',  active:true,  clockedIn:false, startedAt:null },
-  // pista
-  { id:'e11', bizId:'pista',   fullName:'Quim Tena',      initials:'QT', roleId:'er8',  active:true,  clockedIn:true,  startedAt:'11:30' },
-  { id:'e12', bizId:'pista',   fullName:'Laia Codina',    initials:'LC', roleId:'er9',  active:true,  clockedIn:true,  startedAt:'11:40' },
-  { id:'e13', bizId:'pista',   fullName:'Arnau Pons',     initials:'AP', roleId:'er9',  active:true,  clockedIn:false, startedAt:null },
-  // esquitx
-  { id:'e14', bizId:'esquitx', fullName:'Berta Olivella', initials:'BO', roleId:'er11', active:true,  clockedIn:false, startedAt:null },
-  { id:'e15', bizId:'esquitx', fullName:'Iván Martín',    initials:'IM', roleId:'er12', active:true,  clockedIn:false, startedAt:null },
-  { id:'e16', bizId:'esquitx', fullName:'Sara Bonet',     initials:'SB', roleId:'er13', active:true,  clockedIn:false, startedAt:null },
+  // ── El Ganxo: NIL (jefe), AINA (encargada), ARNAU (camarero) ────
+  // Torn de nit 20:30–04:00 — no fitxats de dia
+  { id:'e1', bizId:'ganxo',   fullName:'Nil',       initials:'NL', roleId:'er1', active:true, clockedIn:false, startedAt:null },
+  { id:'e2', bizId:'ganxo',   fullName:'Aina',      initials:'AI', roleId:'er1', active:true, clockedIn:false, startedAt:null },
+  { id:'e3', bizId:'ganxo',   fullName:'Arnau',     initials:'AR', roleId:'er2', active:true, clockedIn:false, startedAt:null },
+  // ── La Pista: 12 empleats ───────────────────────────────────────
+  { id:'e4',  bizId:'pista',  fullName:'Mounir',    initials:'MO', roleId:'er3', active:true, clockedIn:true,  startedAt:'09:05' },
+  { id:'e5',  bizId:'pista',  fullName:'Joan',      initials:'JN', roleId:'er4', active:true, clockedIn:true,  startedAt:'08:55' },
+  { id:'e6',  bizId:'pista',  fullName:'Ahmed',     initials:'AH', roleId:'er5', active:true, clockedIn:true,  startedAt:'09:10' },
+  { id:'e7',  bizId:'pista',  fullName:'Alejandro', initials:'AL', roleId:'er5', active:true, clockedIn:true,  startedAt:'09:00' },
+  { id:'e8',  bizId:'pista',  fullName:'Mariano',   initials:'MA', roleId:'er5', active:true, clockedIn:false, startedAt:null },
+  { id:'e9',  bizId:'pista',  fullName:'Nina',      initials:'NI', roleId:'er6', active:true, clockedIn:true,  startedAt:'09:15' },
+  { id:'e10', bizId:'pista',  fullName:'Sara',      initials:'SA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
+  { id:'e11', bizId:'pista',  fullName:'Dana',      initials:'DA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
+  { id:'e12', bizId:'pista',  fullName:'Bene',      initials:'BE', roleId:'er7', active:true, clockedIn:true,  startedAt:'09:20' },
+  { id:'e13', bizId:'pista',  fullName:'Jordi',     initials:'JO', roleId:'er7', active:true, clockedIn:false, startedAt:null },
+  { id:'e14', bizId:'pista',  fullName:'Biel',      initials:'BI', roleId:'er8', active:true, clockedIn:false, startedAt:null },
+  { id:'e15', bizId:'pista',  fullName:'Iker',      initials:'IK', roleId:'er8', active:true, clockedIn:false, startedAt:null },
+  // ── L'Esquitx: 9 empleats ───────────────────────────────────────
+  { id:'e16', bizId:'esquitx', fullName:'Jose Luis',  initials:'JL', roleId:'er9',  active:true, clockedIn:true,  startedAt:'09:00' },
+  { id:'e17', bizId:'esquitx', fullName:'Guillermo',  initials:'GU', roleId:'er10', active:true, clockedIn:true,  startedAt:'07:45' },
+  { id:'e18', bizId:'esquitx', fullName:'Lee',        initials:'LE', roleId:'er11', active:true, clockedIn:true,  startedAt:'08:00' },
+  { id:'e19', bizId:'esquitx', fullName:'Christian',  initials:'CH', roleId:'er11', active:true, clockedIn:false, startedAt:null },
+  { id:'e20', bizId:'esquitx', fullName:'Nina',       initials:'NE', roleId:'er11', active:true, clockedIn:false, startedAt:null },
+  { id:'e21', bizId:'esquitx', fullName:'Antonella',  initials:'AN', roleId:'er12', active:true, clockedIn:true,  startedAt:'09:30' },
+  { id:'e22', bizId:'esquitx', fullName:'Vanessa',    initials:'VA', roleId:'er12', active:true, clockedIn:false, startedAt:null },
+  { id:'e23', bizId:'esquitx', fullName:'Adriana',    initials:'AD', roleId:'er12', active:true, clockedIn:false, startedAt:null },
+  { id:'e24', bizId:'esquitx', fullName:'Bene',       initials:'BE', roleId:'er12', active:true, clockedIn:false, startedAt:null },
 ];
 
 // ─── Week schedule (bizId → dow → shiftId → employeeIds) ─────────────────────
 export const WEEK_SCHED: WeekScheduleData = {
+  // El Ganxo: torn únic de nit, 3 empleats
   ganxo: {
-    // El Ganxo: un únic torn de nit (20:30–04:00) — sense torn de migdia
-    0: { N:['e1','e3','e6','e9','e10'] },
-    1: { N:['e2','e6','e8','e10'] },
-    2: { N:['e1','e5','e6','e9'] },
-    3: { N:['e4','e5','e6','e10'] },
-    4: { N:['e1','e3','e5','e6','e9','e10'] },
-    5: { N:['e1','e2','e3','e4','e5','e6','e7','e8','e9','e10'] },
-    6: { N:[] },
+    0: { N:['e1','e3'] },
+    1: { N:['e2','e3'] },
+    2: { N:['e1','e3'] },
+    3: { N:['e1','e2'] },
+    4: { N:['e1','e2','e3'] },
+    5: { N:['e1','e2','e3'] },
+    6: { N:['e2','e3'] },
   },
+  // La Pista: M=cuina+alguns cambres, N=sala+barra+runners
   pista: {
-    0:{M:['e11','e12'],N:['e11','e13']}, 1:{M:['e11','e13'],N:['e12']},
-    2:{M:['e12'],N:['e11','e13']},       3:{M:['e11','e13'],N:['e12']},
-    4:{M:['e11','e12'],N:['e11','e12','e13']},
-    5:{M:['e11','e12','e13'],N:['e11','e12','e13']}, 6:{M:['e12'],N:[]},
+    0: { M:['e4','e5','e6','e9','e12'],         N:['e4','e7','e8','e9','e10','e13'] },
+    1: { M:['e4','e5','e6','e7','e12'],         N:['e4','e9','e10','e11','e14'] },
+    2: { M:['e5','e6','e8','e9'],               N:['e4','e7','e10','e12','e13'] },
+    3: { M:['e4','e5','e6','e7','e9'],          N:['e4','e8','e10','e11','e14'] },
+    4: { M:['e4','e5','e6','e7','e9','e12'],    N:['e4','e8','e9','e10','e11','e13','e14','e15'] },
+    5: { M:['e4','e5','e6','e7','e8','e9','e12','e14'], N:['e4','e7','e9','e10','e11','e12','e13','e14','e15'] },
+    6: { M:['e5','e6','e9','e12'],              N:['e4','e10','e13'] },
   },
+  // L'Esquitx: M=cuina+enc, N=sala+enc
   esquitx: {
-    0:{M:['e14'],         N:[]},
-    1:{M:['e14','e15'],   N:['e14','e15']},
-    2:{M:['e15','e16'],   N:['e14','e16']},
-    3:{M:['e14','e16'],   N:['e15','e16']},
-    4:{M:['e14','e15'],   N:['e14','e15','e16']},
-    5:{M:['e14','e15','e16'], N:['e14','e15','e16']},
-    6:{M:['e16'],         N:['e14']},
+    0: { M:['e16','e17','e18','e21'],           N:['e16','e21','e22'] },
+    1: { M:['e16','e17','e18','e19','e21'],     N:['e16','e21','e23','e24'] },
+    2: { M:['e17','e18','e20','e21'],           N:['e16','e22','e23'] },
+    3: { M:['e16','e17','e19','e20'],           N:['e16','e21','e22','e24'] },
+    4: { M:['e16','e17','e18','e19','e21'],     N:['e16','e21','e22','e23','e24'] },
+    5: { M:['e16','e17','e18','e19','e20','e21','e22'], N:['e16','e17','e21','e22','e23','e24'] },
+    6: { M:['e17','e18','e21'],                 N:['e16','e21','e24'] },
   },
 };
 
