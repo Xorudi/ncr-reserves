@@ -99,3 +99,71 @@ export interface AppEvent {
   description?: string;
   kind?: string;
 }
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export interface BusinessConfig {
+  name: string;
+  kind: string;
+  address: string;
+  phone: string;
+  email: string;
+  capacity: number;
+  active: boolean;
+}
+
+export interface TimeSlot { start: string; end: string; }
+export interface DayHours { open: boolean; slots: TimeSlot[]; }
+export interface BusinessHours {
+  days: DayHours[];        // 0 = Dilluns … 6 = Diumenge
+  avgTableMinutes: number;
+}
+
+export interface BizShift {
+  id: string;
+  code: string;
+  label: string;
+  start: string;
+  end: string;
+  color: string;
+  active: boolean;
+}
+
+export interface NotifConfig {
+  pendingConfirm: boolean;
+  peakAlert: boolean;
+  birthdays: boolean;
+  resChanges: boolean;
+  clientNotes: boolean;
+  channel: 'intern' | 'email' | 'whatsapp';
+  advanceMinutes: number;
+}
+
+// ─── Staff ────────────────────────────────────────────────────────────────────
+
+export interface Employee {
+  id: string;
+  bizId: BusinessId;
+  fullName: string;
+  initials: string;
+  roleId: string;
+  phone?: string;
+  email?: string;
+  active: boolean;
+  notes?: string;
+  clockedIn?: boolean;
+  startedAt?: string | null;
+}
+
+export interface EmployeeRole {
+  id: string;
+  bizId: BusinessId;
+  name: string;
+  color: string;
+  textColor: string;
+  order: number;
+  active: boolean;
+}
+
+// bizId → dow(0-6) → shiftId → employeeIds
+export type WeekScheduleData = Record<string, Record<number, Record<string, string[]>>>;

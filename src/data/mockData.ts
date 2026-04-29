@@ -1,4 +1,4 @@
-import type { Business, Reservation, Customer, FloorPlan, BusinessStats, BusinessId, ShiftNote, AppEvent } from '@/types';
+import type { Business, Reservation, Customer, FloorPlan, BusinessStats, BusinessId, ShiftNote, AppEvent, BusinessConfig, BusinessHours, BizShift, Employee, EmployeeRole, NotifConfig, WeekScheduleData } from '@/types';
 
 export const BUSINESSES: Business[] = [
   { id: 'ganxo',   name: 'El Ganxo',   kind: 'Restaurant · Peix i marisc', hue: '#a84a2a', hueSoft: '#f7e2d2', monogram: 'EG', address: 'Passeig Marítim 14',       capacity: 64 },
@@ -434,3 +434,146 @@ export function timeAgo(ts: number): string {
 export function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+
+// ─── Business configs (mutable per negoci) ────────────────────────────────────
+export const BUSINESS_CONFIGS: Record<string, BusinessConfig> = {
+  ganxo:   { name:'El Ganxo',   kind:'Restaurant',          address:"C/ Major, 14, Granollers",           phone:'+34 93 870 11 22', email:'reserves@elganxo.cat',  capacity:80,  active:true },
+  pista:   { name:'La Pista',   kind:'Restaurant · Pàdel',  address:'C/ Indústria, 3, Granollers',        phone:'+34 93 870 33 44', email:'info@lapista.cat',       capacity:120, active:true },
+  esquitx: { name:"L'Esquitx",  kind:'Cocteria · Bar',      address:'Pl. de la Porxada, 5, Granollers',  phone:'+34 93 870 55 66', email:'hola@esquitx.cat',       capacity:45,  active:true },
+};
+
+// ─── Business hours (mutable per negoci) ─────────────────────────────────────
+function makeSlots(pairs: [string,string][]): { start:string; end:string }[] {
+  return pairs.map(([start,end]) => ({ start, end }));
+}
+export const BUSINESS_HOURS: Record<string, BusinessHours> = {
+  ganxo: {
+    avgTableMinutes: 90,
+    days: [
+      { open:true,  slots: makeSlots([['13:00','16:00'],['20:00','00:00']]) }, // dl
+      { open:true,  slots: makeSlots([['13:00','16:00'],['20:00','00:00']]) }, // dt
+      { open:true,  slots: makeSlots([['13:00','16:00'],['20:00','00:00']]) }, // dc
+      { open:true,  slots: makeSlots([['13:00','16:00'],['20:00','00:00']]) }, // dj
+      { open:true,  slots: makeSlots([['13:00','16:00'],['20:00','00:00']]) }, // dv
+      { open:true,  slots: makeSlots([['13:00','16:30'],['20:00','00:30']]) }, // ds
+      { open:false, slots: [] },                                               // dg
+    ],
+  },
+  pista: {
+    avgTableMinutes: 75,
+    days: [
+      { open:true,  slots: makeSlots([['12:00','16:00'],['18:00','23:00']]) },
+      { open:true,  slots: makeSlots([['12:00','16:00'],['18:00','23:00']]) },
+      { open:true,  slots: makeSlots([['12:00','16:00'],['18:00','23:00']]) },
+      { open:true,  slots: makeSlots([['12:00','16:00'],['18:00','23:00']]) },
+      { open:true,  slots: makeSlots([['12:00','16:00'],['18:00','23:30']]) },
+      { open:true,  slots: makeSlots([['11:00','17:00'],['18:00','00:00']]) },
+      { open:true,  slots: makeSlots([['11:00','17:00']]) },
+    ],
+  },
+  esquitx: {
+    avgTableMinutes: 120,
+    days: [
+      { open:false, slots: [] },                                               // dl
+      { open:true,  slots: makeSlots([['20:00','01:00']]) },
+      { open:true,  slots: makeSlots([['20:00','01:00']]) },
+      { open:true,  slots: makeSlots([['20:00','01:00']]) },
+      { open:true,  slots: makeSlots([['20:00','02:00']]) },
+      { open:true,  slots: makeSlots([['20:00','02:00']]) },
+      { open:true,  slots: makeSlots([['19:00','01:00']]) },
+    ],
+  },
+};
+
+// ─── Shifts per negoci ────────────────────────────────────────────────────────
+export const BIZ_SHIFTS: Record<string, BizShift[]> = {
+  ganxo:   [
+    { id:'M', code:'M', label:'Migdia', start:'12:00', end:'16:00', color:'#f3e3d6', active:true },
+    { id:'N', code:'N', label:'Nit',    start:'20:00', end:'00:00', color:'#d4e5ee', active:true },
+  ],
+  pista:   [
+    { id:'M', code:'M', label:'Migdia', start:'12:00', end:'16:00', color:'#f3e3d6', active:true },
+    { id:'N', code:'N', label:'Nit',    start:'18:00', end:'23:00', color:'#d4e5ee', active:true },
+  ],
+  esquitx: [
+    { id:'N', code:'N', label:'Nit',    start:'20:00', end:'01:00', color:'#ecdaf0', active:true },
+  ],
+};
+
+// ─── Employee roles per negoci ────────────────────────────────────────────────
+export const EMPLOYEE_ROLES: EmployeeRole[] = [
+  // ganxo
+  { id:'er1',  bizId:'ganxo',   name:'Encarregat',         color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
+  { id:'er2',  bizId:'ganxo',   name:'Cambrer/a sala',     color:'#e7ecd3', textColor:'#5d6e3a', order:1, active:true },
+  { id:'er3',  bizId:'ganxo',   name:'Cambrer/a terrassa', color:'#d4e5ee', textColor:'#3a6b8a', order:2, active:true },
+  { id:'er4',  bizId:'ganxo',   name:'Cambrer/a barra',    color:'#ecdaf0', textColor:'#7a4288', order:3, active:true },
+  { id:'er5',  bizId:'ganxo',   name:'Cap de cuina',       color:'#e6d3c8', textColor:'#552d20', order:4, active:true },
+  { id:'er6',  bizId:'ganxo',   name:'Cuina',              color:'#efdcd3', textColor:'#7d4a3a', order:5, active:true },
+  { id:'er7',  bizId:'ganxo',   name:'Pizzer',             color:'#f3d7d1', textColor:'#aa3d2e', order:6, active:true },
+  // pista
+  { id:'er8',  bizId:'pista',   name:'Encarregat',         color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
+  { id:'er9',  bizId:'pista',   name:'Cambrer/a bar',      color:'#f4e2cf', textColor:'#a8662b', order:1, active:true },
+  { id:'er10', bizId:'pista',   name:'Runner',             color:'#e7ecd3', textColor:'#5d6e3a', order:2, active:true },
+  // esquitx
+  { id:'er11', bizId:'esquitx', name:'Encarregat',         color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
+  { id:'er12', bizId:'esquitx', name:'Cambrer/a barra',    color:'#ecdaf0', textColor:'#7a4288', order:1, active:true },
+  { id:'er13', bizId:'esquitx', name:'Cambrer/a sala',     color:'#e7ecd3', textColor:'#5d6e3a', order:2, active:true },
+];
+
+// ─── Employees ────────────────────────────────────────────────────────────────
+export const EMPLOYEES: Employee[] = [
+  // ganxo
+  { id:'e1',  bizId:'ganxo',   fullName:'Núria Vila',     initials:'NV', roleId:'er1',  active:true,  clockedIn:true,  startedAt:'11:48', phone:'+34 600 11 22 33', email:'nuria@elganxo.cat' },
+  { id:'e2',  bizId:'ganxo',   fullName:'Pol Esteve',     initials:'PE', roleId:'er2',  active:true,  clockedIn:true,  startedAt:'11:55' },
+  { id:'e3',  bizId:'ganxo',   fullName:'Aina Llopart',   initials:'AL', roleId:'er2',  active:true,  clockedIn:true,  startedAt:'12:02' },
+  { id:'e4',  bizId:'ganxo',   fullName:'Genís Roca',     initials:'GR', roleId:'er3',  active:true,  clockedIn:true,  startedAt:'11:50' },
+  { id:'e5',  bizId:'ganxo',   fullName:'Marta Cusidó',   initials:'MC', roleId:'er3',  active:true,  clockedIn:false, startedAt:null },
+  { id:'e6',  bizId:'ganxo',   fullName:'Bernat Solé',    initials:'BS', roleId:'er4',  active:true,  clockedIn:true,  startedAt:'11:45' },
+  { id:'e7',  bizId:'ganxo',   fullName:'Roger Mas',      initials:'RM', roleId:'er5',  active:true,  clockedIn:true,  startedAt:'10:30' },
+  { id:'e8',  bizId:'ganxo',   fullName:'Carla Vives',    initials:'CV', roleId:'er6',  active:true,  clockedIn:true,  startedAt:'10:45' },
+  { id:'e9',  bizId:'ganxo',   fullName:'Jordi Esquius',  initials:'JE', roleId:'er6',  active:true,  clockedIn:true,  startedAt:'10:50' },
+  { id:'e10', bizId:'ganxo',   fullName:'Mireia Pi',      initials:'MP', roleId:'er7',  active:true,  clockedIn:false, startedAt:null },
+  // pista
+  { id:'e11', bizId:'pista',   fullName:'Quim Tena',      initials:'QT', roleId:'er8',  active:true,  clockedIn:true,  startedAt:'11:30' },
+  { id:'e12', bizId:'pista',   fullName:'Laia Codina',    initials:'LC', roleId:'er9',  active:true,  clockedIn:true,  startedAt:'11:40' },
+  { id:'e13', bizId:'pista',   fullName:'Arnau Pons',     initials:'AP', roleId:'er9',  active:true,  clockedIn:false, startedAt:null },
+  // esquitx
+  { id:'e14', bizId:'esquitx', fullName:'Berta Olivella', initials:'BO', roleId:'er11', active:true,  clockedIn:false, startedAt:null },
+  { id:'e15', bizId:'esquitx', fullName:'Iván Martín',    initials:'IM', roleId:'er12', active:true,  clockedIn:false, startedAt:null },
+  { id:'e16', bizId:'esquitx', fullName:'Sara Bonet',     initials:'SB', roleId:'er13', active:true,  clockedIn:false, startedAt:null },
+];
+
+// ─── Week schedule (bizId → dow → shiftId → employeeIds) ─────────────────────
+export const WEEK_SCHED: WeekScheduleData = {
+  ganxo: {
+    0: { M:['e2','e4','e7','e8'],                    N:['e1','e3','e6','e9','e10'] },
+    1: { M:['e1','e3','e5','e7','e9'],               N:['e2','e6','e8','e10'] },
+    2: { M:['e2','e4','e7','e8'],                    N:['e1','e5','e6','e9'] },
+    3: { M:['e1','e2','e3','e7','e8','e9'],          N:['e4','e5','e6','e10'] },
+    4: { M:['e1','e2','e4','e6','e7','e8','e9'],     N:['e1','e3','e5','e6','e9','e10'] },
+    5: { M:['e1','e2','e3','e4','e5','e7','e8','e9','e10'], N:['e1','e2','e3','e4','e5','e6','e7','e8','e9','e10'] },
+    6: { M:['e1','e2','e3','e4','e5','e7','e8','e9'], N:[] },
+  },
+  pista: {
+    0:{M:['e11','e12'],N:['e11','e13']}, 1:{M:['e11','e13'],N:['e12']},
+    2:{M:['e12'],N:['e11','e13']},       3:{M:['e11','e13'],N:['e12']},
+    4:{M:['e11','e12'],N:['e11','e12','e13']},
+    5:{M:['e11','e12','e13'],N:['e11','e12','e13']}, 6:{M:['e12'],N:[]},
+  },
+  esquitx: {
+    0:{N:[]}, 1:{N:['e14','e15']}, 2:{N:['e14','e16']},
+    3:{N:['e15','e16']}, 4:{N:['e14','e15','e16']},
+    5:{N:['e14','e15','e16']}, 6:{N:['e14']},
+  },
+};
+
+// ─── Notification defaults ────────────────────────────────────────────────────
+export const NOTIF_DEFAULTS: NotifConfig = {
+  pendingConfirm: true,
+  peakAlert: true,
+  birthdays: false,
+  resChanges: true,
+  clientNotes: false,
+  channel: 'intern',
+  advanceMinutes: 60,
+};
