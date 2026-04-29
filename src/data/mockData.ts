@@ -486,14 +486,18 @@ export const BUSINESS_HOURS: Record<string, BusinessHours> = {
 };
 
 // ─── Shifts per negoci ────────────────────────────────────────────────────────
+// Derivats dels torns reals d'empleats a NCR Serveis (/api/shifts per negoci).
+// El Ganxo  → tot el personal treballa 20:30–04:00 (NIL, AINA, ARNAU): un únic torn de nit.
+// La Pista  → dos clústers clars: matins 09:00–16:00 i tardes/nit 17:00–00:00.
+// L'Esquitx → cocteleria, obertura nocturna; empleats NCR Serveis 07:00–20:00 (recepció/bar),
+//             però el servei de reserves comença a les 20:00 → un torn de nit.
 export const BIZ_SHIFTS: Record<string, BizShift[]> = {
   ganxo:   [
-    { id:'M', code:'M', label:'Migdia', start:'12:00', end:'16:00', color:'#f3e3d6', active:true },
-    { id:'N', code:'N', label:'Nit',    start:'20:00', end:'00:00', color:'#d4e5ee', active:true },
+    { id:'N', code:'N', label:'Nit',    start:'20:30', end:'04:00', color:'#d4e5ee', active:true },
   ],
   pista:   [
-    { id:'M', code:'M', label:'Migdia', start:'12:00', end:'16:00', color:'#f3e3d6', active:true },
-    { id:'N', code:'N', label:'Nit',    start:'18:00', end:'23:00', color:'#d4e5ee', active:true },
+    { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true },
+    { id:'N', code:'N', label:'Nit',    start:'17:00', end:'00:00', color:'#d4e5ee', active:true },
   ],
   esquitx: [
     { id:'N', code:'N', label:'Nit',    start:'20:00', end:'01:00', color:'#ecdaf0', active:true },
@@ -546,13 +550,14 @@ export const EMPLOYEES: Employee[] = [
 // ─── Week schedule (bizId → dow → shiftId → employeeIds) ─────────────────────
 export const WEEK_SCHED: WeekScheduleData = {
   ganxo: {
-    0: { M:['e2','e4','e7','e8'],                    N:['e1','e3','e6','e9','e10'] },
-    1: { M:['e1','e3','e5','e7','e9'],               N:['e2','e6','e8','e10'] },
-    2: { M:['e2','e4','e7','e8'],                    N:['e1','e5','e6','e9'] },
-    3: { M:['e1','e2','e3','e7','e8','e9'],          N:['e4','e5','e6','e10'] },
-    4: { M:['e1','e2','e4','e6','e7','e8','e9'],     N:['e1','e3','e5','e6','e9','e10'] },
-    5: { M:['e1','e2','e3','e4','e5','e7','e8','e9','e10'], N:['e1','e2','e3','e4','e5','e6','e7','e8','e9','e10'] },
-    6: { M:['e1','e2','e3','e4','e5','e7','e8','e9'], N:[] },
+    // El Ganxo: un únic torn de nit (20:30–04:00) — sense torn de migdia
+    0: { N:['e1','e3','e6','e9','e10'] },
+    1: { N:['e2','e6','e8','e10'] },
+    2: { N:['e1','e5','e6','e9'] },
+    3: { N:['e4','e5','e6','e10'] },
+    4: { N:['e1','e3','e5','e6','e9','e10'] },
+    5: { N:['e1','e2','e3','e4','e5','e6','e7','e8','e9','e10'] },
+    6: { N:[] },
   },
   pista: {
     0:{M:['e11','e12'],N:['e11','e13']}, 1:{M:['e11','e13'],N:['e12']},
