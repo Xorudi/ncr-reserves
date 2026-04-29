@@ -17,8 +17,8 @@ export default function StaffView() {
           </button>
         ))}
       </div>
-      {tab === 'duty'     && <StaffOnDuty     bizId={selectedBusiness} />}
-      {tab === 'schedule' && <ScheduleEditor  bizId={selectedBusiness} />}
+      {tab === 'duty'     && <StaffOnDuty     key={selectedBusiness} bizId={selectedBusiness} />}
+      {tab === 'schedule' && <ScheduleEditor  key={selectedBusiness} bizId={selectedBusiness} />}
     </div>
   );
 }
@@ -35,56 +35,58 @@ function avIdx(name: string) {
 // ═══════════════════════════════════════════════════════════════════
 function StaffOnDuty({ bizId }: { bizId: string }) {
   const { employees, employeeRoles, bizShifts, weekSchedule, clockInEmployee, clockOutEmployee } = useAppStore();
-  const shifts = bizShifts[bizId] ?? [];
-  const [shiftId, setShiftId] = useState(() => shifts[0]?.id ?? 'M');
+  const shifts       = bizShifts[bizId] ?? [];
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
 
-  const activeShift = shifts.find(s => s.id === shiftId) ?? shifts[0];
-  const daySchedule = weekSchedule[bizId]?.[TODAY_DOW] ?? {};
-  const plannedIds   = new Set(daySchedule[shiftId] ?? []);
-  const bizEmps      = employees.filter(e => e.bizId === bizId && e.active);
-  const onDuty       = bizEmps.filter(e => plannedIds.has(e.id));
-  const unplanned    = bizEmps.filter(e => e.clockedIn && !plannedIds.has(e.id));
-  const bizRoles     = employeeRoles.filter(r => r.bizId === bizId && r.active).sort((a,b) => a.order - b.order);
+  const daySchedule  = weekSchedule[bizId]?.[TODAY_DOW] ?? {};
+  // empShifts: empId → shift ids planned today
+  const empShifts: Record<string, string[]> = {};
+  shifts.forEach(s => {
+    (daySchedule[s.id] ?? []).forEach((eid: string) => {
+      (empShifts[eid] ??= []).push(s.id);
+    });
+  });
 
-  // Group by role
+  const bizEmps  = employees.filter(e => e.bizId === bizId && e.active);
+  const bizRoles = employeeRoles.filter(r => r.bizId === bizId && r.active).sort((a,b) => a.order - b.order);
+
+  // Group ALL active employees by role
   const byRole: Record<string, Employee[]> = {};
-  onDuty.forEach(e => { (byRole[e.roleId] ??= []).push(e); });
+  bizEmps.forEach(e => { (byRole[e.roleId] ??= []).push(e); });
 
-  const clockedCount = onDuty.filter(e => e.clockedIn).length;
-  const missingCount = onDuty.filter(e => !e.clockedIn).length;
+  const clockedCount   = bizEmps.filter(e => e.clockedIn).length;
+  const plannedCount   = bizEmps.filter(e => empShifts[e.id]?.length).length;
+  const unplannedIn    = bizEmps.filter(e => e.clockedIn && !empShifts[e.id]?.length);
 
   return (
     <div className="scroll" style={{ overflowY:'auto', flex:1, padding:'18px 28px 40px' }}>
-      {/* Shift selector + stats */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}>
-        <div style={{ display:'flex', gap:3, padding:3, background:'var(--ink-100)', borderRadius:8 }}>
+      {/* Stats bar */}
+      <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:18 }}>
+        {/* Shift legend */}
+        <div style={{ display:'flex', gap:8 }}>
           {shifts.map(s => (
-            <button key={s.id} onClick={() => setShiftId(s.id)}
-              style={{ padding:'7px 16px', border:'none', borderRadius:6, background: shiftId===s.id ? 'var(--paper)' : 'transparent', color:'var(--ink-800)', fontSize:12.5, fontWeight:600, fontFamily:'inherit', cursor:'pointer', boxShadow: shiftId===s.id ? 'var(--sh-1)' : 'none' }}>
+            <span key={s.id} style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', borderRadius:6, background:s.color, fontSize:12, fontWeight:600, color:'rgba(40,25,10,.75)' }}>
               {s.label}
-              <span style={{ marginLeft:8, color:'var(--ink-500)', fontWeight:500, fontSize:11, fontFamily:'var(--font-mono)' }}>{s.start}–{s.end}</span>
-            </button>
+              <span style={{ fontFamily:'var(--font-mono)', fontWeight:400, fontSize:10.5 }}>{s.start}–{s.end}</span>
+            </span>
           ))}
         </div>
         <div style={{ flex:1 }} />
         <div style={{ display:'flex', gap:16, fontSize:12, color:'var(--ink-600)' }}>
           <span><b style={{ color:'var(--olive-700)' }}>{clockedCount}</b> fitxats</span>
-          {missingCount > 0 && <span><b style={{ color:'var(--clay-700)' }}>{missingCount}</b> no fitxats</span>}
-          {unplanned.length > 0 && <span><b style={{ color:'var(--terracotta-700)' }}>{unplanned.length}</b> no planificats</span>}
-          <span style={{ color:'var(--ink-400)' }}>·</span>
-          <span><b style={{ color:'var(--ink-900)' }}>{onDuty.length}</b> planificats</span>
+          <span><b style={{ color:'var(--ink-900)' }}>{plannedCount}</b> planificats avui</span>
+          <span><b style={{ color:'var(--ink-500)' }}>{bizEmps.length}</b> total</span>
         </div>
       </div>
 
       {/* Unplanned clocked-in alert */}
-      {unplanned.length > 0 && (
+      {unplannedIn.length > 0 && (
         <div style={{ padding:'10px 14px', background:'var(--clay-50)', border:'1px solid var(--clay-200)', borderRadius:10, marginBottom:16, fontSize:12.5, color:'var(--clay-700)', display:'flex', alignItems:'center', gap:8 }}>
-          ⚠ {unplanned.map(e => e.fullName).join(', ')} {unplanned.length === 1 ? 'ha fitxat' : 'han fitxat'} però no estava{unplanned.length>1?'n':''} planificat{unplanned.length>1?'s':''}
+          ⚠ {unplannedIn.map(e => e.fullName).join(', ')} {unplannedIn.length === 1 ? 'ha fitxat' : 'han fitxat'} però no estava{unplannedIn.length>1?'n':''} planificat{unplannedIn.length>1?'s':''}
         </div>
       )}
 
-      {/* By role */}
+      {/* All employees grouped by role */}
       {bizRoles.filter(r => byRole[r.id]?.length).map(role => (
         <div key={role.id} style={{ marginBottom:22 }}>
           <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:10 }}>
@@ -95,9 +97,11 @@ function StaffOnDuty({ bizId }: { bizId: string }) {
               {byRole[role.id].length} {byRole[role.id].length === 1 ? 'persona' : 'persones'}
             </span>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:10 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(230px,1fr))', gap:10 }}>
             {byRole[role.id].map(emp => (
               <EmpCard key={emp.id} emp={emp} role={role}
+                todayShifts={empShifts[emp.id] ?? []}
+                shifts={shifts}
                 onClick={() => setDetailEmp(emp)}
                 onClockIn={() => clockInEmployee(emp.id)}
                 onClockOut={() => clockOutEmployee(emp.id)}
@@ -107,9 +111,9 @@ function StaffOnDuty({ bizId }: { bizId: string }) {
         </div>
       ))}
 
-      {onDuty.length === 0 && (
+      {bizEmps.length === 0 && (
         <div style={{ padding:'60px 0', textAlign:'center', color:'var(--ink-500)', fontFamily:'var(--font-serif)', fontSize:16 }}>
-          Ningú planificat per a aquest torn
+          Cap empleat actiu en aquest negoci
         </div>
       )}
 
@@ -127,13 +131,16 @@ function StaffOnDuty({ bizId }: { bizId: string }) {
   );
 }
 
-function EmpCard({ emp, role, onClick, onClockIn, onClockOut }: {
+function EmpCard({ emp, role, todayShifts, shifts, onClick, onClockIn, onClockOut }: {
   emp: Employee; role: EmployeeRole | null;
+  todayShifts: string[];
+  shifts: import('@/types').BizShift[];
   onClick: () => void; onClockIn: () => void; onClockOut: () => void;
 }) {
+  const hasShift = todayShifts.length > 0;
   return (
     <div onClick={onClick}
-      style={{ padding:12, background:'var(--paper)', borderRadius:12, border:'var(--hair)', boxShadow:'var(--sh-1)', display:'flex', alignItems:'center', gap:12, cursor:'pointer' }}
+      style={{ padding:12, background:'var(--paper)', borderRadius:12, border:'var(--hair)', boxShadow:'var(--sh-1)', display:'flex', alignItems:'center', gap:12, cursor:'pointer', opacity: hasShift ? 1 : 0.65 }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--sh-2)')}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = 'var(--sh-1)')}>
       <div style={{ position:'relative', flexShrink:0 }}>
@@ -144,18 +151,31 @@ function EmpCard({ emp, role, onClick, onClockIn, onClockOut }: {
       </div>
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:13.5, fontWeight:600, color:'var(--ink-900)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{emp.fullName}</div>
-        <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:2 }}>
-          {emp.clockedIn ? `Fitxat a les ${emp.startedAt}` : 'No ha fitxat'}
+        <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:3, flexWrap:'wrap' }}>
+          {todayShifts.length > 0
+            ? todayShifts.map(sid => {
+                const sh = shifts.find(s => s.id === sid);
+                return sh ? (
+                  <span key={sid} style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:3, background:sh.color, color:'rgba(40,25,10,.75)' }}>
+                    {sh.label}
+                  </span>
+                ) : null;
+              })
+            : <span style={{ fontSize:11, color:'var(--ink-400)' }}>Sense torn avui</span>
+          }
+          {emp.clockedIn && (
+            <span style={{ fontSize:10.5, color:'var(--olive-700)', marginLeft:2 }}>· {emp.startedAt}</span>
+          )}
         </div>
       </div>
       {!emp.clockedIn ? (
         <button onClick={e => { e.stopPropagation(); onClockIn(); }}
-          style={{ fontSize:11, padding:'4px 8px', border:'var(--hair)', borderRadius:6, background:'var(--olive-50)', color:'var(--olive-700)', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>
+          style={{ fontSize:11, padding:'4px 8px', border:'var(--hair)', borderRadius:6, background:'var(--olive-50)', color:'var(--olive-700)', cursor:'pointer', fontFamily:'inherit', fontWeight:600, flexShrink:0 }}>
           Fitxar
         </button>
       ) : (
         <button onClick={e => { e.stopPropagation(); onClockOut(); }}
-          style={{ fontSize:11, padding:'4px 8px', border:'var(--hair)', borderRadius:6, background:'var(--ink-50)', color:'var(--ink-600)', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>
+          style={{ fontSize:11, padding:'4px 8px', border:'var(--hair)', borderRadius:6, background:'var(--ink-50)', color:'var(--ink-600)', cursor:'pointer', fontFamily:'inherit', fontWeight:600, flexShrink:0 }}>
           Sortida
         </button>
       )}
