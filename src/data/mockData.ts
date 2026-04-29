@@ -528,68 +528,88 @@ export const EMPLOYEE_ROLES: EmployeeRole[] = [
 ];
 
 // ─── Employees (noms reals de NCR Serveis) ────────────────────────────────────
+// clockedIn reflecteix l'estat demo d'un divendres (DOW 4) al migdia.
 export const EMPLOYEES: Employee[] = [
-  // ── El Ganxo: NIL (jefe), AINA (encargada), ARNAU (camarero) ────
-  // Torn de nit 20:30–04:00 — no fitxats de dia
+  // ── El Ganxo: torn de nit 20:30–04:00 → no fitxats de dia ───────
   { id:'e1', bizId:'ganxo',   fullName:'Nil',       initials:'NL', roleId:'er1', active:true, clockedIn:false, startedAt:null },
   { id:'e2', bizId:'ganxo',   fullName:'Aina',      initials:'AI', roleId:'er1', active:true, clockedIn:false, startedAt:null },
   { id:'e3', bizId:'ganxo',   fullName:'Arnau',     initials:'AR', roleId:'er2', active:true, clockedIn:false, startedAt:null },
-  // ── La Pista: 12 empleats ───────────────────────────────────────
-  { id:'e4',  bizId:'pista',  fullName:'Mounir',    initials:'MO', roleId:'er3', active:true, clockedIn:true,  startedAt:'09:05' },
-  { id:'e5',  bizId:'pista',  fullName:'Joan',      initials:'JN', roleId:'er4', active:true, clockedIn:true,  startedAt:'08:55' },
-  { id:'e6',  bizId:'pista',  fullName:'Ahmed',     initials:'AH', roleId:'er5', active:true, clockedIn:true,  startedAt:'09:10' },
-  { id:'e7',  bizId:'pista',  fullName:'Alejandro', initials:'AL', roleId:'er5', active:true, clockedIn:true,  startedAt:'09:00' },
+  // ── La Pista (divendres): NINA fa torn M (10:00), la resta torn N ─
+  { id:'e4',  bizId:'pista',  fullName:'Mounir',    initials:'MO', roleId:'er3', active:true, clockedIn:false, startedAt:null },
+  { id:'e5',  bizId:'pista',  fullName:'Joan',      initials:'JN', roleId:'er4', active:true, clockedIn:false, startedAt:null },
+  { id:'e6',  bizId:'pista',  fullName:'Ahmed',     initials:'AH', roleId:'er5', active:true, clockedIn:false, startedAt:null },
+  { id:'e7',  bizId:'pista',  fullName:'Alejandro', initials:'AL', roleId:'er5', active:true, clockedIn:false, startedAt:null },
   { id:'e8',  bizId:'pista',  fullName:'Mariano',   initials:'MA', roleId:'er5', active:true, clockedIn:false, startedAt:null },
-  { id:'e9',  bizId:'pista',  fullName:'Nina',      initials:'NI', roleId:'er6', active:true, clockedIn:true,  startedAt:'09:15' },
+  { id:'e9',  bizId:'pista',  fullName:'Nina',      initials:'NI', roleId:'er6', active:true, clockedIn:true,  startedAt:'10:00' },
   { id:'e10', bizId:'pista',  fullName:'Sara',      initials:'SA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
   { id:'e11', bizId:'pista',  fullName:'Dana',      initials:'DA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
-  { id:'e12', bizId:'pista',  fullName:'Bene',      initials:'BE', roleId:'er7', active:true, clockedIn:true,  startedAt:'09:20' },
+  { id:'e12', bizId:'pista',  fullName:'Bene',      initials:'BE', roleId:'er7', active:true, clockedIn:false, startedAt:null },
   { id:'e13', bizId:'pista',  fullName:'Jordi',     initials:'JO', roleId:'er7', active:true, clockedIn:false, startedAt:null },
   { id:'e14', bizId:'pista',  fullName:'Biel',      initials:'BI', roleId:'er8', active:true, clockedIn:false, startedAt:null },
   { id:'e15', bizId:'pista',  fullName:'Iker',      initials:'IK', roleId:'er8', active:true, clockedIn:false, startedAt:null },
-  // ── L'Esquitx: 9 empleats ───────────────────────────────────────
-  { id:'e16', bizId:'esquitx', fullName:'Jose Luis',  initials:'JL', roleId:'er9',  active:true, clockedIn:true,  startedAt:'09:00' },
-  { id:'e17', bizId:'esquitx', fullName:'Guillermo',  initials:'GU', roleId:'er10', active:true, clockedIn:true,  startedAt:'07:45' },
-  { id:'e18', bizId:'esquitx', fullName:'Lee',        initials:'LE', roleId:'er11', active:true, clockedIn:true,  startedAt:'08:00' },
-  { id:'e19', bizId:'esquitx', fullName:'Christian',  initials:'CH', roleId:'er11', active:true, clockedIn:false, startedAt:null },
+  // ── L'Esquitx (divendres): Guillermo, Christian, Vanessa, Adriana fitxats
+  { id:'e16', bizId:'esquitx', fullName:'Jose Luis',  initials:'JL', roleId:'er9',  active:true, clockedIn:true,  startedAt:'11:00' },
+  { id:'e17', bizId:'esquitx', fullName:'Guillermo',  initials:'GU', roleId:'er10', active:true, clockedIn:true,  startedAt:'07:00' },
+  { id:'e18', bizId:'esquitx', fullName:'Lee',        initials:'LE', roleId:'er11', active:true, clockedIn:false, startedAt:null },
+  { id:'e19', bizId:'esquitx', fullName:'Christian',  initials:'CH', roleId:'er11', active:true, clockedIn:true,  startedAt:'09:00' },
   { id:'e20', bizId:'esquitx', fullName:'Nina',       initials:'NE', roleId:'er11', active:true, clockedIn:false, startedAt:null },
-  { id:'e21', bizId:'esquitx', fullName:'Antonella',  initials:'AN', roleId:'er12', active:true, clockedIn:true,  startedAt:'09:30' },
-  { id:'e22', bizId:'esquitx', fullName:'Vanessa',    initials:'VA', roleId:'er12', active:true, clockedIn:false, startedAt:null },
-  { id:'e23', bizId:'esquitx', fullName:'Adriana',    initials:'AD', roleId:'er12', active:true, clockedIn:false, startedAt:null },
+  { id:'e21', bizId:'esquitx', fullName:'Antonella',  initials:'AN', roleId:'er12', active:true, clockedIn:false, startedAt:null },
+  { id:'e22', bizId:'esquitx', fullName:'Vanessa',    initials:'VA', roleId:'er12', active:true, clockedIn:true,  startedAt:'09:00' },
+  { id:'e23', bizId:'esquitx', fullName:'Adriana',    initials:'AD', roleId:'er12', active:true, clockedIn:true,  startedAt:'07:45' },
   { id:'e24', bizId:'esquitx', fullName:'Bene',       initials:'BE', roleId:'er12', active:true, clockedIn:false, startedAt:null },
 ];
 
 // ─── Week schedule (bizId → dow → shiftId → employeeIds) ─────────────────────
+// Derivat dels torns reals de NCR Serveis: setmana Apr 13(Dl)–Apr 19(Dg).
+// Regla d'assignació pista/esquitx: inici <16:00 → M; inici ≥16:00 → N; doble torn → M+N.
+// Esquitx: tots els empleats fan M (07:00–20:00); el torn N existeix però cap l'usa
+//          a NCR Serveis (servei nocturn nou, pendent de planificació).
 export const WEEK_SCHED: WeekScheduleData = {
-  // El Ganxo: torn únic de nit, 3 empleats
+
+  // ── El Ganxo: Nil+Aina dijous-divendres, Aina+Arnau divendres-diumenge ──
   ganxo: {
-    0: { N:['e1','e3'] },
-    1: { N:['e2','e3'] },
-    2: { N:['e1','e3'] },
-    3: { N:['e1','e2'] },
-    4: { N:['e1','e2','e3'] },
-    5: { N:['e1','e2','e3'] },
-    6: { N:['e2','e3'] },
+    0: { N:[] },
+    1: { N:[] },
+    2: { N:[] },
+    3: { N:['e1','e2'] },              // Nil + Aina
+    4: { N:['e1','e2','e3'] },         // Nil + Aina + Arnau
+    5: { N:['e2','e3'] },              // Aina + Arnau
+    6: { N:['e2'] },                   // Aina
   },
-  // La Pista: M=cuina+alguns cambres, N=sala+barra+runners
+
+  // ── La Pista: dimarts–diumenge; M=cuina/dobles; N=sala+barra+runners ──
   pista: {
-    0: { M:['e4','e5','e6','e9','e12'],         N:['e4','e7','e8','e9','e10','e13'] },
-    1: { M:['e4','e5','e6','e7','e12'],         N:['e4','e9','e10','e11','e14'] },
-    2: { M:['e5','e6','e8','e9'],               N:['e4','e7','e10','e12','e13'] },
-    3: { M:['e4','e5','e6','e7','e9'],          N:['e4','e8','e10','e11','e14'] },
-    4: { M:['e4','e5','e6','e7','e9','e12'],    N:['e4','e8','e9','e10','e11','e13','e14','e15'] },
-    5: { M:['e4','e5','e6','e7','e8','e9','e12','e14'], N:['e4','e7','e9','e10','e11','e12','e13','e14','e15'] },
-    6: { M:['e5','e6','e9','e12'],              N:['e4','e10','e13'] },
+    0: { M:[], N:[] },
+    1: { M:[], N:['e4','e8','e9','e12','e13'] },
+    //        Mounir·Mariano·Nina·Bene·Jordi (tots 19:30/17:00–00:00)
+    2: { M:[], N:['e4','e8','e9','e13'] },
+    //        Mounir·Mariano·Nina·Jordi
+    3: { M:['e8'], N:['e4','e5','e6','e8','e9','e12','e13'] },
+    //   M: Mariano (10:00–13:00); N: +Joan+Ahmed
+    4: { M:['e9'], N:['e4','e5','e6','e7','e8','e9','e10','e12','e13'] },
+    //   M: Nina (10:00–13:00);  N: +Alejandro+Sara
+    5: { M:['e7','e8','e9','e11','e13'], N:['e4','e5','e6','e7','e8','e9','e10','e11','e12','e13','e14'] },
+    //   M: Alejandro·Mariano·Nina·Dana·Jordi; N: tots + Biel
+    6: { M:['e6','e7','e8','e9','e11','e13','e15'], N:['e4','e5','e6','e7','e8','e9','e11','e14','e15'] },
+    //   M: Ahmed·Alejandro·Mariano·Nina·Dana·Jordi·Iker; N: Mounir+Joan+...
   },
-  // L'Esquitx: M=cuina+enc, N=sala+enc
+
+  // ── L'Esquitx: M=torn diürn (dades reals); N=buit (sense registre a NCR) ──
   esquitx: {
-    0: { M:['e16','e17','e18','e21'],           N:['e16','e21','e22'] },
-    1: { M:['e16','e17','e18','e19','e21'],     N:['e16','e21','e23','e24'] },
-    2: { M:['e17','e18','e20','e21'],           N:['e16','e22','e23'] },
-    3: { M:['e16','e17','e19','e20'],           N:['e16','e21','e22','e24'] },
-    4: { M:['e16','e17','e18','e19','e21'],     N:['e16','e21','e22','e23','e24'] },
-    5: { M:['e16','e17','e18','e19','e20','e21','e22'], N:['e16','e17','e21','e22','e23','e24'] },
-    6: { M:['e17','e18','e21'],                 N:['e16','e21','e24'] },
+    0: { M:['e16','e17','e18','e21','e22'], N:[] },
+    //       JoseLuis·Guillermo·Lee·Antonella·Vanessa
+    1: { M:['e16','e18','e19','e20','e21','e23'], N:[] },
+    //       JoseLuis·Lee·Christian·Nina·Antonella·Adriana
+    2: { M:['e18','e19','e20','e21','e23','e24'], N:[] },
+    //       Lee·Christian·Nina·Antonella·Adriana·Bene
+    3: { M:['e17','e19','e21','e22','e23'], N:[] },
+    //       Guillermo·Christian·Antonella·Vanessa·Adriana
+    4: { M:['e16','e17','e19','e22','e23'], N:[] },
+    //       JoseLuis·Guillermo·Christian·Vanessa·Adriana
+    5: { M:['e16','e17','e18','e22','e23'], N:[] },
+    //       JoseLuis·Guillermo·Lee·Vanessa·Adriana
+    6: { M:['e16','e17','e18','e19','e22','e24'], N:[] },
+    //       JoseLuis·Guillermo·Lee·Christian·Vanessa·Bene
   },
 };
 
