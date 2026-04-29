@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type {
   BusinessId, Reservation, Customer, ReservationStatus,
   ShiftNote, AppEvent, FloorPlan, FloorTable, FloorZone,
@@ -122,7 +123,7 @@ const seedNotifs = (): Record<string, NotifConfig> => ({
   esquitx: { ...NOTIF_DEFAULTS },
 });
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>()(persist((set) => ({
   // ── Core ────────────────────────────────────────────────────────
   selectedBusiness: 'ganxo',
   selectedDate: new Date(2026, 3, 24),
@@ -312,4 +313,15 @@ export const useAppStore = create<AppState>((set) => ({
         },
       },
     })),
+}), {
+  name: 'ncr-reserves-storage',
+  partialize: (s) => ({
+    weekSchedule:    s.weekSchedule,
+    businessConfigs: s.businessConfigs,
+    businessHours:   s.businessHours,
+    bizShifts:       s.bizShifts,
+    employees:       s.employees,
+    employeeRoles:   s.employeeRoles,
+    notifConfigs:    s.notifConfigs,
+  }),
 }));

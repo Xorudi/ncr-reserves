@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { BUSINESSES } from '@/data/mockData';
+import { useAppStore } from '@/store/useAppStore';
 import type { BusinessId, BusinessStats } from '@/types';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'today', onNavigate, onNewReservation, onWalkin }: Props) {
+  const { businessConfigs } = useAppStore();
   return (
     <aside style={{ width:244, flex:'none', borderRight:'var(--hair)', background:'var(--cream)', display:'flex', flexDirection:'column', height:'100%' }}>
 
@@ -49,7 +51,7 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
                 <span style={{ width:26,height:26,borderRadius:7,flex:'none',background:b.hueSoft,color:b.hue,display:'grid',placeItems:'center',fontWeight:700,fontSize:11,fontFamily:'var(--font-serif)',letterSpacing:.3 }}>{b.monogram}</span>
                 <div style={{ display:'flex',flexDirection:'column',minWidth:0,flex:1 }}>
                   <span style={{ fontSize:13,fontWeight:isActive?600:500,color:isActive?'var(--ink-900)':'var(--ink-800)',lineHeight:1.15 }}>{b.name}</span>
-                  <span style={{ fontSize:10.5,color:'var(--ink-500)',lineHeight:1.2,marginTop:1 }}>{b.kind}</span>
+                  <span style={{ fontSize:10.5,color:'var(--ink-500)',lineHeight:1.2,marginTop:1 }}>{businessConfigs[b.id]?.kind ?? b.kind}</span>
                 </div>
                 {isActive && stats && (
                   <span style={{ fontSize:10.5,fontWeight:600,color:'var(--ink-600)',background:'var(--ink-100)',padding:'2px 6px',borderRadius:6 }}>{stats.totalRes}</span>
