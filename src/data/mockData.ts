@@ -499,7 +499,7 @@ export const BIZ_SHIFTS: Record<string, BizShift[]> = {
   ],
   pista:   [
     { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true },
-    { id:'N', code:'N', label:'Nit',    start:'17:00', end:'00:00', color:'#d4e5ee', active:true },
+    { id:'N', code:'N', label:'Nit',    start:'16:00', end:'00:00', color:'#d4e5ee', active:true },
   ],
   esquitx: [
     { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true },
@@ -518,7 +518,7 @@ export const EMPLOYEE_ROLES: EmployeeRole[] = [
   { id:'er4', bizId:'pista',   name:'Cap de cuina',  color:'#e6d3c8', textColor:'#552d20', order:1, active:true },
   { id:'er5', bizId:'pista',   name:'Cuiner/a',      color:'#efdcd3', textColor:'#7d4a3a', order:2, active:true },
   { id:'er6', bizId:'pista',   name:'Cambrer/a sala',color:'#e7ecd3', textColor:'#5d6e3a', order:3, active:true },
-  { id:'er7', bizId:'pista',   name:'Cambrer/a bar', color:'#f4e2cf', textColor:'#a8662b', order:4, active:true },
+  { id:'er7', bizId:'pista',   name:'Pizzer',        color:'#c8f0d0', textColor:'#2a7040', order:4, active:true },
   { id:'er8', bizId:'pista',   name:'Runner',        color:'#daeee7', textColor:'#2e6e5a', order:5, active:true },
   // ── L'Esquitx (bar-restaurant) ───────────────────────────────────
   { id:'er9',  bizId:'esquitx', name:'Encarregat/da', color:'#f3e3d6', textColor:'#8a4a2a', order:0, active:true },
@@ -536,17 +536,18 @@ export const EMPLOYEES: Employee[] = [
   { id:'e3', bizId:'ganxo',   fullName:'Arnau',     initials:'AR', roleId:'er2', active:true, clockedIn:false, startedAt:null },
   // ── La Pista (divendres): NINA fa torn M (10:00), la resta torn N ─
   { id:'e4',  bizId:'pista',  fullName:'Mounir',    initials:'MO', roleId:'er6', active:true, clockedIn:false, startedAt:null },
-  { id:'e5',  bizId:'pista',  fullName:'Joan',      initials:'JN', roleId:'er4', active:true, clockedIn:false, startedAt:null },
+  { id:'e5',  bizId:'pista',  fullName:'Joan',      initials:'JN', roleId:'er7', active:true, clockedIn:false, startedAt:null },
   { id:'e6',  bizId:'pista',  fullName:'Ahmed',     initials:'AH', roleId:'er5', active:true, clockedIn:false, startedAt:null },
   { id:'e7',  bizId:'pista',  fullName:'Alejandro', initials:'AL', roleId:'er5', active:true, clockedIn:false, startedAt:null },
-  { id:'e8',  bizId:'pista',  fullName:'Mariano',   initials:'MA', roleId:'er5', active:true, clockedIn:false, startedAt:null },
+  { id:'e8',  bizId:'pista',  fullName:'Mariano',   initials:'MA', roleId:'er4', active:true, clockedIn:false, startedAt:null },
   { id:'e9',  bizId:'pista',  fullName:'Nina',      initials:'NI', roleId:'er6', active:true, clockedIn:true,  startedAt:'10:00' },
   { id:'e10', bizId:'pista',  fullName:'Sara',      initials:'SA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
   { id:'e11', bizId:'pista',  fullName:'Dana',      initials:'DA', roleId:'er6', active:true, clockedIn:false, startedAt:null },
-  { id:'e12', bizId:'pista',  fullName:'Bene',      initials:'BE', roleId:'er7', active:true, clockedIn:false, startedAt:null },
+  { id:'e12', bizId:'pista',  fullName:'Bene',      initials:'BE', roleId:'er6', active:true, clockedIn:false, startedAt:null },
   { id:'e13', bizId:'pista',  fullName:'Jordi',     initials:'JO', roleId:'er3', active:true, clockedIn:false, startedAt:null },
   { id:'e14', bizId:'pista',  fullName:'Biel',      initials:'BI', roleId:'er8', active:true, clockedIn:false, startedAt:null },
   { id:'e15', bizId:'pista',  fullName:'Iker',      initials:'IK', roleId:'er8', active:true, clockedIn:false, startedAt:null },
+  { id:'e25', bizId:'pista',  fullName:'Pol',       initials:'PO', roleId:'er5', active:true, clockedIn:false, startedAt:null },
   // ── L'Esquitx (divendres): Guillermo, Christian, Vanessa, Adriana fitxats
   { id:'e16', bizId:'esquitx', fullName:'Jose Luis',  initials:'JL', roleId:'er9',  active:true, clockedIn:true,  startedAt:'11:00' },
   { id:'e17', bizId:'esquitx', fullName:'Guillermo',  initials:'GU', roleId:'er10', active:true, clockedIn:true,  startedAt:'07:00' },
@@ -577,21 +578,27 @@ export const WEEK_SCHED: WeekScheduleData = {
     6: { N:['e2'] },                   // Aina
   },
 
-  // ── La Pista: dimarts–diumenge; M=cuina/dobles; N=sala+barra+runners ──
+  // ── La Pista: dimecres–diumenge segons PDF real; dilluns+dimarts lliures ──
+  // e4=Mounir, e5=Joan(Pizzer), e6=Ahmed(Cuiner), e7=Alejandro(Cuiner),
+  // e8=Mariano(CapCuina), e9=Nina(Cambrera), e10=Sara(Cambrera),
+  // e11=Dana(Cambrera), e12=Bene(Cambrera·La Pista, Esquitx DC+DG),
+  // e13=Jordi(Encarregat), e14=Biel(Runner), e15=Iker(Runner), e25=Pol(Cuiner)
   pista: {
     0: { M:[], N:[] },
-    1: { M:[], N:['e4','e8','e9','e12','e13'] },
-    //        Mounir·Mariano·Nina·Bene·Jordi (tots 19:30/17:00–00:00)
-    2: { M:[], N:['e4','e8','e9','e13'] },
-    //        Mounir·Mariano·Nina·Jordi
-    3: { M:['e8'], N:['e4','e5','e6','e8','e9','e12','e13'] },
-    //   M: Mariano (10:00–13:00); N: +Joan+Ahmed
-    4: { M:['e9'], N:['e4','e5','e6','e7','e8','e9','e10','e12','e13'] },
-    //   M: Nina (10:00–13:00);  N: +Alejandro+Sara
-    5: { M:['e7','e8','e9','e11','e13'], N:['e4','e5','e6','e7','e8','e9','e10','e11','e12','e13','e14'] },
-    //   M: Alejandro·Mariano·Nina·Dana·Jordi; N: tots + Biel
-    6: { M:['e6','e7','e8','e9','e11','e13','e15'], N:['e4','e5','e6','e7','e8','e9','e11','e14','e15'] },
-    //   M: Ahmed·Alejandro·Mariano·Nina·Dana·Jordi·Iker; N: Mounir+Joan+...
+    //   DL: lliure
+    1: { M:[], N:[] },
+    //   DT: lliure
+    2: { M:[], N:['e8','e9','e13','e4'] },
+    //   DC: Mariano(18:00)·Nina(17:00)·Jordi(18:00)·Mounir(16:45) — Bene a L'Esquitx
+    3: { M:['e8'], N:['e8','e9','e25','e5','e13','e4','e12'] },
+    //   DJ M: Mariano(doble); DJ N: +Nina·Pol·Joan·Jordi·Mounir·Bene
+    4: { M:['e9'], N:['e9','e8','e25','e5','e14','e13','e4','e10','e7','e12'] },
+    //   DV M: Nina(doble);   DV N: +Mariano·Pol·Joan·Biel·Jordi·Mounir·Sara·Alejandro·Bene
+    5: { M:['e8','e9','e13','e7','e11'], N:['e8','e9','e6','e25','e5','e14','e13','e4','e10','e7','e12','e11'] },
+    //   DS M: Mariano·Nina·Jordi·Alejandro·Dana; DS N: +Ahmed·Pol·Joan·Biel·Mounir·Sara·Bene
+    6: { M:['e8','e9','e13','e7','e10','e11','e6'], N:['e8','e9','e6','e25','e5','e14','e4','e10','e7','e11'] },
+    //   DG M: Mariano·Nina·Jordi(PEDIDOS)·Alejandro·Sara·Dana·Ahmed;
+    //   DG N: Mariano·Nina·Ahmed·Pol·Joan·Biel·Mounir·Sara·Alejandro·Dana — Bene a L'Esquitx, Jordi no fa N
   },
 
   // ── L'Esquitx: M=torn diürn (dades reals); N=buit (sense registre a NCR) ──
