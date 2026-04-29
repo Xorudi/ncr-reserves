@@ -487,10 +487,12 @@ export const BUSINESS_HOURS: Record<string, BusinessHours> = {
 
 // ─── Shifts per negoci ────────────────────────────────────────────────────────
 // Derivats dels torns reals d'empleats a NCR Serveis (/api/shifts per negoci).
-// El Ganxo  → tot el personal treballa 20:30–04:00 (NIL, AINA, ARNAU): un únic torn de nit.
-// La Pista  → dos clústers clars: matins 09:00–16:00 i tardes/nit 17:00–00:00.
-// L'Esquitx → cocteleria, obertura nocturna; empleats NCR Serveis 07:00–20:00 (recepció/bar),
-//             però el servei de reserves comença a les 20:00 → un torn de nit.
+// El Ganxo  → pub/discoteca: tot el personal treballa 20:30–04:00 (NIL, AINA, ARNAU).
+//             Sense torn de migdia — no hi ha servei de cuina diürn.
+// La Pista  → bar-restaurant: dos clústers clars a NCR Serveis:
+//             matins 09:00–16:00 i tardes/nit 17:00–00:00.
+// L'Esquitx → bar-restaurant: empleats a NCR Serveis fan torns diürns 07:00–20:00
+//             (preparació + servei de migdia) i nit des de les 20:00.
 export const BIZ_SHIFTS: Record<string, BizShift[]> = {
   ganxo:   [
     { id:'N', code:'N', label:'Nit',    start:'20:30', end:'04:00', color:'#d4e5ee', active:true },
@@ -500,6 +502,7 @@ export const BIZ_SHIFTS: Record<string, BizShift[]> = {
     { id:'N', code:'N', label:'Nit',    start:'17:00', end:'00:00', color:'#d4e5ee', active:true },
   ],
   esquitx: [
+    { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true },
     { id:'N', code:'N', label:'Nit',    start:'20:00', end:'01:00', color:'#ecdaf0', active:true },
   ],
 };
@@ -566,9 +569,13 @@ export const WEEK_SCHED: WeekScheduleData = {
     5:{M:['e11','e12','e13'],N:['e11','e12','e13']}, 6:{M:['e12'],N:[]},
   },
   esquitx: {
-    0:{N:[]}, 1:{N:['e14','e15']}, 2:{N:['e14','e16']},
-    3:{N:['e15','e16']}, 4:{N:['e14','e15','e16']},
-    5:{N:['e14','e15','e16']}, 6:{N:['e14']},
+    0:{M:['e14'],         N:[]},
+    1:{M:['e14','e15'],   N:['e14','e15']},
+    2:{M:['e15','e16'],   N:['e14','e16']},
+    3:{M:['e14','e16'],   N:['e15','e16']},
+    4:{M:['e14','e15'],   N:['e14','e15','e16']},
+    5:{M:['e14','e15','e16'], N:['e14','e15','e16']},
+    6:{M:['e16'],         N:['e14']},
   },
 };
 
