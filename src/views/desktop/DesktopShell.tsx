@@ -62,7 +62,9 @@ export default function DesktopShell() {
 
   const hideRightPanel = showWalkin || showForm
     || page === 'clients' || page === 'floor'
-    || page === 'staff' || page === 'calendar' || page === 'settings';
+    || page === 'staff'
+    || (page === 'calendar' && !selectedReservation)
+    || page === 'settings';
 
   return (
     <div style={{ display:'flex', height:'100vh', background:'var(--cream)', overflow:'hidden' }}>
