@@ -71,7 +71,7 @@ export default function MobileTodayView() {
       </div>
 
       {/* ── Reservation list ───────────────────────────────────────── */}
-      <div className="scroll" style={{ flex:1, overflowY:'auto', paddingBottom:88 }}>
+      <div className="scroll" style={{ flex:1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}>
 
         {dayRes.length === 0 && (
           <div style={{ textAlign:'center', padding:'64px 20px', color:'var(--ink-500)' }}>

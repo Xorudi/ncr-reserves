@@ -79,7 +79,7 @@ export default function MobileTablesScreen() {
       </div>
 
       {/* Table grid */}
-      <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'12px 14px 80px' }}>
+      <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'12px 14px var(--scroll-pad-bottom)' }}>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(100px, 1fr))', gap:10 }}>
           {tables.map(t => {
             const st = STATUS_STYLE[t.status];

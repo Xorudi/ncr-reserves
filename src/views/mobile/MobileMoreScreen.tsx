@@ -48,7 +48,7 @@ function MoreMenu({ onSub, onSwitchTab }: {
   ];
 
   return (
-    <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 14px 80px' }}>
+    <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 14px var(--scroll-pad-bottom)' }}>
 
       {/* User card */}
       {emp ? (
@@ -154,7 +154,7 @@ function AlertsScreen({ onBack }: { onBack: () => void }) {
         )}
       </div>
 
-      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 80px' }}>
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 14px var(--scroll-pad-bottom)' }}>
 
         {/* Pending reservations */}
         {pending.length > 0 && (
@@ -300,7 +300,7 @@ function CalendarScreen({ onBack }: { onBack: () => void }) {
         </button>
       </div>
 
-      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 10px 80px' }}>
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 10px var(--scroll-pad-bottom)' }}>
         {/* Day-of-week headers */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 4 }}>
           {['Dl','Dt','Dc','Dj','Dv','Ds','Dg'].map(d => (

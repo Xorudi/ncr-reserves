@@ -153,7 +153,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
       </div>
 
       {/* ── Reservations list ──────────────────────────────────────────── */}
-      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 80px' }}>
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 14px var(--scroll-pad-bottom)' }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase', marginBottom: 10 }}>
           Reserves d'avui · {todayStr}
         </div>

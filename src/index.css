@@ -88,20 +88,43 @@
   --hair-strong: 1px solid rgba(60,40,20,.14);
 }
 
+/* ─── Layout helpers ─────────────────────────────────────────────────────── */
+:root {
+  /* Bottom-nav height used by mobile & tablet shells */
+  --mobile-nav-h: 56px;
+  /* Safe-area shorthands (resolved from env() by the browser) */
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+  /* Padding needed at the bottom of any scroll container that sits behind the nav */
+  --scroll-pad-bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 16px);
+}
+
 * { box-sizing: border-box; }
 
-html, body, #root {
-  height: 100%;
-  margin: 0;
+html {
+  /* dvh = dynamic viewport height: shrinks when the browser toolbar hides.
+     Correct usable height on iOS Safari and Android Chrome. */
+  height: 100dvh;
 }
 
 body {
+  margin: 0;
+  min-height: 100dvh;
   font-family: var(--font-sans);
   font-feature-settings: "ss01","cv11";
   color: var(--ink-800);
   background: var(--cream);
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.005em;
+  /* Stop iOS rubber-band bouncing on the body */
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100dvh;
+  overflow: hidden; /* each shell handles its own overflow */
 }
 
 /* ─── Scrollbars ─── */
@@ -114,6 +137,25 @@ body {
   background-clip: padding-box;
 }
 .scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(60,40,20,.22); background-clip: padding-box; }
+
+/* Hide scrollbars on touch devices (they show as thin overlays anyway) */
+@media (pointer: coarse) {
+  .scroll::-webkit-scrollbar { display: none; }
+  .scroll { scrollbar-width: none; }
+}
+
+/* ─── Mobile / tablet scroll containers ─── */
+/* Apply to any <div className="scroll mob-scroll"> to get correct bottom
+   clearance accounting for the bottom nav + iOS safe area. */
+.mob-scroll {
+  padding-bottom: var(--scroll-pad-bottom);
+}
+
+/* ─── Safe-area utilities ─── */
+.pt-safe { padding-top:    env(safe-area-inset-top,    0px); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pl-safe { padding-left:   env(safe-area-inset-left,   0px); }
+.pr-safe { padding-right:  env(safe-area-inset-right,  0px); }
 
 /* ─── Status chips ─── */
 .chip {

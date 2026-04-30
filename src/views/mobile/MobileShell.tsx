@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
+import { useIsStandalonePWA } from '@/hooks/useDevice';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
 import MobileTodayView       from './TodayView';
@@ -31,6 +32,7 @@ export default function MobileShell() {
     activeEmployeeId, setActiveEmployee,
   } = useAppStore();
 
+  const isStandalone = useIsStandalonePWA();
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
 
@@ -39,9 +41,19 @@ export default function MobileShell() {
 
       {/* ── Top header ────────────────────────────────────────────────── */}
       <header style={{
-        padding:'10px 14px 9px', borderBottom:'var(--hair)',
-        background:'var(--paper)', flexShrink:0,
-        display:'flex', alignItems:'center', gap:10,
+        /* In PWA standalone mode on iOS, env(safe-area-inset-top) is the
+           status-bar height (≈44–59 px on notched iPhones). We push the
+           header content below it so nothing hides under the status bar. */
+        paddingTop:    isStandalone ? 'calc(10px + env(safe-area-inset-top))' : '10px',
+        paddingBottom: '9px',
+        paddingLeft:   '14px',
+        paddingRight:  '14px',
+        borderBottom:  'var(--hair)',
+        background:    'var(--paper)',
+        flexShrink:    0,
+        display:       'flex',
+        alignItems:    'center',
+        gap:           10,
       }}>
         {/* Biz switcher */}
         <button
@@ -104,9 +116,15 @@ export default function MobileShell() {
 
       {/* ── Bottom nav ────────────────────────────────────────────────── */}
       <nav style={{
-        borderTop:'var(--hair)', background:'var(--paper)', flexShrink:0,
-        display:'grid', gridTemplateColumns:'repeat(5,1fr)',
-        paddingBottom:'env(safe-area-inset-bottom)',
+        borderTop:   'var(--hair)',
+        background:  'var(--paper)',
+        flexShrink:  0,
+        display:     'grid',
+        gridTemplateColumns: 'repeat(5,1fr)',
+        /* Push the tab bar above the iOS home indicator / Android gesture bar */
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft:   'env(safe-area-inset-left)',
+        paddingRight:  'env(safe-area-inset-right)',
       }}>
         {TABS.map(t => {
           const active = tab === t.id;
