@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { DAY_NAMES, DAY_NAMES_SHORT, TODAY_DOW, avIdx, timeToMins } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
@@ -23,8 +23,8 @@ export default function StaffView() {
   );
 }
 
-// ─── Shared helpers ───────────────────────────────────────────────
-function fmtRange(s: string, e: string) { return `${s}–${e}`; }
+// â”€â”€â”€ Shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function fmtRange(s: string, e: string) { return `${s}â€“${e}`; }
 
 function isOnDuty(shift: EmployeeShift): boolean {
   const now   = new Date();
@@ -36,16 +36,16 @@ function isOnDuty(shift: EmployeeShift): boolean {
   return nowM >= startM || nowM < (endM % 1440);
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // Equip avui
-// ═══════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function StaffOnDuty({ bizId }: { bizId: string }) {
   const { employees, employeeRoles, employeeShifts, clockInEmployee, clockOutEmployee } = useAppStore();
   const [detailEmp, setDetailEmp] = useState<Employee | null>(null);
 
   const todayShifts = employeeShifts.filter(s => s.businessId === bizId && s.dow === TODAY_DOW);
 
-  // empShifts: empId → EmployeeShift[]
+  // empShifts: empId â†’ EmployeeShift[]
   const empShiftsMap: Record<string, EmployeeShift[]> = {};
   todayShifts.forEach(s => { (empShiftsMap[s.employeeId] ??= []).push(s); });
 
@@ -75,7 +75,7 @@ function StaffOnDuty({ bizId }: { bizId: string }) {
 
       {unplannedIn.length > 0 && (
         <div style={{ padding:'10px 14px', background:'var(--clay-50)', border:'1px solid var(--clay-200)', borderRadius:10, marginBottom:16, fontSize:12.5, color:'var(--clay-700)' }}>
-          ⚠ {unplannedIn.map(e => e.fullName).join(', ')} {unplannedIn.length === 1 ? 'ha fitxat' : 'han fitxat'} però no {unplannedIn.length>1?'estan':'està'} planificat{unplannedIn.length>1?'s':''}
+          âš  {unplannedIn.map(e => e.fullName).join(', ')} {unplannedIn.length === 1 ? 'ha fitxat' : 'han fitxat'} perÃ² no {unplannedIn.length>1?'estan':'estÃ '} planificat{unplannedIn.length>1?'s':''}
         </div>
       )}
 
@@ -191,9 +191,9 @@ function EmpDetailDrawer({ emp, role, todayShifts, onClose, onClockIn, onClockOu
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           <InfoRow label="Estat" value={emp.clockedIn ? `Fitxat a les ${emp.startedAt}` : 'No ha fitxat'} />
           {todayShifts.length > 0 && (
-            <InfoRow label="Avui" value={todayShifts.map(s => fmtRange(s.startTime, s.endTime)).join(' · ')} />
+            <InfoRow label="Avui" value={todayShifts.map(s => fmtRange(s.startTime, s.endTime)).join(' Â· ')} />
           )}
-          {emp.phone && <InfoRow label="Telèfon" value={emp.phone} />}
+          {emp.phone && <InfoRow label="TelÃ¨fon" value={emp.phone} />}
           {emp.email && <InfoRow label="Email" value={emp.email} />}
           {emp.notes && <InfoRow label="Notes" value={emp.notes} />}
         </div>
@@ -222,9 +222,9 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Horaris setmanals — editor de chips amb intervals reals
-// ═══════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// Horaris setmanals â€” editor de chips amb intervals reals
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function ScheduleEditor({ bizId }: { bizId: string }) {
   const { employees, employeeRoles, employeeShifts, addEmployeeShift, updateEmployeeShift, deleteEmployeeShift } = useAppStore();
 
@@ -240,7 +240,8 @@ function ScheduleEditor({ bizId }: { bizId: string }) {
   // editing: { shiftId } to edit existing | { empId, dow } to add new
   const [editing, setEditing] = useState<{ shiftId?: string; empId?: string; dow?: number } | null>(null);
 
-  const baseDate  = new Date(2026, 3, 20);
+    const _now = new Date(); const _d = _now.getDay();
+  const baseDate  = new Date(_now); baseDate.setDate(_now.getDate() - (_d === 0 ? 6 : _d - 1)); baseDate.setHours(0,0,0,0);
   const weekStart = new Date(baseDate); weekStart.setDate(baseDate.getDate() + weekOffset * 7);
   const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
   const fmtD      = (d: Date) => `${d.getDate()} ${['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'][d.getMonth()]}`;
@@ -267,7 +268,7 @@ function ScheduleEditor({ bizId }: { bizId: string }) {
           <Icon d={I.chevL} size={13} />
         </button>
         <span style={{ fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:'var(--ink-900)' }}>
-          Setmana del {fmtD(weekStart)} – {fmtD(weekEnd)} 2026
+          Setmana del {fmtD(weekStart)} â€“ {fmtD(weekEnd)} 2026
         </span>
         <button onClick={() => setWeekOffset(o => o+1)}
           style={{ width:28, height:28, display:'grid', placeItems:'center', background:'transparent', border:'var(--hair)', borderRadius:8, cursor:'pointer', color:'var(--ink-700)' }}>
@@ -372,7 +373,7 @@ function ScheduleEditor({ bizId }: { bizId: string }) {
 
       {/* Footer */}
       <div style={{ marginTop:12, padding:'10px 14px', background:'var(--paper)', borderRadius:8, border:'var(--hair)', display:'flex', gap:12, alignItems:'center', fontSize:12, color:'var(--ink-600)' }}>
-        <span>Fes clic a un horari per editar-lo · <b>+</b> per afegir un nou tram</span>
+        <span>Fes clic a un horari per editar-lo Â· <b>+</b> per afegir un nou tram</span>
         <div style={{ flex:1 }} />
         <span>Total: <b style={{ color:'var(--ink-900)' }}>{totalAssignments()} assignacions</b></span>
       </div>
@@ -380,7 +381,7 @@ function ScheduleEditor({ bizId }: { bizId: string }) {
   );
 }
 
-// ─── Shift chip (existing shift with inline editor) ────────────────
+// â”€â”€â”€ Shift chip (existing shift with inline editor) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ShiftChip({ shift, role, isEditing, onStartEdit, onSave, onDelete, onCancel }: {
   shift: EmployeeShift;
   role: EmployeeRole | null;
@@ -404,18 +405,18 @@ function ShiftChip({ shift, role, isEditing, onStartEdit, onSave, onDelete, onCa
         <div style={{ display:'flex', gap:4, alignItems:'center' }}>
           <input type="time" value={start} onChange={e => setStart(e.target.value)}
             style={{ flex:1, padding:'3px 4px', border:'var(--hair)', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:11, outline:'none' }} />
-          <span style={{ fontSize:10, color:'var(--ink-400)' }}>–</span>
+          <span style={{ fontSize:10, color:'var(--ink-400)' }}>â€“</span>
           <input type="time" value={end} onChange={e => setEnd(e.target.value)}
             style={{ flex:1, padding:'3px 4px', border:'var(--hair)', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:11, outline:'none' }} />
         </div>
         <div style={{ display:'flex', gap:3 }}>
           <button onClick={() => onSave(start, end)}
             style={{ flex:1, padding:'3px 0', background:'var(--terracotta-600)', color:'white', border:'none', borderRadius:4, cursor:'pointer', fontFamily:'inherit', fontSize:10, fontWeight:600 }}>
-            ✓
+            âœ“
           </button>
           <button onClick={onDelete}
             style={{ padding:'3px 6px', background:'var(--rose-50)', color:'var(--rose-600)', border:'1px solid var(--rose-200)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', fontSize:10 }}>
-            ✕
+            âœ•
           </button>
           <button onClick={onCancel}
             style={{ padding:'3px 6px', background:'transparent', color:'var(--ink-500)', border:'var(--hair)', borderRadius:4, cursor:'pointer', fontFamily:'inherit', fontSize:10 }}>
@@ -428,17 +429,17 @@ function ShiftChip({ shift, role, isEditing, onStartEdit, onSave, onDelete, onCa
 
   return (
     <button onClick={onStartEdit}
-      title="Clic per editar · ✕ per eliminar"
+      title="Clic per editar Â· âœ• per eliminar"
       style={{ display:'flex', alignItems:'center', gap:4, padding:'2px 6px 2px 5px', borderRadius:4, border:'none', background:chipBg, color:chipFg, cursor:'pointer', fontFamily:'var(--font-mono)', fontSize:10, fontWeight:600, transition:'opacity .1s', textAlign:'left' }}
       onMouseEnter={e => (e.currentTarget.style.opacity = '.8')}
       onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-      <span style={{ fontSize:9 }}>⏱</span>
+      <span style={{ fontSize:9 }}>â±</span>
       {fmtRange(shift.startTime, shift.endTime)}
     </button>
   );
 }
 
-// ─── Add shift form ────────────────────────────────────────────────
+// â”€â”€â”€ Add shift form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AddShiftForm({ onAdd, onCancel }: {
   onAdd: (start: string, end: string) => void;
   onCancel: () => void;
@@ -457,7 +458,7 @@ function AddShiftForm({ onAdd, onCancel }: {
       <div style={{ display:'flex', gap:4, alignItems:'center' }}>
         <input type="time" value={start} onChange={e => setStart(e.target.value)}
           style={{ flex:1, padding:'3px 4px', border:'var(--hair)', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:11, outline:'none' }} />
-        <span style={{ fontSize:10, color:'var(--ink-400)' }}>–</span>
+        <span style={{ fontSize:10, color:'var(--ink-400)' }}>â€“</span>
         <input type="time" value={end} onChange={e => setEnd(e.target.value)}
           style={{ flex:1, padding:'3px 4px', border:'var(--hair)', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:11, outline:'none' }} />
       </div>
@@ -474,3 +475,4 @@ function AddShiftForm({ onAdd, onCancel }: {
     </div>
   );
 }
+

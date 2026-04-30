@@ -90,7 +90,7 @@ export default function DailyView() {
 
   const prevDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d); };
   const nextDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d); };
-  const goToday = () => setSelectedDate(new Date(2026, 3, 24));
+  const goToday = () => setSelectedDate(new Date());
 
   const navBtn: React.CSSProperties = {
     width:32, height:32, display:'grid', placeItems:'center',

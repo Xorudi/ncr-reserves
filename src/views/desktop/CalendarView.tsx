@@ -1,25 +1,25 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { ServiceBlock } from '@/components/desktop/ServiceBlock';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, isoDate, DAY_NAMES_SHORT } from '@/data/mockData';
 import type { Reservation } from '@/types';
 
-// ─── Constants ────────────────────────────────────────────────
-const MONTHS_CA = ['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const MONTHS_CA = ['Gener','Febrer','MarÃ§','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
 const DAYS_CA   = ['dg.','dl.','dm.','dc.','dj.','dv.','ds.'];
 const MONTH_DAYS_HDR = ['Dl','Dt','Dc','Dj','Dv','Ds','Dg'];
-const DEMO_TODAY = new Date(2026, 3, 24);
+const DEMO_TODAY = new Date();
 
 function daysInMonth(y: number, m: number) { return new Date(y, m + 1, 0).getDate(); }
-// Monday-first offset: Mon=0 … Sun=6
+// Monday-first offset: Mon=0 â€¦ Sun=6
 function firstDayOffset(y: number, m: number) { return (new Date(y, m, 1).getDay() + 6) % 7; }
 
 function fmtDayHeader(d: Date) {
   return `${DAYS_CA[d.getDay()]} ${d.getDate()} de ${MONTHS_CA[d.getMonth()].toLowerCase()} del ${d.getFullYear()}`;
 }
 
-// ─── Main view ─────────────────────────────────────────────────
+// â”€â”€â”€ Main view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function CalendarView() {
   const {
     selectedBusiness, selectedDate, setSelectedDate,
@@ -54,7 +54,7 @@ export default function CalendarView() {
     setSelectedReservation(null);
   }
 
-  // ── Real reservation counts per day ───────────────────────────
+  // â”€â”€ Real reservation counts per day â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const resCounts = useMemo(() => {
     const map: Record<string, number> = {};
     reservations.filter(r => r.bizId === selectedBusiness).forEach(r => {
@@ -65,7 +65,7 @@ export default function CalendarView() {
 
   const maxCount = Math.max(...Object.values(resCounts), 1);
 
-  // ── Day panel data ─────────────────────────────────────────────
+  // â”€â”€ Day panel data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const selDateStr = isoDate(selectedDate);
   const dayRes = useMemo(() =>
     reservations.filter(r => r.bizId === selectedBusiness && r.date === selDateStr),
@@ -91,7 +91,7 @@ export default function CalendarView() {
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--cream)' }}>
 
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div style={{ padding:'14px 28px 10px', borderBottom:'var(--hair)', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
         <button style={navBtn} onClick={prevMonth}><Icon d={I.chevL} size={13} /></button>
         <h2 style={{ margin:0, fontFamily:'var(--font-serif)', fontSize:20, fontWeight:500, color:'var(--ink-900)', minWidth:160 }}>
@@ -117,7 +117,7 @@ export default function CalendarView() {
         </div>
       </div>
 
-      {/* ── Body: calendar + day panel ── */}
+      {/* â”€â”€ Body: calendar + day panel â”€â”€ */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
         {/* Calendar grid */}
@@ -157,7 +157,7 @@ export default function CalendarView() {
   );
 }
 
-// ─── Month grid ────────────────────────────────────────────────
+// â”€â”€â”€ Month grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function MonthGrid({ year, month, resCounts, maxCount, selectedDate, todayDate, onDayClick }: {
   year: number; month: number;
   resCounts: Record<string, number>;
@@ -243,7 +243,7 @@ function MonthGrid({ year, month, resCounts, maxCount, selectedDate, todayDate, 
   );
 }
 
-// ─── Week grid ─────────────────────────────────────────────────
+// â”€â”€â”€ Week grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function WeekGrid({ selectedDate, resCounts, reservations, bizId, onDayClick }: {
   selectedDate: Date;
   resCounts: Record<string, number>;
@@ -256,7 +256,7 @@ function WeekGrid({ selectedDate, resCounts, reservations, bizId, onDayClick }: 
   const mon   = new Date(selectedDate); mon.setDate(selectedDate.getDate() - dow);
   const week  = Array.from({ length:7 }, (_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
   const hours = ['12','13','14','15','16','17','18','19','20','21','22','23'];
-  const todayStr = isoDate(new Date(2026, 3, 24));
+  const todayStr = isoDate(new Date());
   const selStr   = isoDate(selectedDate);
 
   return (
@@ -320,7 +320,7 @@ function WeekGrid({ selectedDate, resCounts, reservations, bizId, onDayClick }: 
   );
 }
 
-// ─── Day detail panel ──────────────────────────────────────────
+// â”€â”€â”€ Day detail panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function DayPanel({ date, header, stats, migdia, nit, selectedResId, onSelectRes }: {
   date: Date;
   header: string;
@@ -333,7 +333,7 @@ function DayPanel({ date, header, stats, migdia, nit, selectedResId, onSelectRes
   if (stats.total === 0) {
     return (
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, color:'var(--ink-400)', padding:'24px 28px' }}>
-        <div style={{ fontSize:28 }}>📭</div>
+        <div style={{ fontSize:28 }}>ðŸ“­</div>
         <div style={{ fontFamily:'var(--font-serif)', fontSize:16, color:'var(--ink-600)' }}>Cap reserva per a aquest dia</div>
         <div style={{ fontSize:12, color:'var(--ink-400)' }}>{header}</div>
       </div>
@@ -346,7 +346,7 @@ function DayPanel({ date, header, stats, migdia, nit, selectedResId, onSelectRes
       <div style={{ display:'flex', alignItems:'baseline', gap:14, marginBottom:12 }}>
         <span style={{ fontFamily:'var(--font-serif)', fontSize:17, fontWeight:500, color:'var(--ink-900)' }}>{header}</span>
         <span style={{ fontSize:12.5, color:'var(--ink-600)' }}>
-          <b style={{ color:'var(--ink-900)' }}>{stats.total}</b> reserves ·{' '}
+          <b style={{ color:'var(--ink-900)' }}>{stats.total}</b> reserves Â·{' '}
           <b style={{ color:'var(--ink-900)' }}>{stats.totalPax}</b> comensals
         </span>
         {stats.pending > 0 && (
@@ -360,13 +360,13 @@ function DayPanel({ date, header, stats, migdia, nit, selectedResId, onSelectRes
       {/* Service blocks */}
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
         {migdia.length > 0 && (
-          <ServiceBlock label="Migdia" sub="13:00 – 16:00" ico="☀️"
+          <ServiceBlock label="Migdia" sub="13:00 â€“ 16:00" ico="â˜€ï¸"
             list={migdia} selectedId={selectedResId}
             onSelect={onSelectRes}
             defaultOpen={true} />
         )}
         {nit.length > 0 && (
-          <ServiceBlock label="Nit" sub="20:30 – 23:00" ico="🌙"
+          <ServiceBlock label="Nit" sub="20:30 â€“ 23:00" ico="ðŸŒ™"
             list={nit} selectedId={selectedResId}
             onSelect={onSelectRes}
             defaultOpen={migdia.length === 0} />
@@ -375,3 +375,4 @@ function DayPanel({ date, header, stats, migdia, nit, selectedResId, onSelectRes
     </div>
   );
 }
+

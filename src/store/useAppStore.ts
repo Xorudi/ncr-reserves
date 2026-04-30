@@ -135,7 +135,7 @@ const seedNotifs = (): Record<string, NotifConfig> => ({
 export const useAppStore = create<AppState>()(persist((set) => ({
   // â”€â”€ Core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   selectedBusiness: 'ganxo',
-  selectedDate: new Date(2026, 3, 24),
+  selectedDate: new Date(),
   reservations: RESERVATIONS,
   customers: CUSTOMERS,
   selectedReservation: null,
@@ -348,4 +348,5 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     employeeShifts:    s.employeeShifts,
   }),
 }));
+
 
