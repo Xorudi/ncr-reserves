@@ -7,28 +7,31 @@ import type { Reservation, BusinessId, ReservationStatus } from '@/types';
 
 const DAYS_CA   = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
 const MONTHS_CA = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
+const MONTHS_SHORT = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
 
 function parseH(t: string) { return parseInt(t.split(':')[0], 10); }
 
 // ─── Main view ────────────────────────────────────────────────────────────────
 export default function MobileTodayView() {
   const {
-    selectedBusiness, reservations, selectedDate,
+    selectedBusiness, reservations, selectedDate, setSelectedDate,
     addReservation, businessConfigs,
   } = useAppStore();
 
   const [sel, setSel]         = useState<Reservation | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [showCal, setShowCal] = useState(false);
 
   const dateStr  = isoDate(selectedDate);
   const d        = selectedDate;
-  const dayLabel = `${DAYS_CA[d.getDay()]}, ${d.getDate()} ${MONTHS_CA[d.getMonth()]}`;
+  const isToday  = isoDate(new Date()) === dateStr;
+  const dayLabel = `${DAYS_CA[d.getDay()]}, ${d.getDate()} de ${MONTHS_CA[d.getMonth()]}`;
 
   const dayRes = useMemo(() =>
     reservations
       .filter(r => r.bizId === selectedBusiness && r.date === dateStr)
       .sort((a, b) => a.time.localeCompare(b.time)),
-    [reservations, selectedBusiness, dateStr]
+    [reservations, selectedBusiness, dateStr],
   );
 
   const migdia = dayRes.filter(r => parseH(r.time) < 18);
@@ -41,66 +44,92 @@ export default function MobileTodayView() {
   const occ      = cap > 0 ? Math.min(100, Math.round(totalPax / cap * 100)) : 0;
   const pending  = dayRes.filter(r => r.status === 'pending');
 
-  function handleSelect(r: Reservation) {
-    setSel(prev => prev?.id === r.id ? null : r);
+  function changeDay(delta: number) {
+    const nd = new Date(selectedDate);
+    nd.setDate(nd.getDate() + delta);
+    setSelectedDate(nd);
+    setSel(null);
+  }
+
+  function goToday() {
+    setSelectedDate(new Date());
+    setSel(null);
   }
 
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
 
-      {/* ── KPI header ─────────────────────────────────────────────── */}
-      <div style={{ flexShrink:0, background:'var(--paper)', borderBottom:'var(--hair)', padding:'14px 16px 12px' }}>
-        <div style={{ fontSize:12, fontWeight:600, color:'var(--ink-500)', letterSpacing:.04, marginBottom:12 }}>
-          {dayLabel}
+      {/* ── Date nav + KPI header ──────────────────────────────────────── */}
+      <div style={{ flexShrink:0, background:'var(--paper)', borderBottom:'var(--hair)', padding:'10px 14px 12px' }}>
+
+        {/* Date navigation row */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:11 }}>
+          <button onClick={() => changeDay(-1)}
+            style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--cream)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)' }}>
+            <Icon d={I.chevL} size={16} stroke={2} />
+          </button>
+
+          <button onClick={() => setShowCal(true)}
+            style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', padding:'4px 0' }}>
+            <span style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>{dayLabel}</span>
+            <Icon d={I.calendar} size={14} />
+          </button>
+
+          <button onClick={() => changeDay(1)}
+            style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--cream)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)' }}>
+            <Icon d={I.chevR} size={16} stroke={2} />
+          </button>
+
+          {!isToday && (
+            <button onClick={goToday}
+              style={{ padding:'5px 10px', borderRadius:8, border:'1.5px solid var(--terracotta-500)', background:'transparent', color:'var(--terracotta-600)', fontFamily:'inherit', fontSize:11.5, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
+              Avui
+            </button>
+          )}
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr auto 1fr', alignItems:'center' }}>
-          <KpiBlock value={totalRes}  label="reserves" />
-          <KpiDiv />
-          <KpiBlock value={totalPax}  label="pax" />
-          <KpiDiv />
-          <KpiBlock value={`${occ}%`} label="ocupació" accent={occ >= 80} />
+        {/* KPI strip — 3 equal columns, border separators */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', background:'var(--cream)', borderRadius:12, overflow:'hidden', border:'1px solid rgba(60,40,20,.07)' }}>
+          <KpiCell value={totalRes} label="reserves" />
+          <KpiCell value={totalPax} label="pax" dividers />
+          <KpiCell value={`${occ}%`} label="ocupació" accent={occ >= 80} />
         </div>
 
         {pending.length > 0 && (
-          <div style={{ marginTop:10, padding:'7px 11px', background:'rgba(185,90,30,.1)', borderRadius:8, fontSize:12, color:'var(--clay-700)', fontWeight:600, display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ marginTop:9, padding:'7px 11px', background:'rgba(185,90,30,.1)', borderRadius:8, fontSize:12, color:'var(--clay-700)', fontWeight:600, display:'flex', alignItems:'center', gap:6 }}>
             <span>⚠️</span>
             <span>{pending.length} {pending.length === 1 ? 'reserva pendent' : 'reserves pendents'} de confirmar</span>
           </div>
         )}
       </div>
 
-      {/* ── Reservation list ───────────────────────────────────────── */}
+      {/* ── Reservation list ───────────────────────────────────────────── */}
       <div className="scroll" style={{ flex:1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}>
 
         {dayRes.length === 0 && (
           <div style={{ textAlign:'center', padding:'64px 20px', color:'var(--ink-500)' }}>
-            <div style={{ fontSize:32, marginBottom:10 }}>📭</div>
-            <div style={{ fontFamily:'var(--font-serif)', fontSize:17, color:'var(--ink-700)' }}>Cap reserva per avui</div>
+            <div style={{ fontSize:32, marginBottom:10 }}>🔭</div>
+            <div style={{ fontFamily:'var(--font-serif)', fontSize:17, color:'var(--ink-700)' }}>Cap reserva per a aquest dia</div>
             <div style={{ fontSize:13, marginTop:6 }}>Prem "+" per afegir-ne una</div>
           </div>
         )}
 
         {migdia.length > 0 && (
-          <ServiceSection
-            label="Servei de migdia" hours="13:00 – 16:00" ico="☀️" isMigdia={true}
-            list={migdia} selId={sel?.id ?? null} onSel={handleSelect}
-          />
+          <ServiceSection label="Servei de migdia" hours="13:00 – 16:00" ico="☀️" isMigdia={true}
+            list={migdia} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} />
         )}
 
         {nit.length > 0 && (
-          <ServiceSection
-            label="Servei de nit" hours="20:30 – 00:00" ico="🌙" isMigdia={false}
-            list={nit} selId={sel?.id ?? null} onSel={handleSelect}
-          />
+          <ServiceSection label="Servei de nit" hours="20:30 – 00:00" ico="🌙" isMigdia={false}
+            list={nit} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} />
         )}
       </div>
 
-      {/* ── FAB ────────────────────────────────────────────────────── */}
-      <button
-        onClick={() => { setSel(null); setShowNew(true); }}
+      {/* ── FAB ───────────────────────────────────────────────────────── */}
+      <button onClick={() => { setSel(null); setShowNew(true); }}
         style={{
-          position:'fixed', bottom:72, right:20, width:54, height:54, borderRadius:'50%',
+          position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 14px)',
+          right:20, width:54, height:54, borderRadius:'50%',
           background:'var(--terracotta-600)', color:'white', border:'none',
           boxShadow:'0 4px 16px rgba(160,60,20,.4)', cursor:'pointer',
           display:'grid', placeItems:'center', zIndex:50,
@@ -108,18 +137,46 @@ export default function MobileTodayView() {
         <Icon d={I.plus} size={24} stroke={2.2} />
       </button>
 
-      {/* ── Detail sheet ───────────────────────────────────────────── */}
-      {sel && !showNew && <ResDetailSheet res={sel} onClose={() => setSel(null)} />}
-
-      {/* ── New reservation sheet ──────────────────────────────────── */}
+      {/* ── Sheets ────────────────────────────────────────────────────── */}
+      {sel && !showNew && !showCal && <ResDetailSheet res={sel} onClose={() => setSel(null)} />}
       {showNew && (
         <NewResSheet
           bizId={selectedBusiness}
-          date={dateStr}
+          defaultDate={dateStr}
           addReservation={addReservation}
           onClose={() => setShowNew(false)}
         />
       )}
+      {showCal && (
+        <DatePickerSheet
+          selected={selectedDate}
+          onSelect={d => { setSelectedDate(d); setSel(null); setShowCal(false); }}
+          onClose={() => setShowCal(false)}
+          reservations={reservations}
+          bizId={selectedBusiness}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── KPI cell ─────────────────────────────────────────────────────────────────
+function KpiCell({ value, label, accent, dividers }: { value: string | number; label: string; accent?: boolean; dividers?: boolean }) {
+  return (
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+      padding:'12px 6px 10px',
+      borderLeft:  dividers ? '1px solid rgba(60,40,20,.09)' : undefined,
+      borderRight: dividers ? '1px solid rgba(60,40,20,.09)' : undefined,
+    }}>
+      <span style={{
+        fontFamily:'var(--font-serif)', fontSize:28, fontWeight:500, lineHeight:1,
+        color: accent ? 'var(--terracotta-700)' : 'var(--ink-900)',
+        letterSpacing:'-0.02em',
+      }}>
+        {value}
+      </span>
+      <span style={{ fontSize:10.5, color:'var(--ink-500)', fontWeight:500, marginTop:4, textAlign:'center' }}>{label}</span>
     </div>
   );
 }
@@ -161,8 +218,7 @@ function ResRow({ res: r, selected, onSel }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
 }) {
   return (
-    <button
-      onClick={() => onSel(r)}
+    <button onClick={() => onSel(r)}
       style={{
         display:'flex', alignItems:'center', gap:12, width:'100%',
         padding:'11px 16px',
@@ -195,31 +251,129 @@ function ResRow({ res: r, selected, onSel }: {
   );
 }
 
-// ─── KPI primitives ───────────────────────────────────────────────────────────
-function KpiBlock({ value, label, accent }: { value: string | number; label: string; accent?: boolean }) {
+// ─── Date picker bottom sheet ─────────────────────────────────────────────────
+function DatePickerSheet({ selected, onSelect, onClose, reservations, bizId }: {
+  selected: Date;
+  onSelect: (d: Date) => void;
+  onClose: () => void;
+  reservations: Reservation[];
+  bizId: BusinessId;
+}) {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const base  = new Date();
+  const year  = new Date(base.getFullYear(), base.getMonth() + monthOffset, 1).getFullYear();
+  const month = new Date(base.getFullYear(), base.getMonth() + monthOffset, 1).getMonth();
+
+  const monthLabel = new Date(year, month, 1).toLocaleDateString('ca-ES', { month: 'long', year: 'numeric' });
+
+  const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells: (number | null)[] = Array(Math.ceil((firstDow + daysInMonth) / 7) * 7).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells[firstDow + d - 1] = d;
+
+  const countByDay = useMemo(() => {
+    const m: Record<string, number> = {};
+    reservations.filter(r => r.bizId === bizId).forEach(r => {
+      const [ry, rm] = r.date.split('-').map(Number);
+      if (ry === year && rm === month + 1) m[r.date] = (m[r.date] ?? 0) + 1;
+    });
+    return m;
+  }, [reservations, bizId, year, month]);
+
+  const todayStr = isoDate(new Date());
+  const selStr   = isoDate(selected);
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
-      <span style={{
-        fontFamily:'var(--font-serif)', fontSize:30, fontWeight:500, lineHeight:1,
-        color: accent ? 'var(--terracotta-700)' : 'var(--ink-900)',
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,.35)' }} />
+      <div style={{
+        position:'fixed', bottom:0, left:0, right:0, zIndex:201,
+        background:'var(--paper)', borderRadius:'20px 20px 0 0',
+        padding:'14px 14px calc(24px + env(safe-area-inset-bottom))',
+        boxShadow:'0 -4px 24px rgba(0,0,0,.18)',
       }}>
-        {value}
-      </span>
-      <span style={{ fontSize:11, color:'var(--ink-500)', fontWeight:500 }}>{label}</span>
-    </div>
+        <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 12px' }} />
+
+        {/* Month nav */}
+        <div style={{ display:'flex', alignItems:'center', marginBottom:10 }}>
+          <button onClick={() => setMonthOffset(m => m - 1)}
+            style={{ width:32, height:32, border:'none', background:'transparent', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-500)' }}>
+            <Icon d={I.chevL} size={16} />
+          </button>
+          <span style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:700, color:'var(--ink-900)', textTransform:'capitalize' }}>{monthLabel}</span>
+          <button onClick={() => setMonthOffset(m => m + 1)}
+            style={{ width:32, height:32, border:'none', background:'transparent', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-500)' }}>
+            <Icon d={I.chevR} size={16} />
+          </button>
+        </div>
+
+        {/* Day-of-week headers */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:4 }}>
+          {['Dl','Dt','Dc','Dj','Dv','Ds','Dg'].map(d => (
+            <div key={d} style={{ textAlign:'center', fontSize:10.5, fontWeight:600, color:'var(--ink-400)' }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+          {cells.map((day, i) => {
+            if (!day) return <div key={i} style={{ height:38 }} />;
+            const ds      = isoDate(new Date(year, month, day));
+            const count   = countByDay[ds] ?? 0;
+            const isSel   = ds === selStr;
+            const isToday = ds === todayStr;
+            return (
+              <button key={i} onClick={() => onSelect(new Date(year, month, day))}
+                style={{
+                  height:38, borderRadius:8, padding:'0 2px',
+                  border: isSel ? '2px solid var(--terracotta-600)' : isToday ? '1.5px solid rgba(60,40,20,.2)' : '1.5px solid transparent',
+                  background: isSel ? 'var(--terracotta-50)' : 'transparent',
+                  cursor:'pointer', fontFamily:'inherit',
+                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
+                }}>
+                <span style={{
+                  fontSize:13, fontWeight: isSel ? 700 : isToday ? 800 : 400,
+                  color: isSel ? 'var(--terracotta-700)' : isToday ? 'var(--terracotta-600)' : 'var(--ink-800)',
+                }}>
+                  {day}
+                </span>
+                {count > 0 && (
+                  <span style={{ width:4, height:4, borderRadius:'50%', background: isSel ? 'var(--terracotta-500)' : 'var(--terracotta-400)' }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Quick buttons */}
+        <div style={{ display:'flex', gap:8, marginTop:12 }}>
+          <button onClick={() => { const nd = new Date(selected); nd.setDate(nd.getDate()-1); onSelect(nd); }}
+            style={{ flex:1, padding:'10px 0', borderRadius:10, border:'var(--hair)', background:'var(--cream)', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-700)', cursor:'pointer' }}>
+            ← Ahir
+          </button>
+          <button onClick={() => onSelect(new Date())}
+            style={{ flex:1, padding:'10px 0', borderRadius:10, border:'var(--hair)', background:'var(--cream)', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--terracotta-600)', cursor:'pointer' }}>
+            Avui
+          </button>
+          <button onClick={() => { const nd = new Date(selected); nd.setDate(nd.getDate()+1); onSelect(nd); }}
+            style={{ flex:1, padding:'10px 0', borderRadius:10, border:'var(--hair)', background:'var(--cream)', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-700)', cursor:'pointer' }}>
+            Demà →
+          </button>
+        </div>
+      </div>
+    </>
   );
-}
-function KpiDiv() {
-  return <div style={{ width:1, height:30, background:'rgba(60,40,20,.1)', margin:'0 6px' }} />;
 }
 
 // ─── Detail bottom sheet ──────────────────────────────────────────────────────
 function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => void }) {
+  const { updateReservationStatus } = useAppStore();
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.25)' }} />
       <div style={{
-        position:'fixed', bottom:60, left:0, right:0, zIndex:100,
+        position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom))',
+        left:0, right:0, zIndex:100,
         background:'var(--paper)', borderRadius:'18px 18px 0 0',
         boxShadow:'0 -4px 24px rgba(0,0,0,.15)', padding:'14px 18px 26px',
       }}>
@@ -254,9 +408,12 @@ function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => 
               <Icon d={I.phone} size={14} /> Trucar
             </a>
           )}
-          <button style={{ flex:2, padding:'10px', background:'var(--ink-900)', color:'var(--cream)', border:'none', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600 }}>
-            A taula →
-          </button>
+          {r.status !== 'seated' && (
+            <button onClick={() => { updateReservationStatus(r.id, 'seated'); onClose(); }}
+              style={{ flex:2, padding:'10px', background:'var(--ink-900)', color:'var(--cream)', border:'none', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600 }}>
+              A taula →
+            </button>
+          )}
         </div>
       </div>
     </>
@@ -264,14 +421,15 @@ function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => 
 }
 
 // ─── New reservation bottom sheet ─────────────────────────────────────────────
-function NewResSheet({ bizId, date, addReservation, onClose }: {
+function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
   bizId: BusinessId;
-  date: string;
+  defaultDate: string;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
   onClose: () => void;
 }) {
   const biz = BUSINESSES.find(b => b.id === bizId)!;
   const [form, setForm] = useState({
+    date:   defaultDate,
     time:   '13:00',
     name:   '',
     phone:  '',
@@ -280,7 +438,7 @@ function NewResSheet({ bizId, date, addReservation, onClose }: {
     status: 'pending' as ReservationStatus,
     source: 'directe',
   });
-  const [saved, setSaved] = useState(false);
+  const [saved,   setSaved]   = useState(false);
   const [touched, setTouched] = useState(false);
 
   function upd<K extends keyof typeof form>(k: K, v: typeof form[K]) {
@@ -291,7 +449,8 @@ function NewResSheet({ bizId, date, addReservation, onClose }: {
     setTouched(true);
     if (!form.name.trim()) return;
     addReservation({
-      bizId, date,
+      bizId,
+      date:   form.date,
       time:   form.time,
       name:   form.name.trim(),
       pax:    form.pax,
@@ -328,10 +487,8 @@ function NewResSheet({ bizId, date, addReservation, onClose }: {
           <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
           <div style={{ display:'flex', alignItems:'center', marginBottom:16 }}>
             <div style={{ flex:1 }}>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:19, fontWeight:500, color:'var(--ink-900)' }}>
-                Nova reserva
-              </div>
-              <div style={{ fontSize:12, color:'var(--ink-500)', marginTop:2 }}>{biz.name} · {date}</div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:19, fontWeight:500, color:'var(--ink-900)' }}>Nova reserva</div>
+              <div style={{ fontSize:12, color:'var(--ink-500)', marginTop:2 }}>{biz.name}</div>
             </div>
             <button onClick={onClose} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:6 }}>
               <Icon d={I.x} size={20} />
@@ -341,28 +498,36 @@ function NewResSheet({ bizId, date, addReservation, onClose }: {
 
         <div style={{ padding:'0 18px 20px', display:'flex', flexDirection:'column', gap:14 }}>
 
-          {/* Time + Pax */}
+          {/* Date + Time + Pax */}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+            <div>
+              <label style={lbl}>Data</label>
+              <input type="date" value={form.date} onChange={e => upd('date', e.target.value)} style={inp} />
+            </div>
             <div>
               <label style={lbl}>Hora</label>
               <input type="time" value={form.time} onChange={e => upd('time', e.target.value)} style={inp} />
             </div>
-            <div>
-              <label style={lbl}>Pax</label>
-              <input type="number" min={1} max={99} value={form.pax}
-                onChange={e => upd('pax', Math.max(1, parseInt(e.target.value) || 1))}
-                style={inp} />
+          </div>
+
+          <div>
+            <label style={lbl}>Pax</label>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {[1,2,3,4,5,6,7,8].map(n => (
+                <button key={n} onClick={() => upd('pax', n)}
+                  style={{ width:40, height:40, borderRadius:9, border: form.pax === n ? '2px solid var(--terracotta-600)' : '1.5px solid rgba(60,40,20,.15)', background: form.pax === n ? 'var(--terracotta-50)' : 'var(--cream)', color: form.pax === n ? 'var(--terracotta-700)' : 'var(--ink-700)', fontWeight: form.pax === n ? 700 : 500, fontSize:14, cursor:'pointer', fontFamily:'inherit' }}>
+                  {n}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Name */}
           <div>
             <label style={lbl}>Nom *</label>
-            <input
-              type="text" placeholder="Nom del client" value={form.name}
+            <input type="text" placeholder="Nom del client" value={form.name}
               onChange={e => upd('name', e.target.value)}
-              style={{ ...inp, borderColor: touched && !form.name.trim() ? 'var(--terracotta-500)' : undefined }}
-            />
+              style={{ ...inp, borderColor: touched && !form.name.trim() ? 'var(--terracotta-500)' : undefined }} />
             {touched && !form.name.trim() && (
               <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>El nom és obligatori</div>
             )}
@@ -379,8 +544,7 @@ function NewResSheet({ bizId, date, addReservation, onClose }: {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             <div>
               <label style={lbl}>Estat</label>
-              <select value={form.status} onChange={e => upd('status', e.target.value as ReservationStatus)}
-                style={{ ...inp, paddingRight:8 }}>
+              <select value={form.status} onChange={e => upd('status', e.target.value as ReservationStatus)} style={{ ...inp, paddingRight:8 }}>
                 <option value="pending">Pendent</option>
                 <option value="confirmed">Confirmat</option>
                 <option value="seated">A taula</option>
@@ -388,8 +552,7 @@ function NewResSheet({ bizId, date, addReservation, onClose }: {
             </div>
             <div>
               <label style={lbl}>Origen</label>
-              <select value={form.source} onChange={e => upd('source', e.target.value)}
-                style={{ ...inp, paddingRight:8 }}>
+              <select value={form.source} onChange={e => upd('source', e.target.value)} style={{ ...inp, paddingRight:8 }}>
                 <option value="directe">Directe</option>
                 <option value="telèfon">Telèfon</option>
                 <option value="web">Web</option>
@@ -406,15 +569,11 @@ function NewResSheet({ bizId, date, addReservation, onClose }: {
               style={{ ...inp, resize:'none', lineHeight:1.5 }} />
           </div>
 
-          {/* Submit */}
-          <button
-            onClick={handleSave}
-            disabled={saved}
+          <button onClick={handleSave} disabled={saved}
             style={{
               padding:'14px', borderRadius:12, border:'none', cursor:'pointer',
               fontFamily:'inherit', fontSize:15, fontWeight:700, color:'white',
               background: saved ? '#4a8a4a' : 'var(--terracotta-600)',
-              opacity: saved ? 1 : 1,
               transition:'background .3s',
             }}>
             {saved ? '✓  Reserva creada!' : 'Crear reserva'}

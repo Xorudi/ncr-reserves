@@ -128,8 +128,8 @@ function MoreMenu({ onSub, onSwitchTab }: {
 
 // ─── Alerts screen ────────────────────────────────────────────────────────────
 function AlertsScreen({ onBack }: { onBack: () => void }) {
-  const { selectedBusiness, reservations, shiftNotes, appEvents } = useAppStore();
-  const todayStr = isoDate(new Date());
+  const { selectedBusiness, reservations, shiftNotes, appEvents, selectedDate } = useAppStore();
+  const todayStr = isoDate(selectedDate);
 
   const pending = reservations.filter(r =>
     r.bizId === selectedBusiness && r.date === todayStr && r.status === 'pending',

@@ -68,7 +68,9 @@ interface AppState {
   addReservation: (r: Omit<Reservation, 'id'>) => void;
 
   // â”€â”€ Customer CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  addCustomer: (c: Omit<Customer, 'id'>) => void;
+  addCustomer:    (c: Omit<Customer, 'id'>) => void;
+  updateCustomer: (id: string, updates: Partial<Customer>) => void;
+  deleteCustomer: (id: string) => void;
 
   // â”€â”€ Modal setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   setConfirmModalRes: (v: any | null) => void;
@@ -205,6 +207,12 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   // â”€â”€ Customer CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   addCustomer: (cust) =>
     set((s) => ({ customers: [...s.customers, { ...cust, id: `cust-${Date.now()}` }] })),
+
+  updateCustomer: (id, updates) =>
+    set((s) => ({ customers: s.customers.map(c => c.id === id ? { ...c, ...updates } : c) })),
+
+  deleteCustomer: (id) =>
+    set((s) => ({ customers: s.customers.filter(c => c.id !== id) })),
 
   // â”€â”€ Modal setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   setConfirmModalRes: (v) => set({ confirmModalRes: v }),
@@ -348,5 +356,6 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     employeeShifts:    s.employeeShifts,
   }),
 }));
+
 
 
