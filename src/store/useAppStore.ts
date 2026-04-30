@@ -22,10 +22,12 @@ interface AppState {
   selectedCustomer: Customer | null;
   showWalkin: boolean;
 
-  // ── Auth ─────────────────────────────────────────────────────────
+  // ── Auth / Active user ───────────────────────────────────────────
   loggedIn: boolean;
   currentUser: any | null;
   setLoggedIn: (v: boolean, user?: any) => void;
+  activeEmployeeId: string | null;
+  setActiveEmployee: (id: string | null) => void;
 
   // ── Modal state ──────────────────────────────────────────────────
   confirmModalRes: any | null;
@@ -137,6 +139,8 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   loggedIn: false,
   currentUser: null,
   setLoggedIn: (v, user) => set({ loggedIn: v, currentUser: user ?? null }),
+  activeEmployeeId: null,
+  setActiveEmployee: (id) => set({ activeEmployeeId: id }),
 
   // ── Modal state ──────────────────────────────────────────────────
   confirmModalRes: null,
@@ -316,12 +320,14 @@ export const useAppStore = create<AppState>()(persist((set) => ({
 }), {
   name: 'ncr-reserves-storage',
   partialize: (s) => ({
-    weekSchedule:    s.weekSchedule,
-    businessConfigs: s.businessConfigs,
-    businessHours:   s.businessHours,
-    bizShifts:       s.bizShifts,
-    employees:       s.employees,
-    employeeRoles:   s.employeeRoles,
-    notifConfigs:    s.notifConfigs,
+    weekSchedule:      s.weekSchedule,
+    businessConfigs:   s.businessConfigs,
+    businessHours:     s.businessHours,
+    bizShifts:         s.bizShifts,
+    employees:         s.employees,
+    employeeRoles:     s.employeeRoles,
+    notifConfigs:      s.notifConfigs,
+    activeEmployeeId:  s.activeEmployeeId,
+    selectedBusiness:  s.selectedBusiness,
   }),
 }));

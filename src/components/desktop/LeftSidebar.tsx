@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
-import { BUSINESSES } from '@/data/mockData';
+import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
-import type { BusinessId, BusinessStats } from '@/types';
+import type { BusinessId, BusinessStats, Employee, EmployeeRole } from '@/types';
 
 interface Props {
   activeBizId: BusinessId;
@@ -15,7 +15,12 @@ interface Props {
 }
 
 export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'today', onNavigate, onNewReservation, onWalkin }: Props) {
-  const { businessConfigs } = useAppStore();
+  const { businessConfigs, employees, employeeRoles, activeEmployeeId, setActiveEmployee } = useAppStore();
+  const [showUserPicker, setShowUserPicker] = useState(false);
+
+  const activeEmp  = employees.find(e => e.id === activeEmployeeId) ?? null;
+  const activeRole = activeEmp ? employeeRoles.find(r => r.id === activeEmp.roleId) ?? null : null;
+
   return (
     <aside style={{ width:244, flex:'none', borderRight:'var(--hair)', background:'var(--cream)', display:'flex', flexDirection:'column', height:'100%' }}>
 
@@ -109,17 +114,126 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
 
       <div style={{ flex:1 }} />
 
-      {/* Profile */}
-      <div style={{ padding:'12px 14px',borderTop:'var(--hair)',display:'flex',alignItems:'center',gap:10 }}>
-        <span className="avatar av-1">EM</span>
-        <div style={{ display:'flex',flexDirection:'column',lineHeight:1.2,minWidth:0,flex:1 }}>
-          <span style={{ fontSize:12.5,fontWeight:550,color:'var(--ink-900)' }}>Èlia Masdeu</span>
-          <span style={{ fontSize:10.5,color:'var(--ink-500)' }}>Encarregada · torn migdia</span>
-        </div>
-        <button style={{ width:30,height:30,padding:0,display:'grid',placeItems:'center',background:'transparent',border:'none',borderRadius:8,cursor:'pointer',color:'var(--ink-600)' }}>
-          <Icon d={I.settings} size={14} />
+      {/* Usuari actiu */}
+      <div style={{ padding:'10px 12px', borderTop:'var(--hair)' }}>
+        <button onClick={() => setShowUserPicker(true)}
+          style={{ display:'flex', alignItems:'center', gap:9, width:'100%', padding:'8px 10px', border:'1px solid rgba(60,40,20,.1)', borderRadius:10, background:'var(--paper)', cursor:'pointer', fontFamily:'inherit', textAlign:'left', transition:'background .12s' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--ink-50)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--paper)')}>
+          {activeEmp ? (
+            <>
+              <span className={`avatar av-${avIdx(activeEmp.fullName)}`}
+                style={{ width:28, height:28, fontSize:10, display:'grid', placeItems:'center', borderRadius:'50%', flexShrink:0 }}>
+                {activeEmp.initials}
+              </span>
+              <div style={{ minWidth:0, flex:1 }}>
+                <div style={{ fontSize:12.5, fontWeight:600, color:'var(--ink-900)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{activeEmp.fullName}</div>
+                <div style={{ fontSize:10.5, color:'var(--ink-500)' }}>{activeRole?.name ?? '—'}</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <span style={{ width:28, height:28, borderRadius:'50%', background:'var(--ink-100)', display:'grid', placeItems:'center', flexShrink:0, color:'var(--ink-500)', fontSize:12 }}>?</span>
+              <div style={{ minWidth:0, flex:1 }}>
+                <div style={{ fontSize:12, fontWeight:500, color:'var(--ink-600)' }}>Sense usuari actiu</div>
+                <div style={{ fontSize:10.5, color:'var(--terracotta-600)', fontWeight:600 }}>Triar empleat →</div>
+              </div>
+            </>
+          )}
+          <Icon d={I.chevR} size={11} />
         </button>
       </div>
+
+      {showUserPicker && (
+        <UserSwitcherModal
+          bizId={activeBizId}
+          employees={employees}
+          employeeRoles={employeeRoles}
+          activeEmployeeId={activeEmployeeId}
+          onSelect={id => { setActiveEmployee(id); setShowUserPicker(false); }}
+          onClose={() => setShowUserPicker(false)}
+        />
+      )}
     </aside>
+  );
+}
+
+// ─── User Switcher Modal ───────────────────────────────────────────────────────
+function UserSwitcherModal({ bizId, employees, employeeRoles, activeEmployeeId, onSelect, onClose }: {
+  bizId: BusinessId;
+  employees: Employee[];
+  employeeRoles: EmployeeRole[];
+  activeEmployeeId: string | null;
+  onSelect: (id: string | null) => void;
+  onClose: () => void;
+}) {
+  const bizEmps = employees.filter(e => e.bizId === bizId && e.active);
+  const roleMap  = Object.fromEntries(employeeRoles.map(r => [r.id, r]));
+
+  // Group by role order
+  const sorted = [...bizEmps].sort((a, b) => {
+    const ra = roleMap[a.roleId]?.order ?? 99;
+    const rb = roleMap[b.roleId]?.order ?? 99;
+    return ra !== rb ? ra - rb : a.fullName.localeCompare(b.fullName);
+  });
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:500, display:'flex', alignItems:'flex-end', justifyContent:'flex-start' }}
+      onClick={onClose}>
+      <div style={{ position:'absolute', left:12, bottom:64, width:232, background:'var(--paper)', borderRadius:14, boxShadow:'0 8px 40px rgba(60,40,20,.22), 0 2px 8px rgba(60,40,20,.1)', border:'var(--hair)', overflow:'hidden' }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{ padding:'12px 14px 10px', borderBottom:'var(--hair)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <span style={{ fontSize:11.5, fontWeight:700, color:'var(--ink-700)', letterSpacing:.04 }}>Usuari actiu</span>
+          <button onClick={onClose} style={{ border:'none', background:'none', cursor:'pointer', color:'var(--ink-400)', padding:2, display:'grid', placeItems:'center' }}>
+            <Icon d={I.x} size={13} />
+          </button>
+        </div>
+
+        {/* Employee list */}
+        <div style={{ maxHeight:320, overflowY:'auto', padding:'6px' }}>
+          {sorted.map(emp => {
+            const role    = roleMap[emp.roleId];
+            const isActive = emp.id === activeEmployeeId;
+            return (
+              <button key={emp.id} onClick={() => onSelect(emp.id)}
+                style={{ display:'flex', alignItems:'center', gap:9, width:'100%', padding:'8px 10px', border:'none', borderRadius:8, background: isActive ? 'var(--terracotta-50)' : 'transparent', cursor:'pointer', fontFamily:'inherit', textAlign:'left', transition:'background .1s' }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--ink-50)'; }}
+                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                <span className={`avatar av-${avIdx(emp.fullName)}`}
+                  style={{ width:30, height:30, fontSize:10.5, display:'grid', placeItems:'center', borderRadius:'50%', flexShrink:0 }}>
+                  {emp.initials}
+                </span>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight: isActive ? 600 : 500, color: isActive ? 'var(--terracotta-700)' : 'var(--ink-900)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{emp.fullName}</div>
+                  {role && (
+                    <span style={{ fontSize:10, fontWeight:600, padding:'1px 6px', borderRadius:3, background:role.color, color:role.textColor }}>{role.name}</span>
+                  )}
+                </div>
+                {isActive && <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--terracotta-500)', flexShrink:0 }} />}
+              </button>
+            );
+          })}
+          {sorted.length === 0 && (
+            <div style={{ padding:'20px 12px', textAlign:'center', fontSize:12, color:'var(--ink-400)' }}>
+              Cap empleat actiu en aquest negoci
+            </div>
+          )}
+        </div>
+
+        {/* Footer: deselect */}
+        {activeEmployeeId && (
+          <div style={{ borderTop:'var(--hair)', padding:'6px' }}>
+            <button onClick={() => onSelect(null)}
+              style={{ display:'flex', alignItems:'center', gap:7, width:'100%', padding:'7px 10px', border:'none', borderRadius:8, background:'transparent', cursor:'pointer', fontFamily:'inherit', fontSize:12, color:'var(--ink-500)', transition:'background .1s' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--ink-50)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <Icon d={I.x} size={12} /> Continuar sense usuari actiu
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

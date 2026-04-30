@@ -9,7 +9,6 @@ import ClientsView from './ClientsView';
 import StaffView from './StaffView';
 import CalendarView from './CalendarView';
 import SettingsView from './SettingsView';
-import LoginView from './LoginView';
 import { ConfirmReservationModal, CancelReservationModal, WaitlistModal, BlockTableModal, MergeTablesModal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, getStats } from '@/data/mockData';
@@ -26,21 +25,11 @@ export default function DesktopShell() {
     mergeModalTable, setMergeModalTable,
   } = useAppStore();
 
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [page, setPage] = useState<string>('today');
   const [showForm, setShowForm] = useState(false);
 
   const biz   = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const stats = getStats(selectedBusiness);
-
-  if (!loggedIn) {
-    return (
-      <div style={{ width:'100vw', height:'100vh' }}>
-        <LoginView onLogin={(user) => { setCurrentUser(user); setLoggedIn(true); }} />
-      </div>
-    );
-  }
 
   function handleNavigate(p: string) {
     setPage(p);
