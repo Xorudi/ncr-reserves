@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { ServiceBlock } from '@/components/desktop/ServiceBlock';
+import type { ActiveStaffMember } from '@/components/desktop/ServiceBlock';
 import { useAppStore } from '@/store/useAppStore';
-import { BUSINESSES, isoDate } from '@/data/mockData';
+import { BUSINESSES, isoDate, shiftsOverlap } from '@/data/mockData';
 import type { Reservation } from '@/types';
 
 const DAYS_CA   = ['dg.','dl.','dm.','dc.','dj.','dv.','ds.'];
@@ -16,6 +17,7 @@ export default function DailyView() {
   const {
     selectedBusiness, selectedDate, setSelectedDate,
     reservations, selectedReservation, setSelectedReservation,
+    employeeShifts, employees, employeeRoles,
   } = useAppStore();
 
   const biz     = BUSINESSES.find(b => b.id === selectedBusiness)!;
@@ -55,6 +57,36 @@ export default function DailyView() {
     const m = now.getMinutes() < 30 ? '00' : '30';
     return `${h}:${m}`;
   }, []);
+
+  // ── Personal actiu per servei ──────────────────────────────────
+  // JS getDay(): 0=Sun, 1=Mon … 6=Sat → our DOW: 0=Mon…6=Sun
+  const todayDow = (selectedDate.getDay() + 6) % 7;
+
+  const roleMap  = useMemo(() => Object.fromEntries(employeeRoles.map(r => [r.id, r.name])), [employeeRoles]);
+  const empMap   = useMemo(() => Object.fromEntries(employees.map(e => [e.id, e])),         [employees]);
+
+  const bizShiftsForDay = useMemo(() =>
+    employeeShifts.filter(s => s.businessId === selectedBusiness && s.dow === todayDow),
+    [employeeShifts, selectedBusiness, todayDow]
+  );
+
+  function staffForWindow(winStart: string, winEnd: string): ActiveStaffMember[] {
+    return bizShiftsForDay
+      .filter(s => shiftsOverlap(s.startTime, s.endTime, winStart, winEnd))
+      .map(s => {
+        const emp  = empMap[s.employeeId];
+        if (!emp || !emp.active) return null;
+        return {
+          name:  emp.fullName,
+          role:  roleMap[s.roleId ?? emp.roleId] ?? '—',
+          hours: `${s.startTime}–${s.endTime}`,
+        } as ActiveStaffMember;
+      })
+      .filter((x): x is ActiveStaffMember => x !== null);
+  }
+
+  const migdiaStaff = useMemo(() => staffForWindow('13:00', '16:00'), [bizShiftsForDay, empMap, roleMap]);
+  const nitStaff    = useMemo(() => staffForWindow('20:30', '23:00'), [bizShiftsForDay, empMap, roleMap]);
 
   const prevDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d); };
   const nextDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d); };
@@ -112,13 +144,15 @@ export default function DailyView() {
           <ServiceBlock label="Migdia" sub="13:00 – 16:00" ico="☀️"
             list={migdia} selectedId={selectedReservation?.id}
             onSelect={(r: Reservation) => setSelectedReservation(selectedReservation?.id === r.id ? null : r)}
-            nowTime={nowTime} defaultOpen={true} />
+            nowTime={nowTime} defaultOpen={true}
+            activeStaff={migdiaStaff} />
         )}
         {nit.length > 0 && (
           <ServiceBlock label="Nit" sub="20:30 – 23:00" ico="🌙"
             list={nit} selectedId={selectedReservation?.id}
             onSelect={(r: Reservation) => setSelectedReservation(selectedReservation?.id === r.id ? null : r)}
-            defaultOpen={migdia.length === 0} />
+            defaultOpen={migdia.length === 0}
+            activeStaff={nitStaff} />
         )}
         {dayRes.length === 0 && (
           <div style={{ textAlign:'center', padding:'80px 0', color:'var(--ink-500)' }}>

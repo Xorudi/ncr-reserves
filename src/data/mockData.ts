@@ -1,4 +1,4 @@
-import type { Business, Reservation, Customer, FloorPlan, BusinessStats, BusinessId, ShiftNote, AppEvent, BusinessConfig, BusinessHours, BizShift, Employee, EmployeeRole, NotifConfig, WeekScheduleData } from '@/types';
+import type { Business, Reservation, Customer, FloorPlan, BusinessStats, BusinessId, ShiftNote, AppEvent, BusinessConfig, BusinessHours, BizShift, Employee, EmployeeRole, NotifConfig, WeekScheduleData, EmployeeShift } from '@/types';
 
 export const BUSINESSES: Business[] = [
   { id: 'ganxo',   name: 'El Ganxo',   kind: 'Pub',                        hue: '#a84a2a', hueSoft: '#f7e2d2', monogram: 'EG', address: 'Passeig Marítim 14',       capacity: 64 },
@@ -619,6 +619,49 @@ export const WEEK_SCHED: WeekScheduleData = {
     //       JoseLuis·Guillermo·Lee·Christian·Vanessa·Bene
   },
 };
+
+// ─── Employee Shifts (intervals reals HH:mm) ─────────────────────────────────
+// Generat automàticament des de WEEK_SCHED + BIZ_SHIFTS com a punt de partida.
+// Els usuaris poden editar-los per tenir hores exactes per a cada empleat.
+export function timeToMins(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  const v = h * 60 + m;
+  return v < 360 ? v + 1440 : v; // 00:00–05:59 = dia següent (>1440)
+}
+
+export function shiftsOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  return timeToMins(aStart) < timeToMins(bEnd) && timeToMins(aEnd) > timeToMins(bStart);
+}
+
+function mkInitShifts(): EmployeeShift[] {
+  const out: EmployeeShift[] = [];
+  let n = 0;
+  const bsMap: Record<string, Record<string, { start: string; end: string }>> = {};
+  for (const [biz, shifts] of Object.entries(BIZ_SHIFTS)) {
+    bsMap[biz] = Object.fromEntries(shifts.map(s => [s.id, { start: s.start, end: s.end }]));
+  }
+  for (const [bizId, dowMap] of Object.entries(WEEK_SCHED)) {
+    for (const [dowStr, shiftMap] of Object.entries(dowMap)) {
+      const dow = +dowStr;
+      // collect per employee: which shift codes they work
+      const empSids: Record<string, string[]> = {};
+      for (const [sid, empIds] of Object.entries(shiftMap)) {
+        for (const eid of empIds as string[]) { (empSids[eid] ??= []).push(sid); }
+      }
+      for (const [eid, sids] of Object.entries(empSids)) {
+        const times = sids.map(sid => bsMap[bizId]?.[sid]).filter(Boolean);
+        if (!times.length) continue;
+        // earliest start + latest end (handles midnight crossing)
+        const start = times.map(t => t.start).sort()[0];
+        const end   = times.reduce((best, t) =>
+          timeToMins(t.end) > timeToMins(best) ? t.end : best, times[0].end);
+        out.push({ id: `es${++n}`, employeeId: eid, businessId: bizId as BusinessId, dow, startTime: start, endTime: end });
+      }
+    }
+  }
+  return out;
+}
+export const EMPLOYEE_SHIFTS_INIT: EmployeeShift[] = mkInitShifts();
 
 // ─── Notification defaults ────────────────────────────────────────────────────
 export const NOTIF_DEFAULTS: NotifConfig = {

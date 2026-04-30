@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { ReservationRow } from './ReservationRow';
 import type { Reservation } from '@/types';
@@ -6,6 +6,12 @@ import type { Reservation } from '@/types';
 function parseTime(t: string) {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
+}
+
+export interface ActiveStaffMember {
+  name: string;
+  role: string;
+  hours: string;
 }
 
 interface Props {
@@ -17,14 +23,29 @@ interface Props {
   onSelect?: (r: Reservation) => void;
   nowTime?: string;
   defaultOpen?: boolean;
+  activeStaff?: ActiveStaffMember[];
 }
 
-export function ServiceBlock({ label, sub, ico, list, selectedId, onSelect, nowTime, defaultOpen = true }: Props) {
+export function ServiceBlock({ label, sub, ico, list, selectedId, onSelect, nowTime, defaultOpen = true, activeStaff }: Props) {
   const [open, setOpen] = useState(defaultOpen);
+  const [staffOpen, setStaffOpen] = useState(false);
+  const staffRef = useRef<HTMLDivElement>(null);
 
   const totalPax = list.reduce((s, r) => s + r.pax, 0);
   const confirmed = list.filter(r => r.status === 'confirmed' || r.status === 'seated').length;
   const pending   = list.filter(r => r.status === 'pending').length;
+
+  // Close staff popover on outside click
+  useEffect(() => {
+    if (!staffOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (staffRef.current && !staffRef.current.contains(e.target as Node)) {
+        setStaffOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [staffOpen]);
 
   const buckets = useMemo(() => {
     const minT = Math.floor(Math.min(...list.map(r => parseTime(r.time))) / 30) * 30;
@@ -60,8 +81,40 @@ export function ServiceBlock({ label, sub, ico, list, selectedId, onSelect, nowT
             <span><b style={{ color:'var(--ink-800)' }}>{list.length}</b> reserves</span>
             <span>·</span>
             <span><b style={{ color:'var(--ink-800)' }}>{totalPax}</b> comensals</span>
-            <span>·</span>
-            <span><b style={{ color:'var(--olive-700)' }}>{confirmed}</b> a servei</span>
+            {activeStaff && activeStaff.length > 0 && (
+              <>
+                <span>·</span>
+                <div ref={staffRef} style={{ position:'relative' }}>
+                  <button
+                    onClick={e => { e.stopPropagation(); setStaffOpen(s => !s); }}
+                    style={{ display:'flex',alignItems:'center',gap:4,padding:'2px 7px',border:'1px solid rgba(60,120,60,.25)',borderRadius:10,background:staffOpen?'rgba(60,120,60,.1)':'rgba(60,120,60,.06)',cursor:'pointer',fontFamily:'inherit',fontSize:11.5,color:'var(--olive-700)' }}>
+                    <b>{activeStaff.length}</b> a sala
+                    <Icon d={I.chevD} size={11} />
+                  </button>
+                  {staffOpen && (
+                    <div style={{ position:'absolute',top:'calc(100% + 6px)',left:0,zIndex:200,background:'var(--paper)',border:'var(--hair)',borderRadius:10,boxShadow:'var(--sh-2)',minWidth:200,padding:'6px 0' }}>
+                      <div style={{ padding:'4px 12px 6px',fontSize:10.5,fontWeight:700,letterSpacing:.06,textTransform:'uppercase',color:'var(--ink-400)',borderBottom:'var(--hair)' }}>
+                        Personal a sala — {label.toLowerCase()}
+                      </div>
+                      {activeStaff.map((s, i) => (
+                        <div key={i} style={{ display:'flex',alignItems:'center',gap:10,padding:'7px 12px',borderBottom: i < activeStaff!.length - 1 ? '1px solid rgba(60,40,20,.05)' : 'none' }}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:13,fontWeight:600,color:'var(--ink-900)' }}>{s.name}</div>
+                            <div style={{ fontSize:11,color:'var(--ink-500)',marginTop:1 }}>{s.role}</div>
+                          </div>
+                          <span className="mono" style={{ fontSize:11.5,fontWeight:600,color:'var(--ink-700)',background:'var(--ink-100)',padding:'2px 6px',borderRadius:4 }}>
+                            {s.hours}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            {(!activeStaff || activeStaff.length === 0) && (
+              <><span>·</span><span><b style={{ color:'var(--olive-700)' }}>{confirmed}</b> a servei</span></>
+            )}
             {pending > 0 && <><span>·</span><span><b style={{ color:'var(--clay-700)' }}>{pending}</b> pendents</span></>}
           </div>
         </div>

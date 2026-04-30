@@ -4,12 +4,13 @@ import type {
   BusinessId, Reservation, Customer, ReservationStatus,
   ShiftNote, AppEvent, FloorPlan, FloorTable, FloorZone,
   BusinessConfig, BusinessHours, BizShift,
-  Employee, EmployeeRole, NotifConfig, WeekScheduleData,
+  Employee, EmployeeRole, NotifConfig, WeekScheduleData, EmployeeShift,
 } from '@/types';
 import {
   RESERVATIONS, CUSTOMERS, SHIFT_NOTES, APP_EVENTS, FLOOR_PLANS,
   BUSINESS_CONFIGS, BUSINESS_HOURS, BIZ_SHIFTS,
   EMPLOYEES, EMPLOYEE_ROLES, WEEK_SCHED, NOTIF_DEFAULTS,
+  EMPLOYEE_SHIFTS_INIT,
 } from '@/data/mockData';
 
 interface AppState {
@@ -114,8 +115,14 @@ interface AppState {
   updateEmployeeRole: (id: string, updates: Partial<EmployeeRole>) => void;
   deleteEmployeeRole: (id: string) => void;
 
-  // ── Week schedule ────────────────────────────────────────────────
+  // ── Week schedule (legacy) ───────────────────────────────────────
   setWeekShift: (bizId: string, dow: number, shiftId: string, empIds: string[]) => void;
+
+  // ── Employee shifts (intervals reals) ────────────────────────────
+  employeeShifts: EmployeeShift[];
+  addEmployeeShift: (s: Omit<EmployeeShift, 'id'>) => void;
+  updateEmployeeShift: (id: string, updates: Partial<EmployeeShift>) => void;
+  deleteEmployeeShift: (id: string) => void;
 }
 
 // Helper: seed notif configs for each biz
@@ -163,9 +170,10 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   notifConfigs:    seedNotifs(),
 
   // ── Staff ────────────────────────────────────────────────────────
-  employees:     JSON.parse(JSON.stringify(EMPLOYEES)),
-  employeeRoles: JSON.parse(JSON.stringify(EMPLOYEE_ROLES)),
-  weekSchedule:  JSON.parse(JSON.stringify(WEEK_SCHED)),
+  employees:       JSON.parse(JSON.stringify(EMPLOYEES)),
+  employeeRoles:   JSON.parse(JSON.stringify(EMPLOYEE_ROLES)),
+  weekSchedule:    JSON.parse(JSON.stringify(WEEK_SCHED)),
+  employeeShifts:  JSON.parse(JSON.stringify(EMPLOYEE_SHIFTS_INIT)),
 
   // ── Setters ──────────────────────────────────────────────────────
   setSelectedBusiness: (id) => set({ selectedBusiness: id, selectedReservation: null }),
@@ -306,7 +314,7 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   deleteEmployeeRole: (id) =>
     set((s) => ({ employeeRoles: s.employeeRoles.filter(r => r.id !== id) })),
 
-  // ── Week schedule ────────────────────────────────────────────────
+  // ── Week schedule (legacy) ───────────────────────────────────────
   setWeekShift: (bizId, dow, shiftId, empIds) =>
     set((s) => ({
       weekSchedule: {
@@ -317,6 +325,14 @@ export const useAppStore = create<AppState>()(persist((set) => ({
         },
       },
     })),
+
+  // ── Employee shifts (intervals reals) ────────────────────────────
+  addEmployeeShift: (s) =>
+    set((st) => ({ employeeShifts: [...st.employeeShifts, { ...s, id: `es-${Date.now()}` }] })),
+  updateEmployeeShift: (id, updates) =>
+    set((s) => ({ employeeShifts: s.employeeShifts.map(sh => sh.id === id ? { ...sh, ...updates } : sh) })),
+  deleteEmployeeShift: (id) =>
+    set((s) => ({ employeeShifts: s.employeeShifts.filter(sh => sh.id !== id) })),
 }), {
   name: 'ncr-reserves-storage',
   partialize: (s) => ({
@@ -329,5 +345,6 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     notifConfigs:      s.notifConfigs,
     activeEmployeeId:  s.activeEmployeeId,
     selectedBusiness:  s.selectedBusiness,
+    employeeShifts:    s.employeeShifts,
   }),
 }));

@@ -165,5 +165,16 @@ export interface EmployeeRole {
   active: boolean;
 }
 
-// bizId → dow(0-6) → shiftId → employeeIds
+// bizId → dow(0-6) → shiftId → employeeIds  (legacy, keep for compat)
 export type WeekScheduleData = Record<string, Record<number, Record<string, string[]>>>;
+
+// New model: real time intervals per employee per day-of-week
+export interface EmployeeShift {
+  id: string;
+  employeeId: string;
+  businessId: BusinessId;
+  dow: number;        // 0=Dilluns … 6=Diumenge
+  startTime: string;  // "HH:mm"
+  endTime: string;    // "HH:mm"
+  roleId?: string;
+}
