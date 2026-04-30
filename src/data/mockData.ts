@@ -634,32 +634,123 @@ export function shiftsOverlap(aStart: string, aEnd: string, bStart: string, bEnd
 }
 
 function mkInitShifts(): EmployeeShift[] {
-  const out: EmployeeShift[] = [];
+  // DOW: 0=Dilluns … 6=Diumenge
+  // F.S. La Pista (servei vespre)       = '00:00'
+  // F.S. Guillermo Esquitx (cuina migdia) = '16:00'
   let n = 0;
-  const bsMap: Record<string, Record<string, { start: string; end: string }>> = {};
-  for (const [biz, shifts] of Object.entries(BIZ_SHIFTS)) {
-    bsMap[biz] = Object.fromEntries(shifts.map(s => [s.id, { start: s.start, end: s.end }]));
-  }
-  for (const [bizId, dowMap] of Object.entries(WEEK_SCHED)) {
-    for (const [dowStr, shiftMap] of Object.entries(dowMap)) {
-      const dow = +dowStr;
-      // collect per employee: which shift codes they work
-      const empSids: Record<string, string[]> = {};
-      for (const [sid, empIds] of Object.entries(shiftMap)) {
-        for (const eid of empIds as string[]) { (empSids[eid] ??= []).push(sid); }
-      }
-      for (const [eid, sids] of Object.entries(empSids)) {
-        const times = sids.map(sid => bsMap[bizId]?.[sid]).filter(Boolean);
-        if (!times.length) continue;
-        // earliest start + latest end (handles midnight crossing)
-        const start = times.map(t => t.start).sort()[0];
-        const end   = times.reduce((best, t) =>
-          timeToMins(t.end) > timeToMins(best) ? t.end : best, times[0].end);
-        out.push({ id: `es${++n}`, employeeId: eid, businessId: bizId as BusinessId, dow, startTime: start, endTime: end });
-      }
-    }
-  }
-  return out;
+  const s = (empId: string, biz: BusinessId, dow: number, start: string, end: string): EmployeeShift =>
+    ({ id: `es${++n}`, employeeId: empId, businessId: biz, dow, startTime: start, endTime: end });
+
+  return [
+    // ── La Pista ─────────────────────────────────────────────────────────────
+    // Mariano (e8) Cap de cuina
+    s('e8','pista',2,'18:00','00:00'),
+    s('e8','pista',3,'10:00','13:00'), s('e8','pista',3,'19:00','00:00'),
+    s('e8','pista',4,'17:00','00:00'),
+    s('e8','pista',5,'09:00','16:00'), s('e8','pista',5,'19:00','00:00'),
+    s('e8','pista',6,'10:00','16:00'), s('e8','pista',6,'20:00','00:00'),
+    // Nina (e9) Cambrer/a sala
+    s('e9','pista',2,'17:00','00:00'),
+    s('e9','pista',3,'17:00','00:00'),
+    s('e9','pista',4,'10:00','13:00'), s('e9','pista',4,'20:00','00:00'),
+    s('e9','pista',5,'10:00','16:00'), s('e9','pista',5,'20:00','00:00'),
+    s('e9','pista',6,'09:00','16:00'), s('e9','pista',6,'19:00','00:00'),
+    // Ahmed (e6) Cuiner/a
+    s('e6','pista',5,'20:00','00:00'),
+    s('e6','pista',6,'12:00','22:00'),
+    // Pol (e25) Cuiner/a  [surt al bar el diumenge]
+    s('e25','pista',3,'19:00','00:00'),
+    s('e25','pista',4,'19:00','00:00'),
+    s('e25','pista',5,'13:00','00:00'),
+    s('e25','pista',6,'13:00','17:00'), s('e25','pista',6,'17:00','23:00'),
+    // Joan (e5) Pizzer
+    s('e5','pista',2,'18:00','00:00'),
+    s('e5','pista',3,'18:00','00:00'),
+    s('e5','pista',4,'18:00','00:00'),
+    s('e5','pista',5,'18:00','00:00'),
+    s('e5','pista',6,'18:00','00:00'),
+    // Biel (e14) Runner
+    s('e14','pista',4,'17:00','00:00'),
+    s('e14','pista',5,'17:00','00:00'),
+    s('e14','pista',6,'14:00','19:30'),
+    // Jordi (e13) Encarregat
+    s('e13','pista',2,'18:00','00:00'),
+    s('e13','pista',3,'18:00','00:00'),
+    s('e13','pista',4,'16:45','00:00'),
+    s('e13','pista',5,'08:45','16:00'), s('e13','pista',5,'20:00','00:00'),
+    s('e13','pista',6,'08:45','19:00'),
+    // Mounir (e4) Cambrer/a sala
+    s('e4','pista',2,'16:45','00:00'),
+    s('e4','pista',3,'16:45','00:00'),
+    s('e4','pista',4,'17:00','00:00'),
+    s('e4','pista',5,'16:00','00:00'),
+    s('e4','pista',6,'13:00','00:00'),
+    // Sara (e10) Cambrer/a sala
+    s('e10','pista',4,'20:00','00:00'),
+    s('e10','pista',5,'13:00','00:00'),
+    s('e10','pista',6,'10:00','19:00'),
+    // Alejandro (e7) Cuiner/a
+    s('e7','pista',4,'20:00','00:00'),
+    s('e7','pista',5,'10:00','16:00'), s('e7','pista',5,'20:00','00:00'),
+    s('e7','pista',6,'09:00','16:00'), s('e7','pista',6,'20:00','00:00'),
+    // Bene / La Pista (e12) Cambrer/a sala  [DC i DG treballa a L'Esquitx]
+    s('e12','pista',3,'20:00','00:00'),
+    s('e12','pista',4,'18:00','00:00'),
+    s('e12','pista',5,'16:00','00:00'),
+    // Dana (e11) Cambrer/a sala
+    s('e11','pista',5,'12:00','22:00'),
+    s('e11','pista',6,'11:00','20:00'),
+
+    // ── L'Esquitx ────────────────────────────────────────────────────────────
+    // Guillermo (e17) Cap de cuina  [F.S. ≈ fi servei migdia → 16:00]
+    s('e17','esquitx',0,'07:00','16:00'),
+    s('e17','esquitx',3,'07:00','16:00'),
+    s('e17','esquitx',4,'07:00','16:00'),
+    s('e17','esquitx',5,'08:00','16:00'),
+    s('e17','esquitx',6,'08:00','16:00'),
+    // Christian (e19) Cuiner/a
+    s('e19','esquitx',1,'07:00','16:00'),
+    s('e19','esquitx',2,'07:00','16:00'),
+    s('e19','esquitx',3,'09:00','18:00'),
+    s('e19','esquitx',4,'09:00','18:00'),
+    s('e19','esquitx',6,'09:00','17:00'),
+    // Lee (e18) Cuiner/a
+    s('e18','esquitx',0,'09:00','18:00'),
+    s('e18','esquitx',1,'09:00','18:00'),
+    s('e18','esquitx',2,'09:00','18:00'),
+    s('e18','esquitx',5,'09:00','18:00'),
+    s('e18','esquitx',6,'08:00','17:00'),
+    // Nina Esquitx (e20) Cuiner/a
+    s('e20','esquitx',1,'12:00','16:00'),
+    s('e20','esquitx',2,'12:00','16:00'),
+    // Jose Luis (e16) Encarregat
+    s('e16','esquitx',0,'11:00','20:00'),
+    s('e16','esquitx',1,'09:00','18:00'),
+    s('e16','esquitx',4,'11:00','20:00'),
+    s('e16','esquitx',5,'11:00','20:00'),
+    s('e16','esquitx',6,'09:00','18:00'),
+    // Adriana (e23) Cambrer/a
+    s('e23','esquitx',1,'07:45','17:00'),
+    s('e23','esquitx',2,'07:45','17:00'),
+    s('e23','esquitx',3,'09:00','18:00'),
+    s('e23','esquitx',4,'07:45','17:00'),
+    s('e23','esquitx',5,'07:45','17:00'),
+    // Antonella (e21) Cambrer/a
+    s('e21','esquitx',0,'07:45','17:00'),
+    s('e21','esquitx',1,'11:00','20:00'),
+    s('e21','esquitx',2,'09:00','18:00'),
+    s('e21','esquitx',3,'07:45','17:00'),
+    s('e21','esquitx',6,'07:45','17:00'),
+    // Vanessa (e22) Cambrer/a
+    s('e22','esquitx',0,'09:00','18:00'),
+    s('e22','esquitx',3,'11:00','20:00'),
+    s('e22','esquitx',4,'09:00','18:00'),
+    s('e22','esquitx',5,'09:00','18:00'),
+    s('e22','esquitx',6,'09:00','18:00'),
+    // Bene / L'Esquitx (e24) Cambrer/a  [DJ-DS treballa a La Pista]
+    s('e24','esquitx',2,'11:00','20:00'),
+    s('e24','esquitx',6,'08:30','17:30'),
+  ];
 }
 export const EMPLOYEE_SHIFTS_INIT: EmployeeShift[] = mkInitShifts();
 
