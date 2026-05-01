@@ -428,6 +428,8 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
   onClose: () => void;
 }) {
   const biz = BUSINESSES.find(b => b.id === bizId)!;
+  const { customers } = useAppStore();
+
   const [form, setForm] = useState({
     date:   defaultDate,
     time:   '13:00',
@@ -438,11 +440,33 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
     status: 'pending' as ReservationStatus,
     source: 'directe',
   });
-  const [saved,   setSaved]   = useState(false);
-  const [touched, setTouched] = useState(false);
+  const [saved,         setSaved]         = useState(false);
+  const [touched,       setTouched]       = useState(false);
+  const [clientQuery,   setClientQuery]   = useState('');
+  const [showDropdown,  setShowDropdown]  = useState(false);
 
   function upd<K extends keyof typeof form>(k: K, v: typeof form[K]) {
     setForm(f => ({ ...f, [k]: v }));
+  }
+
+  // Clients filtered by business + search query
+  const bizClients = useMemo(() =>
+    customers.filter(c => c.biz.includes(bizId)),
+    [customers, bizId]
+  );
+  const clientMatches = useMemo(() => {
+    const q = clientQuery.trim().toLowerCase();
+    if (!q) return bizClients.slice(0, 6);
+    return bizClients.filter(c =>
+      c.name.toLowerCase().includes(q) || (c.phone || '').includes(q)
+    ).slice(0, 6);
+  }, [bizClients, clientQuery]);
+
+  function selectClient(c: typeof customers[number]) {
+    upd('name',  c.name);
+    upd('phone', c.phone || '');
+    setClientQuery('');
+    setShowDropdown(false);
   }
 
   function handleSave() {
@@ -498,7 +522,7 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
 
         <div style={{ padding:'0 18px 20px', display:'flex', flexDirection:'column', gap:14 }}>
 
-          {/* Date + Time + Pax */}
+          {/* Date + Time */}
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             <div>
               <label style={lbl}>Data</label>
@@ -510,16 +534,101 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
             </div>
           </div>
 
+          {/* Pax — single row with horizontal scroll + stepper for >8 */}
           <div>
-            <label style={lbl}>Pax</label>
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-              {[1,2,3,4,5,6,7,8].map(n => (
-                <button key={n} onClick={() => upd('pax', n)}
-                  style={{ width:40, height:40, borderRadius:9, border: form.pax === n ? '2px solid var(--terracotta-600)' : '1.5px solid rgba(60,40,20,.15)', background: form.pax === n ? 'var(--terracotta-50)' : 'var(--cream)', color: form.pax === n ? 'var(--terracotta-700)' : 'var(--ink-700)', fontWeight: form.pax === n ? 700 : 500, fontSize:14, cursor:'pointer', fontFamily:'inherit' }}>
-                  {n}
+            <label style={lbl}>Persones</label>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {/* Quick tiles 1–8, scroll horizontally */}
+              <div style={{ display:'flex', gap:6, overflowX:'auto', flex:1, paddingBottom:2,
+                            scrollbarWidth:'none', msOverflowStyle:'none' }}>
+                {[1,2,3,4,5,6,7,8].map(n => (
+                  <button key={n} onClick={() => upd('pax', n)}
+                    style={{
+                      flexShrink:0, width:40, height:40, borderRadius:9,
+                      border: form.pax === n ? '2px solid var(--terracotta-600)' : '1.5px solid rgba(60,40,20,.15)',
+                      background: form.pax === n ? 'var(--terracotta-50)' : 'var(--cream)',
+                      color: form.pax === n ? 'var(--terracotta-700)' : 'var(--ink-700)',
+                      fontWeight: form.pax === n ? 700 : 500,
+                      fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                    }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+              {/* Stepper for values outside 1–8 */}
+              <div style={{ display:'flex', alignItems:'center', gap:0, flexShrink:0,
+                            border:'1.5px solid rgba(60,40,20,.15)', borderRadius:9, overflow:'hidden' }}>
+                <button onClick={() => upd('pax', Math.max(1, form.pax - 1))}
+                  style={{ width:34, height:40, border:'none', background:'var(--cream)', cursor:'pointer',
+                           fontFamily:'inherit', fontSize:18, fontWeight:600, color:'var(--ink-700)',
+                           display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  −
                 </button>
-              ))}
+                <div style={{ minWidth:28, textAlign:'center', fontSize:14, fontWeight:700,
+                              color:'var(--terracotta-700)', background:'var(--terracotta-50)',
+                              height:40, display:'flex', alignItems:'center', justifyContent:'center',
+                              borderLeft:'1px solid rgba(60,40,20,.1)', borderRight:'1px solid rgba(60,40,20,.1)' }}>
+                  {form.pax}
+                </div>
+                <button onClick={() => upd('pax', form.pax + 1)}
+                  style={{ width:34, height:40, border:'none', background:'var(--cream)', cursor:'pointer',
+                           fontFamily:'inherit', fontSize:18, fontWeight:600, color:'var(--ink-700)',
+                           display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  +
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* Client picker — search existing clients */}
+          <div style={{ position:'relative' }}>
+            <label style={lbl}>Client de la cartera</label>
+            <div style={{ position:'relative' }}>
+              <input
+                type="text"
+                placeholder="Cerca per nom o telèfon…"
+                value={clientQuery}
+                onFocus={() => setShowDropdown(true)}
+                onChange={e => { setClientQuery(e.target.value); setShowDropdown(true); }}
+                style={{ ...inp, paddingLeft:36 }}
+              />
+              <span style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)',
+                         color:'var(--ink-400)', pointerEvents:'none', display:'flex' }}>
+                <Icon d={I.search} size={15} />
+              </span>
+            </div>
+            {showDropdown && clientMatches.length > 0 && (
+              <div style={{
+                position:'absolute', left:0, right:0, top:'100%', marginTop:4, zIndex:200,
+                background:'var(--paper)', borderRadius:12,
+                boxShadow:'0 4px 20px rgba(0,0,0,.15)',
+                border:'1px solid rgba(60,40,20,.1)',
+                overflow:'hidden',
+              }}>
+                {clientMatches.map(c => (
+                  <button key={c.id}
+                    onMouseDown={e => { e.preventDefault(); selectClient(c); }}
+                    style={{
+                      width:'100%', padding:'10px 14px', border:'none', background:'transparent',
+                      cursor:'pointer', display:'flex', alignItems:'center', gap:10,
+                      borderBottom:'1px solid rgba(60,40,20,.06)',
+                      fontFamily:'inherit',
+                    }}>
+                    <span className={`avatar av-${avIdx(c.name)}`} style={{ flexShrink:0 }}>
+                      {initials(c.name)}
+                    </span>
+                    <div style={{ flex:1, textAlign:'left' }}>
+                      <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)' }}>{c.name}</div>
+                      {c.phone && <div style={{ fontSize:12, color:'var(--ink-500)', fontFamily:'monospace', marginTop:1 }}>{c.phone}</div>}
+                    </div>
+                    {c.tags?.includes('vip') && (
+                      <span style={{ fontSize:10, fontWeight:700, color:'var(--terracotta-600)',
+                                     background:'var(--terracotta-50)', padding:'2px 6px', borderRadius:4 }}>VIP</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Name */}
@@ -527,6 +636,7 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
             <label style={lbl}>Nom *</label>
             <input type="text" placeholder="Nom del client" value={form.name}
               onChange={e => upd('name', e.target.value)}
+              onFocus={() => setShowDropdown(false)}
               style={{ ...inp, borderColor: touched && !form.name.trim() ? 'var(--terracotta-500)' : undefined }} />
             {touched && !form.name.trim() && (
               <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>El nom és obligatori</div>
@@ -537,7 +647,9 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
           <div>
             <label style={lbl}>Telèfon</label>
             <input type="tel" placeholder="+34 600 000 000" value={form.phone}
-              onChange={e => upd('phone', e.target.value)} style={inp} />
+              onChange={e => upd('phone', e.target.value)}
+              onFocus={() => setShowDropdown(false)}
+              style={inp} />
           </div>
 
           {/* Status + Source */}
@@ -566,6 +678,7 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
             <label style={lbl}>Notes</label>
             <textarea rows={2} placeholder="Al·lèrgies, ocasió especial…" value={form.notes}
               onChange={e => upd('notes', e.target.value)}
+              onFocus={() => setShowDropdown(false)}
               style={{ ...inp, resize:'none', lineHeight:1.5 }} />
           </div>
 
