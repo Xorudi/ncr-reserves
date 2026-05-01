@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDevice } from '@/hooks/useDevice';
 import DesktopShell from '@/views/desktop/DesktopShell';
 import TabletShell  from '@/views/tablet/TabletShell';
 import MobileShell  from '@/views/mobile/MobileShell';
+import { startBackupScheduler } from '@/backup/backupScheduler';
+import { useBackupStore } from '@/backup/useBackupStore';
 
 /**
  * Root router — picks the correct shell based on device context.
@@ -15,6 +17,13 @@ import MobileShell  from '@/views/mobile/MobileShell';
  */
 export default function App() {
   const { isMobile, isTablet } = useDevice();
+
+  // Start backup scheduler once on mount; load history for UI
+  useEffect(() => {
+    const stop = startBackupScheduler();
+    useBackupStore.getState().loadHistory();
+    return stop;
+  }, []);
 
   if (isMobile) return <MobileShell />;
   if (isTablet)  return <TabletShell />;

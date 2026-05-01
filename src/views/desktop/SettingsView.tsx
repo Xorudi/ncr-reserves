@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { DAY_NAMES } from '@/data/mockData';
 import type { BusinessId, BizShift, Employee, EmployeeRole, NotifConfig, DayHours } from '@/types';
+import { useBackupStore } from '@/backup/useBackupStore';
+import {
+  createLocalBackup, restoreFromId, exportCurrentToFile, exportBackupToFile,
+  importBackupFromFile, restoreFromBackup, deleteBackupById, clearLocalBackups,
+} from '@/backup/backupService';
+import { idbGet } from '@/backup/indexedDB';
+import type { AppBackupMeta } from '@/backup/types';
 
 const TABS = [
   { k:'general',       label:'General' },
@@ -11,6 +18,7 @@ const TABS = [
   { k:'integrations',  label:'Integracions' },
   { k:'notifications', label:'Notificacions' },
   { k:'team',          label:'Equip' },
+  { k:'backups',       label:'Còpies de seguretat' },
 ] as const;
 
 export default function SettingsView() {
@@ -43,6 +51,7 @@ export default function SettingsView() {
         {tab === 'integrations'  && <IntegrationsTab />}
         {tab === 'notifications' && <NotificationsTab bizId={selectedBusiness} />}
         {tab === 'team'          && <TeamTab        bizId={selectedBusiness} />}
+        {tab === 'backups'       && <BackupsTab />}
       </div>
     </div>
   );
@@ -747,6 +756,272 @@ function RolesPanel({ bizId }: { bizId: BusinessId }) {
       {saved && <div style={{ marginTop:14, fontSize:12.5, color:'var(--olive-700)', fontWeight:600 }}>✓ Canvis desats</div>}
     </div>
   );
+}
+
+// ─── Backups tab ──────────────────────────────────────────────────────────────
+function BackupsTab() {
+  const { status, statusMessage, isWorking, lastBackupAt, history, setStatus, loadHistory } = useBackupStore();
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { loadHistory(); }, []);
+
+  // Auto-clear success messages
+  useEffect(() => {
+    if (status === 'saved' || status === 'restored') {
+      const t = setTimeout(() => useBackupStore.getState().clearStatus(), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [status]);
+
+  async function handleManualBackup() {
+    setStatus('saving', 'Creant backup…');
+    try {
+      const b = await createLocalBackup('manual');
+      if (b) {
+        await loadHistory();
+        setStatus('saved', `Backup creat · ${fmtBytes(b.sizeBytes)}`);
+      } else {
+        setStatus('saved', 'Sense canvis des de l\'últim backup');
+      }
+    } catch {
+      setStatus('error', 'Error al crear backup');
+    }
+  }
+
+  async function handleRestore(id: string) {
+    setConfirmId(null);
+    setStatus('restoring', 'Restaurant backup…');
+    try {
+      await restoreFromId(id);
+      await loadHistory();
+      setStatus('restored', 'Restauració completada');
+    } catch (e: any) {
+      setStatus('error', e.message ?? 'Error al restaurar');
+    }
+  }
+
+  async function handleDownload(meta: AppBackupMeta) {
+    try {
+      const full = await idbGet(meta.id);
+      if (full) exportBackupToFile(full);
+    } catch { setStatus('error', 'Error al descarregar'); }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await deleteBackupById(id);
+      await loadHistory();
+    } catch { setStatus('error', 'Error al eliminar'); }
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const backup = await importBackupFromFile(file);
+      // Preview — ask for confirmation
+      if (window.confirm(`Restaurar backup de ${fmtDate(backup.createdAt)}?\n\nAixò reemplaçarà totes les dades actuals.`)) {
+        setStatus('restoring', 'Restaurant backup importat…');
+        await restoreFromBackup(backup);
+        await loadHistory();
+        setStatus('restored', 'Backup importat i restaurat');
+      }
+    } catch (e: any) {
+      setStatus('error', e.message ?? 'Fitxer invàlid');
+    }
+    e.target.value = '';
+  }
+
+  async function handleClearAll() {
+    if (!window.confirm('Eliminar tots els backups locals? Aquesta acció no es pot desfer.')) return;
+    await clearLocalBackups();
+    await loadHistory();
+    setStatus('saved', 'Backups locals eliminats');
+  }
+
+  const statusColor = status === 'saved' || status === 'restored' ? 'var(--olive-700)'
+    : status === 'error' ? 'var(--rose-600)' : 'var(--ink-500)';
+
+  return (
+    <div style={{ maxWidth: 700 }}>
+      <BkpHead icon={I.shield}>Còpies de seguretat</BkpHead>
+
+      {/* Status card */}
+      <div style={{ background:'var(--paper)', border:'var(--hair)', borderRadius:12, padding:'18px 20px', marginBottom:24 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+          <div style={{ flex:1, minWidth:180 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--ink-500)', textTransform:'uppercase', letterSpacing:.06, marginBottom:4 }}>
+              Últim backup local
+            </div>
+            <div style={{ fontSize:15, fontWeight:600, color:'var(--ink-900)' }}>
+              {lastBackupAt ? fmtDate(lastBackupAt) : 'Cap backup desat'}
+            </div>
+            {lastBackupAt && (
+              <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:2 }}>
+                {timeAgoShort(lastBackupAt)} · {history.length} snapshots locals
+              </div>
+            )}
+          </div>
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+            <BtnAction
+              icon={I.shield} label={isWorking ? 'Treballant…' : 'Backup ara'}
+              primary disabled={isWorking} onClick={handleManualBackup}
+            />
+            <BtnAction
+              icon={I.download} label="Descarregar JSON"
+              onClick={exportCurrentToFile}
+            />
+            <BtnAction
+              icon={I.upload} label="Importar JSON"
+              onClick={() => fileInputRef.current?.click()}
+            />
+            <input ref={fileInputRef} type="file" accept=".json" style={{ display:'none' }} onChange={handleImport} />
+          </div>
+        </div>
+        {statusMessage && (
+          <div style={{ marginTop:12, fontSize:12.5, fontWeight:600, color:statusColor, display:'flex', alignItems:'center', gap:6 }}>
+            {status === 'saving' || status === 'restoring' ? '⏳' : status === 'error' ? '⚠️' : '✓'} {statusMessage}
+          </div>
+        )}
+      </div>
+
+      {/* Online backup notice */}
+      <div style={{ background:'rgba(60,40,20,.04)', border:'var(--hair)', borderRadius:12, padding:'14px 18px', marginBottom:24, display:'flex', gap:12, alignItems:'flex-start' }}>
+        <span style={{ color:'var(--ink-400)', flexShrink:0, marginTop:1, display:'flex' }}><Icon d={I.bolt} size={18} /></span>
+        <div>
+          <div style={{ fontSize:13, fontWeight:600, color:'var(--ink-700)', marginBottom:2 }}>Backup online</div>
+          <div style={{ fontSize:12.5, color:'var(--ink-500)', lineHeight:1.5 }}>
+            Els backups online a Railway / PostgreSQL estaran disponibles en connectar el backend.
+            Mentre tant, tots els canvis es guarden localment (localStorage + IndexedDB).
+          </div>
+        </div>
+      </div>
+
+      {/* History */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+        <BkpHead icon={I.history} sub>Historial local ({history.length})</BkpHead>
+        {history.length > 0 && (
+          <button onClick={handleClearAll}
+            style={{ fontSize:11.5, color:'var(--rose-600)', background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>
+            Eliminar tots
+          </button>
+        )}
+      </div>
+
+      {history.length === 0 && (
+        <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink-400)', fontSize:13 }}>
+          Cap backup local. Crea'n un ara o espera el backup automàtic (cada 5 min).
+        </div>
+      )}
+
+      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+        {history.map(meta => (
+          <div key={meta.id}
+            style={{ background:'var(--paper)', border:confirmId===meta.id?'1.5px solid var(--terracotta-500)':'var(--hair)', borderRadius:10, padding:'12px 14px', display:'flex', alignItems:'center', gap:10 }}>
+            {/* Icon */}
+            <div style={{ width:32, height:32, borderRadius:8, background: meta.type==='manual'?'var(--terracotta-50)':'var(--ink-50)', color: meta.type==='manual'?'var(--terracotta-600)':'var(--ink-400)', display:'grid', placeItems:'center', flexShrink:0 }}>
+              <Icon d={meta.type === 'manual' ? I.shield : I.history} size={14} />
+            </div>
+            {/* Info */}
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:600, color:'var(--ink-900)' }}>
+                {fmtDate(meta.createdAt)}
+                <span style={{ marginLeft:8, fontSize:10.5, fontWeight:700, padding:'1px 5px', borderRadius:3,
+                  background: meta.type==='manual'?'var(--terracotta-50)':'var(--ink-100)',
+                  color: meta.type==='manual'?'var(--terracotta-700)':'var(--ink-500)' }}>
+                  {meta.type === 'manual' ? 'Manual' : 'Automàtic'}
+                </span>
+              </div>
+              <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:1 }}>
+                {timeAgoShort(meta.createdAt)} · {fmtBytes(meta.sizeBytes)} · #{meta.hash.slice(0, 6)}
+              </div>
+            </div>
+            {/* Actions */}
+            {confirmId === meta.id ? (
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                <span style={{ fontSize:12, color:'var(--terracotta-700)', fontWeight:600 }}>Segur?</span>
+                <button onClick={() => handleRestore(meta.id)}
+                  style={{ padding:'5px 10px', borderRadius:7, background:'var(--terracotta-600)', color:'white', border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:12, fontWeight:700 }}>
+                  Restaurar
+                </button>
+                <button onClick={() => setConfirmId(null)}
+                  style={{ padding:'5px 8px', borderRadius:7, background:'transparent', color:'var(--ink-600)', border:'var(--hair)', cursor:'pointer', fontFamily:'inherit', fontSize:12 }}>
+                  Cancel·lar
+                </button>
+              </div>
+            ) : (
+              <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                <button title="Restaurar" onClick={() => setConfirmId(meta.id)}
+                  style={iconBtn}><Icon d={I.history} size={13} /></button>
+                <button title="Descarregar" onClick={() => handleDownload(meta)}
+                  style={iconBtn}><Icon d={I.download} size={13} /></button>
+                <button title="Eliminar" onClick={() => handleDelete(meta.id)}
+                  style={{ ...iconBtn, color:'var(--rose-500)' }}><Icon d={I.trash} size={13} /></button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const iconBtn: React.CSSProperties = {
+  width:30, height:30, borderRadius:7, border:'var(--hair)',
+  background:'transparent', cursor:'pointer', display:'grid', placeItems:'center',
+  color:'var(--ink-500)', flexShrink:0,
+};
+
+function BtnAction({ icon, label, primary, disabled, onClick }: {
+  icon: React.ReactNode; label: string; primary?: boolean; disabled?: boolean; onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', fontSize:12.5, fontWeight:600,
+        background: primary ? 'var(--terracotta-600)' : 'var(--paper)',
+        color: primary ? 'white' : 'var(--ink-700)',
+        border: primary ? 'none' : '1px solid rgba(60,40,20,.14)',
+        borderRadius:8, cursor:disabled?'not-allowed':'pointer',
+        fontFamily:'inherit', opacity:disabled?.6:1,
+      }}>
+      <Icon d={icon} size={13} /> {label}
+    </button>
+  );
+}
+
+function BkpHead({ icon, children, sub }: { icon?: React.ReactNode; children: React.ReactNode; sub?: boolean }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:7,
+      fontSize: sub ? 11 : 13, fontWeight:700, color: sub ? 'var(--ink-500)' : 'var(--ink-800)',
+      textTransform: sub ? 'uppercase' : 'none', letterSpacing: sub ? .06 : 0,
+      marginBottom: sub ? 0 : 16,
+    }}>
+      {icon && <Icon d={icon} size={sub ? 13 : 15} />} {children}
+    </div>
+  );
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fmtBytes(bytes: number): string {
+  if (bytes < 1024)        return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes/1024).toFixed(1)} KB`;
+  return `${(bytes/1024/1024).toFixed(2)} MB`;
+}
+
+function timeAgoShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins  = Math.floor(diff / 60000);
+  if (mins < 1)  return 'fa menys d\'1 min';
+  if (mins < 60) return `fa ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)  return `fa ${hrs} h`;
+  return `fa ${Math.floor(hrs/24)} d`;
 }
 
 // ─── Toggle component ─────────────────────────────────────────────
