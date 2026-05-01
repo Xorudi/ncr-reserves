@@ -1,13 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
-import { FLOOR_PLANS, BUSINESSES } from '@/data/mockData';
+import { BUSINESSES, isoDate } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import type { FloorTable } from '@/types';
 
 export default function WalkinView({ onClose }: { onClose: () => void }) {
-  const { selectedBusiness } = useAppStore();
+  const { selectedBusiness, floorPlans, addReservation, updateFloorTable } = useAppStore();
   const biz = BUSINESSES.find(b => b.id === selectedBusiness)!;
-  const plan = FLOOR_PLANS[selectedBusiness];
+  const plan = floorPlans[selectedBusiness];
 
   const [pax, setPax] = useState(2);
   const [step, setStep] = useState(1);
@@ -128,23 +128,17 @@ export default function WalkinView({ onClose }: { onClose: () => void }) {
 
       {/* Step 3 — confirm */}
       {step === 3 && (
-        <div style={{ flex:1,display:'flex',alignItems:'center',justifyContent:'center' }}>
-          <div style={{ textAlign:'center',maxWidth:520,padding:'0 28px' }}>
-            <div style={{ width:72,height:72,borderRadius:'50%',background:'var(--olive-100)',color:'var(--olive-700)',display:'grid',placeItems:'center',margin:'0 auto 20px' }}>
-              <Icon d={I.check} size={36} stroke={2.5} />
-            </div>
-            <h3 style={{ fontFamily:'var(--font-serif)',fontSize:26,fontWeight:500,color:'var(--ink-900)',margin:'0 0 10px' }}>
-              Taula {selectedTable?.id ?? 'barra'} assignada
-            </h3>
-            <p style={{ fontSize:14,color:'var(--ink-600)',margin:'0 0 28px',lineHeight:1.5 }}>
-              {pax} {pax===1?'comensal':'comensals'}{name && ` · ${name}`} · entrada a les {timeStr}
-            </p>
-            <div style={{ display:'flex',gap:8,justifyContent:'center' }}>
-              <button onClick={onClose} style={ghostBtn}>Tornar a la llista</button>
-              <button style={primaryBtn}>Afegir comanda <Icon d={I.arrowR} size={13} /></button>
-            </div>
-          </div>
-        </div>
+        <ConfirmStep
+          bizId={selectedBusiness}
+          pax={pax}
+          name={name}
+          timeStr={timeStr}
+          selectedTable={selectedTable}
+          plan={plan}
+          addReservation={addReservation}
+          updateFloorTable={updateFloorTable}
+          onClose={onClose}
+        />
       )}
     </div>
   );
@@ -152,6 +146,67 @@ export default function WalkinView({ onClose }: { onClose: () => void }) {
 
 const primaryBtn: React.CSSProperties = { display:'flex',alignItems:'center',gap:6,padding:'8px 16px',background:'var(--ink-900)',color:'var(--cream)',border:'none',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:550 };
 const ghostBtn: React.CSSProperties   = { display:'flex',alignItems:'center',gap:6,padding:'8px 14px',background:'transparent',color:'var(--ink-800)',border:'1px solid rgba(60,40,20,0.14)',borderRadius:10,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:550 };
+
+// ─── Step 3 component — persists the walk-in to the store ────────────────────
+import type { FloorPlan } from '@/types';
+
+function ConfirmStep({ bizId, pax, name, timeStr, selectedTable, plan, addReservation, updateFloorTable, onClose }: {
+  bizId: string;
+  pax: number;
+  name: string;
+  timeStr: string;
+  selectedTable: FloorTable | null;
+  plan: FloorPlan;
+  addReservation: (r: any) => void;
+  updateFloorTable: (bizId: string, tableId: string, updates: any) => void;
+  onClose: () => void;
+}) {
+  const [saved, setSaved] = useState(false);
+
+  function handleConfirm() {
+    if (saved) return;
+    const today = isoDate(new Date());
+    addReservation({
+      bizId,
+      date:   today,
+      time:   timeStr,
+      name:   name.trim() || 'Walk-in',
+      pax,
+      status: 'seated',
+      source: 'walk-in',
+      notes:  selectedTable ? `Taula ${selectedTable.id}` : undefined,
+    });
+    if (selectedTable) {
+      updateFloorTable(bizId, selectedTable.id, { status: 'seated', time: timeStr });
+    }
+    setSaved(true);
+  }
+
+  // Auto-confirm on first render (walk-in workflow always confirms)
+  React.useEffect(() => { handleConfirm(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div style={{ flex:1,display:'flex',alignItems:'center',justifyContent:'center' }}>
+      <div style={{ textAlign:'center',maxWidth:520,padding:'0 28px' }}>
+        <div style={{ width:72,height:72,borderRadius:'50%',background:'var(--olive-100)',color:'var(--olive-700)',display:'grid',placeItems:'center',margin:'0 auto 20px' }}>
+          <Icon d={I.check} size={36} stroke={2.5} />
+        </div>
+        <h3 style={{ fontFamily:'var(--font-serif)',fontSize:26,fontWeight:500,color:'var(--ink-900)',margin:'0 0 10px' }}>
+          Taula {selectedTable?.id ?? 'barra'} assignada
+        </h3>
+        <p style={{ fontSize:14,color:'var(--ink-600)',margin:'0 0 28px',lineHeight:1.5 }}>
+          {pax} {pax===1?'comensal':'comensals'}{name && ` · ${name}`} · entrada a les {timeStr}
+        </p>
+        <div style={{ fontSize:12,color:'var(--olive-600)',marginBottom:20,fontWeight:600 }}>
+          {saved ? '✓ Reserva guardada correctament' : 'Guardant…'}
+        </div>
+        <div style={{ display:'flex',gap:8,justifyContent:'center' }}>
+          <button onClick={onClose} style={ghostBtn}>Tornar a la llista</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StepDot({ n, label, active, done, onClick }: { n: number; label: string; active: boolean; done: boolean; onClick?: () => void }) {
   return (

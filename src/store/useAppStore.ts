@@ -344,6 +344,13 @@ export const useAppStore = create<AppState>()(persist((set) => ({
 }), {
   name: 'ncr-reserves-storage',
   partialize: (s) => ({
+    // ── Mutable user data — must survive reload ──────────────────────────────
+    reservations:      s.reservations,
+    customers:         s.customers,
+    floorPlans:        s.floorPlans,
+    shiftNotes:        s.shiftNotes,
+    appEvents:         s.appEvents,
+    // ── Settings & staff ─────────────────────────────────────────────────────
     weekSchedule:      s.weekSchedule,
     businessConfigs:   s.businessConfigs,
     businessHours:     s.businessHours,

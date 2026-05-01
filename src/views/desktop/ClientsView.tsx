@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip, Tag } from '@/components/shared/StatusChip';
-import { CUSTOMERS, BUSINESSES, initials, avIdx } from '@/data/mockData';
+import { BUSINESSES, initials, avIdx } from '@/data/mockData';
 import { Modal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId } from '@/types';
