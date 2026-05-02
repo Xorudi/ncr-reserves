@@ -209,6 +209,28 @@ function rowToEmpShift(row: any): EmployeeShift {
   };
 }
 
+// ─── Push all local state to Supabase (first-device migration) ───────────────
+export async function pushAllLocalToCloud(): Promise<void> {
+  if (!supabase) return;
+  const { useAppStore } = await import('@/store/useAppStore');
+  const s = useAppStore.getState();
+
+  // Push in parallel — wrap each builder in .then() so it becomes a real Promise
+  const p = (q: any) => Promise.resolve(q);
+  const promises = [
+    ...s.reservations.map(r   => p(supabase!.from('reservations').upsert(resToRow(r)))),
+    ...s.customers.map(c      => p(supabase!.from('customers').upsert(custToRow(c)))),
+    ...s.shiftNotes.map(n     => p(supabase!.from('shift_notes').upsert(snToRow(n)))),
+    ...s.appEvents.map(e      => p(supabase!.from('app_events').upsert(evToRow(e)))),
+    ...s.employees.map(e      => p(supabase!.from('employees').upsert(empToRow(e)))),
+    ...s.employeeRoles.map(r  => p(supabase!.from('employee_roles').upsert(roleToRow(r)))),
+    ...s.employeeShifts.map(sh => p(supabase!.from('employee_shifts').upsert(empShiftToRow(sh)))),
+    ...Object.entries(s.floorPlans).map(([bizId, plan]) =>
+      p(supabase!.from('floor_plans').upsert({ biz_id: bizId, data: plan }))),
+  ];
+  await Promise.allSettled(promises);
+}
+
 // ─── Bootstrap: load all data from Supabase ───────────────────────────────────
 export async function bootstrapFromCloud(): Promise<boolean> {
   if (!isCloudAvailable()) return false;
@@ -226,9 +248,34 @@ export async function bootstrapFromCloud(): Promise<boolean> {
       supabase!.from('employee_shifts').select('*'),
     ]);
 
-    // Convert floor_plans rows into Record<bizId, FloorPlan>
     const { useAppStore } = await import('@/store/useAppStore');
-    const currentFloorPlans = useAppStore.getState().floorPlans;
+
+    // Count total records in cloud
+    const cloudTotal = (resR.data?.length ?? 0)
+      + (custR.data?.length ?? 0)
+      + (snR.data?.length ?? 0)
+      + (aeR.data?.length ?? 0)
+      + (empR.data?.length ?? 0);
+
+    // Count total records locally (meaningful tables only)
+    const local = useAppStore.getState();
+    const localTotal = local.reservations.length
+      + local.customers.length
+      + local.shiftNotes.length
+      + local.appEvents.length
+      + local.employees.length;
+
+    if (cloudTotal === 0 && localTotal > 0) {
+      // Cloud is empty but device has data → this is the first device connecting.
+      // Push local state up so other devices can sync from it.
+      console.log('[CloudSync] Cloud empty, pushing local data to cloud…');
+      await pushAllLocalToCloud();
+      setStatus('synced');
+      return true;
+    }
+
+    // Cloud has data → merge into local state
+    const currentFloorPlans = local.floorPlans;
     const cloudFloorPlans: Record<string, FloorPlan> = { ...currentFloorPlans };
     for (const row of fpR.data ?? []) {
       cloudFloorPlans[row.biz_id] = row.data as FloorPlan;
