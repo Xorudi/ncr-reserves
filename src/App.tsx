@@ -5,24 +5,43 @@ import TabletShell  from '@/views/tablet/TabletShell';
 import MobileShell  from '@/views/mobile/MobileShell';
 import { startBackupScheduler } from '@/backup/backupScheduler';
 import { useBackupStore } from '@/backup/useBackupStore';
+import {
+  bootstrapFromCloud,
+  subscribeRealtime,
+  watchConnectivity,
+} from '@/lib/cloudSync';
 
 /**
  * Root router — picks the correct shell based on device context.
  *
- *  mobile  (<768 px)                          → MobileShell  (bottom-nav PWA)
- *  tablet  (768–1024 px, portrait)            → TabletShell  (left side-nav)
- *  desktop (>1024 px OR landscape tablet)     → DesktopShell (full sidebar)
+ *  mobile  (<768 px / touch)                  → MobileShell  (bottom-nav PWA)
+ *  tablet  (768–1099 px  OR touch < 1100)     → TabletShell  (left side-nav)
+ *  desktop (≥1100 px, non-touch)              → DesktopShell (full sidebar)
  *
- * Also detects standalone PWA mode so each shell can apply safe-area insets.
+ * On mount:
+ *   • starts the local backup scheduler
+ *   • bootstraps state from Supabase (if configured + online)
+ *   • subscribes to realtime cross-device changes
+ *   • watches connectivity to flush offline queue on reconnect
  */
 export default function App() {
   const { isMobile, isTablet } = useDevice();
 
-  // Start backup scheduler once on mount; load history for UI
   useEffect(() => {
-    const stop = startBackupScheduler();
+    // ── Local backup scheduler ────────────────────────────────────────────────
+    const stopBackup = startBackupScheduler();
     useBackupStore.getState().loadHistory();
-    return stop;
+
+    // ── Cloud sync ────────────────────────────────────────────────────────────
+    bootstrapFromCloud();              // load all data from Supabase (no-op if offline)
+    const stopRealtime     = subscribeRealtime();    // listen for changes from other devices
+    const stopConnectivity = watchConnectivity();    // flush offline queue on reconnect
+
+    return () => {
+      stopBackup();
+      stopRealtime();
+      stopConnectivity();
+    };
   }, []);
 
   if (isMobile) return <MobileShell />;

@@ -1,0 +1,452 @@
+/**
+ * Cloud sync engine for NCR RESERVES.
+ *
+ * Responsibilities:
+ *   1. bootstrap()    — load all data from Supabase on app start
+ *   2. push()         — fire-and-forget mutation → Supabase
+ *   3. subscribe()    — realtime channel for cross-device sync
+ *   4. offline queue  — retry failed pushes on reconnect
+ *
+ * Circular-dependency note:
+ *   This file imports useAppStore lazily (inside async functions / callbacks)
+ *   so that useAppStore.ts can safely import push() at module level.
+ */
+import { supabase, isCloudAvailable } from './supabase';
+import type {
+  Reservation, Customer, FloorPlan, ShiftNote, AppEvent,
+  Employee, EmployeeRole, EmployeeShift,
+  BusinessConfig, BusinessHours, BizShift, NotifConfig,
+} from '@/types';
+
+// ─── Sync status store (tiny, used by UI banner) ──────────────────────────────
+type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
+let _status: SyncStatus = 'idle';
+let _statusListeners: Array<(s: SyncStatus) => void> = [];
+export const onSyncStatus = (fn: (s: SyncStatus) => void) => { _statusListeners.push(fn); };
+const setStatus = (s: SyncStatus) => { _status = s; _statusListeners.forEach(f => f(s)); };
+export const getSyncStatus = () => _status;
+
+// ─── Row mappers (TS camelCase ↔ DB snake_case) ───────────────────────────────
+
+function resToRow(r: Reservation) {
+  return {
+    id:     r.id,
+    biz_id: r.bizId,
+    date:   r.date,
+    time:   r.time,
+    name:   r.name,
+    pax:    r.pax,
+    status: r.status,
+    phone:  r.phone  ?? null,
+    notes:  r.notes  ?? null,
+    source: r.source ?? null,
+    tags:   r.tags   ?? [],
+  };
+}
+function rowToRes(row: any): Reservation {
+  return {
+    id:     row.id,
+    bizId:  row.biz_id,
+    date:   row.date,
+    time:   row.time,
+    name:   row.name,
+    pax:    row.pax,
+    status: row.status,
+    phone:  row.phone  ?? undefined,
+    notes:  row.notes  ?? undefined,
+    source: row.source ?? undefined,
+    tags:   row.tags   ?? [],
+  };
+}
+
+function custToRow(c: Customer) {
+  return {
+    id:         c.id,
+    name:       c.name,
+    phone:      c.phone      ?? '',
+    email:      c.email      ?? '',
+    visits:     c.visits     ?? 0,
+    last_visit: c.lastVisit  ?? '',
+    spend:      c.spend      ?? 0,
+    tags:       c.tags       ?? [],
+    biz:        c.biz        ?? [],
+    notes:      c.notes      ?? '',
+  };
+}
+function rowToCust(row: any): Customer {
+  return {
+    id:        row.id,
+    name:      row.name,
+    phone:     row.phone,
+    email:     row.email,
+    visits:    row.visits,
+    lastVisit: row.last_visit,
+    spend:     Number(row.spend),
+    tags:      row.tags  ?? [],
+    biz:       row.biz   ?? [],
+    notes:     row.notes ?? '',
+  };
+}
+
+function snToRow(n: ShiftNote) {
+  return {
+    id:            n.id,
+    biz_id:        n.bizId,
+    date:          n.date,
+    author:        n.author,
+    body:          n.body,
+    created_at_ms: n.createdAt,
+  };
+}
+function rowToSn(row: any): ShiftNote {
+  return {
+    id:        row.id,
+    bizId:     row.biz_id,
+    date:      row.date,
+    author:    row.author,
+    body:      row.body,
+    createdAt: row.created_at_ms,
+  };
+}
+
+function evToRow(e: AppEvent) {
+  return {
+    id:          e.id,
+    biz_id:      e.bizId,
+    date:        e.date,
+    title:       e.title,
+    time:        e.time        ?? null,
+    description: e.description ?? null,
+    kind:        e.kind        ?? null,
+  };
+}
+function rowToEv(row: any): AppEvent {
+  return {
+    id:          row.id,
+    bizId:       row.biz_id,
+    date:        row.date,
+    title:       row.title,
+    time:        row.time        ?? undefined,
+    description: row.description ?? undefined,
+    kind:        row.kind        ?? undefined,
+  };
+}
+
+function empToRow(e: Employee) {
+  return {
+    id:         e.id,
+    biz_id:     e.bizId,
+    full_name:  e.fullName,
+    initials:   e.initials,
+    role_id:    e.roleId,
+    phone:      e.phone     ?? null,
+    email:      e.email     ?? null,
+    active:     e.active,
+    notes:      e.notes     ?? null,
+    clocked_in: e.clockedIn ?? false,
+    started_at: e.startedAt ?? null,
+  };
+}
+function rowToEmp(row: any): Employee {
+  return {
+    id:        row.id,
+    bizId:     row.biz_id,
+    fullName:  row.full_name,
+    initials:  row.initials,
+    roleId:    row.role_id,
+    phone:     row.phone     ?? undefined,
+    email:     row.email     ?? undefined,
+    active:    row.active,
+    notes:     row.notes     ?? undefined,
+    clockedIn: row.clocked_in,
+    startedAt: row.started_at ?? null,
+  };
+}
+
+function roleToRow(r: EmployeeRole) {
+  return {
+    id:         r.id,
+    biz_id:     r.bizId,
+    name:       r.name,
+    color:      r.color,
+    text_color: r.textColor,
+    order:      r.order,
+    active:     r.active,
+  };
+}
+function rowToRole(row: any): EmployeeRole {
+  return {
+    id:        row.id,
+    bizId:     row.biz_id,
+    name:      row.name,
+    color:     row.color,
+    textColor: row.text_color,
+    order:     row.order,
+    active:    row.active,
+  };
+}
+
+function empShiftToRow(s: EmployeeShift) {
+  return {
+    id:          s.id,
+    employee_id: s.employeeId,
+    business_id: s.businessId,
+    dow:         s.dow,
+    start_time:  s.startTime,
+    end_time:    s.endTime,
+    role_id:     s.roleId ?? null,
+  };
+}
+function rowToEmpShift(row: any): EmployeeShift {
+  return {
+    id:         row.id,
+    employeeId: row.employee_id,
+    businessId: row.business_id,
+    dow:        row.dow,
+    startTime:  row.start_time,
+    endTime:    row.end_time,
+    roleId:     row.role_id ?? undefined,
+  };
+}
+
+// ─── Bootstrap: load all data from Supabase ───────────────────────────────────
+export async function bootstrapFromCloud(): Promise<boolean> {
+  if (!isCloudAvailable()) return false;
+  setStatus('syncing');
+
+  try {
+    const [resR, custR, fpR, snR, aeR, empR, roleR, empShR] = await Promise.all([
+      supabase!.from('reservations').select('*'),
+      supabase!.from('customers').select('*'),
+      supabase!.from('floor_plans').select('*'),
+      supabase!.from('shift_notes').select('*'),
+      supabase!.from('app_events').select('*'),
+      supabase!.from('employees').select('*'),
+      supabase!.from('employee_roles').select('*'),
+      supabase!.from('employee_shifts').select('*'),
+    ]);
+
+    // Convert floor_plans rows into Record<bizId, FloorPlan>
+    const { useAppStore } = await import('@/store/useAppStore');
+    const currentFloorPlans = useAppStore.getState().floorPlans;
+    const cloudFloorPlans: Record<string, FloorPlan> = { ...currentFloorPlans };
+    for (const row of fpR.data ?? []) {
+      cloudFloorPlans[row.biz_id] = row.data as FloorPlan;
+    }
+
+    useAppStore.setState({
+      reservations:  (resR.data   ?? []).map(rowToRes),
+      customers:     (custR.data  ?? []).map(rowToCust),
+      floorPlans:    cloudFloorPlans,
+      shiftNotes:    (snR.data    ?? []).map(rowToSn),
+      appEvents:     (aeR.data    ?? []).map(rowToEv),
+      employees:     (empR.data   ?? []).map(rowToEmp),
+      employeeRoles: (roleR.data  ?? []).map(rowToRole),
+      employeeShifts:(empShR.data ?? []).map(rowToEmpShift),
+    });
+
+    setStatus('synced');
+    return true;
+  } catch (err) {
+    console.error('[CloudSync] bootstrap failed:', err);
+    setStatus('error');
+    return false;
+  }
+}
+
+// ─── Push: fire-and-forget mutation to Supabase ───────────────────────────────
+type PushTable =
+  | 'reservations' | 'customers' | 'floor_plans'
+  | 'shift_notes'  | 'app_events'
+  | 'employees'    | 'employee_roles' | 'employee_shifts'
+  | 'biz_settings';
+
+export function push(table: PushTable, action: 'upsert' | 'delete', payload: any): void {
+  if (!isCloudAvailable()) {
+    queueOffline(table, action, payload);
+    return;
+  }
+  _executePush(table, action, payload).catch(err => {
+    console.warn(`[CloudSync] ${table}.${action} failed, queuing:`, err);
+    queueOffline(table, action, payload);
+    setStatus('error');
+  });
+}
+
+async function _executePush(table: PushTable, action: string, payload: any): Promise<void> {
+  if (!supabase) return;
+  if (action === 'upsert') {
+    const { error } = await supabase.from(table).upsert(payload);
+    if (error) throw error;
+  } else if (action === 'delete') {
+    const id = typeof payload === 'string' ? payload : payload.id;
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) throw error;
+  }
+}
+
+// ─── Typed push helpers (used by useAppStore actions) ─────────────────────────
+export const cloud = {
+  upsertReservation:  (r: Reservation)    => push('reservations',   'upsert', resToRow(r)),
+  deleteReservation:  (id: string)        => push('reservations',   'delete', id),
+  upsertCustomer:     (c: Customer)       => push('customers',      'upsert', custToRow(c)),
+  deleteCustomer:     (id: string)        => push('customers',      'delete', id),
+  upsertFloorPlan:    (bizId: string, p: FloorPlan) =>
+    push('floor_plans', 'upsert', { biz_id: bizId, data: p }),
+  upsertShiftNote:    (n: ShiftNote)      => push('shift_notes',    'upsert', snToRow(n)),
+  deleteShiftNote:    (id: string)        => push('shift_notes',    'delete', id),
+  upsertEvent:        (e: AppEvent)       => push('app_events',     'upsert', evToRow(e)),
+  deleteEvent:        (id: string)        => push('app_events',     'delete', id),
+  upsertEmployee:     (e: Employee)       => push('employees',      'upsert', empToRow(e)),
+  deleteEmployee:     (id: string)        => push('employees',      'delete', id),
+  upsertRole:         (r: EmployeeRole)   => push('employee_roles', 'upsert', roleToRow(r)),
+  deleteRole:         (id: string)        => push('employee_roles', 'delete', id),
+  upsertEmpShift:     (s: EmployeeShift)  => push('employee_shifts','upsert', empShiftToRow(s)),
+  deleteEmpShift:     (id: string)        => push('employee_shifts','delete', id),
+  upsertBizSettings:  (bizId: string, cfg: BusinessConfig, hours: BusinessHours,
+                        shifts: BizShift[], notif: NotifConfig) =>
+    push('biz_settings', 'upsert', { biz_id: bizId, config: cfg, hours, shifts, notif }),
+};
+
+// ─── Realtime: listen for changes from other devices ─────────────────────────
+export function subscribeRealtime(): () => void {
+  if (!supabase) return () => {};
+  const sb = supabase; // narrow to non-null for the cleanup closure
+
+  const channel = sb
+    .channel('ncr-global-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' },
+      payload => applyRealtimeChange('reservations', payload))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },
+      payload => applyRealtimeChange('customers', payload))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'floor_plans' },
+      payload => applyRealtimeChange('floor_plans', payload))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'shift_notes' },
+      payload => applyRealtimeChange('shift_notes', payload))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_events' },
+      payload => applyRealtimeChange('app_events', payload))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' },
+      payload => applyRealtimeChange('employees', payload))
+    .subscribe();
+
+  return () => { sb.removeChannel(channel); };
+}
+
+async function applyRealtimeChange(table: string, payload: any) {
+  const { eventType, new: row, old } = payload;
+  // Lazy import to avoid circular dep at module init time
+  const { useAppStore } = await import('@/store/useAppStore');
+  const setState = useAppStore.setState.bind(useAppStore);
+
+  switch (table) {
+    case 'reservations': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ reservations: s.reservations.filter(x => x.id !== old.id) }));
+      } else {
+        const r = rowToRes(row);
+        setState(s => ({ reservations: s.reservations.filter(x => x.id !== r.id).concat(r) }));
+      }
+      break;
+    }
+    case 'customers': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ customers: s.customers.filter(x => x.id !== old.id) }));
+      } else {
+        const c = rowToCust(row);
+        setState(s => ({ customers: s.customers.filter(x => x.id !== c.id).concat(c) }));
+      }
+      break;
+    }
+    case 'floor_plans': {
+      if (eventType !== 'DELETE') {
+        setState(s => ({
+          floorPlans: { ...s.floorPlans, [row.biz_id]: row.data as FloorPlan },
+        }));
+      }
+      break;
+    }
+    case 'shift_notes': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ shiftNotes: s.shiftNotes.filter(x => x.id !== old.id) }));
+      } else {
+        const n = rowToSn(row);
+        setState(s => ({ shiftNotes: s.shiftNotes.filter(x => x.id !== n.id).concat(n) }));
+      }
+      break;
+    }
+    case 'app_events': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ appEvents: s.appEvents.filter(x => x.id !== old.id) }));
+      } else {
+        const e = rowToEv(row);
+        setState(s => ({ appEvents: s.appEvents.filter(x => x.id !== e.id).concat(e) }));
+      }
+      break;
+    }
+    case 'employees': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ employees: s.employees.filter(x => x.id !== old.id) }));
+      } else {
+        const e = rowToEmp(row);
+        setState(s => ({ employees: s.employees.filter(x => x.id !== e.id).concat(e) }));
+      }
+      break;
+    }
+  }
+}
+
+// ─── Offline queue (localStorage) ─────────────────────────────────────────────
+const QUEUE_KEY = 'ncr-offline-queue-v1';
+
+interface QueuedChange {
+  id:        string;
+  table:     string;
+  action:    string;
+  payload:   any;
+  queuedAt:  string;
+}
+
+function queueOffline(table: string, action: string, payload: any): void {
+  try {
+    const existing: QueuedChange[] = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]');
+    existing.push({ id: `q-${Date.now()}`, table, action, payload, queuedAt: new Date().toISOString() });
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(existing));
+    setStatus('offline');
+  } catch { /* storage full or private mode */ }
+}
+
+export function getOfflineQueueLength(): number {
+  try {
+    return (JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]') as QueuedChange[]).length;
+  } catch { return 0; }
+}
+
+export async function flushOfflineQueue(): Promise<void> {
+  if (!isCloudAvailable()) return;
+  try {
+    const queue: QueuedChange[] = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]');
+    if (queue.length === 0) return;
+    console.log(`[CloudSync] flushing ${queue.length} queued changes`);
+    for (const change of queue) {
+      await _executePush(change.table as PushTable, change.action, change.payload);
+    }
+    localStorage.removeItem(QUEUE_KEY);
+    setStatus('synced');
+  } catch (err) {
+    console.error('[CloudSync] flush failed:', err);
+  }
+}
+
+// ─── Reconnect handler ────────────────────────────────────────────────────────
+export function watchConnectivity(): () => void {
+  const onOnline = async () => {
+    await flushOfflineQueue();
+    await bootstrapFromCloud(); // re-fetch latest state
+  };
+  window.addEventListener('online',  onOnline);
+  window.addEventListener('offline', () => setStatus('offline'));
+  return () => {
+    window.removeEventListener('online',  onOnline);
+    window.removeEventListener('offline', () => setStatus('offline'));
+  };
+}

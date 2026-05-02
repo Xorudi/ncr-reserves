@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
   BusinessId, Reservation, Customer, ReservationStatus,
@@ -12,9 +12,10 @@ import {
   EMPLOYEES, EMPLOYEE_ROLES, WEEK_SCHED, NOTIF_DEFAULTS,
   EMPLOYEE_SHIFTS_INIT,
 } from '@/data/mockData';
+import { cloud } from '@/lib/cloudSync';
 
 interface AppState {
-  // â”€â”€ Core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Core ──────────────────────────────────────────────────────────────────────
   selectedBusiness: BusinessId;
   selectedDate: Date;
   reservations: Reservation[];
@@ -23,72 +24,72 @@ interface AppState {
   selectedCustomer: Customer | null;
   showWalkin: boolean;
 
-  // â”€â”€ Auth / Active user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auth / Active user ────────────────────────────────────────────────────────
   loggedIn: boolean;
   currentUser: any | null;
   setLoggedIn: (v: boolean, user?: any) => void;
   activeEmployeeId: string | null;
   setActiveEmployee: (id: string | null) => void;
 
-  // â”€â”€ Modal state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modal state ───────────────────────────────────────────────────────────────
   confirmModalRes: any | null;
   cancelModalRes: any | null;
   blockModalTable: any | null;
   showWaitlist: boolean;
   mergeModalTable: any | null;
 
-  // â”€â”€ Shift notes + events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Shift notes + events ──────────────────────────────────────────────────────
   shiftNotes: ShiftNote[];
   appEvents: AppEvent[];
 
-  // â”€â”€ Floor plans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Floor plans ───────────────────────────────────────────────────────────────
   floorPlans: Record<string, FloorPlan>;
 
-  // â”€â”€ Settings: business config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Settings: business config ─────────────────────────────────────────────────
   businessConfigs: Record<string, BusinessConfig>;
   businessHours: Record<string, BusinessHours>;
   bizShifts: Record<string, BizShift[]>;
   notifConfigs: Record<string, NotifConfig>;
 
-  // â”€â”€ Staff â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Staff ─────────────────────────────────────────────────────────────────────
   employees: Employee[];
   employeeRoles: EmployeeRole[];
   weekSchedule: WeekScheduleData;
 
-  // â”€â”€ Setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Setters ───────────────────────────────────────────────────────────────────
   setSelectedBusiness: (id: BusinessId) => void;
   setSelectedDate: (d: Date) => void;
   setSelectedReservation: (r: Reservation | null) => void;
   setSelectedCustomer: (c: Customer | null) => void;
   setShowWalkin: (v: boolean) => void;
 
-  // â”€â”€ Reservation CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Reservation CRUD ──────────────────────────────────────────────────────────
   updateReservationStatus: (id: string, status: ReservationStatus) => void;
   updateReservation: (id: string, updates: Partial<Reservation>) => void;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
 
-  // â”€â”€ Customer CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Customer CRUD ─────────────────────────────────────────────────────────────
   addCustomer:    (c: Omit<Customer, 'id'>) => void;
   updateCustomer: (id: string, updates: Partial<Customer>) => void;
   deleteCustomer: (id: string) => void;
 
-  // â”€â”€ Modal setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modal setters ─────────────────────────────────────────────────────────────
   setConfirmModalRes: (v: any | null) => void;
   setCancelModalRes: (v: any | null) => void;
   setBlockModalTable: (v: any | null) => void;
   setShowWaitlist: (v: boolean) => void;
   setMergeModalTable: (v: any | null) => void;
 
-  // â”€â”€ Shift notes CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Shift notes CRUD ──────────────────────────────────────────────────────────
   addShiftNote: (n: Omit<ShiftNote, 'id'>) => void;
   editShiftNote: (id: string, body: string) => void;
   deleteShiftNote: (id: string) => void;
 
-  // â”€â”€ Events CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Events CRUD ───────────────────────────────────────────────────────────────
   addAppEvent: (e: Omit<AppEvent, 'id'>) => void;
   deleteAppEvent: (id: string) => void;
 
-  // â”€â”€ Floor plan CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Floor plan CRUD ───────────────────────────────────────────────────────────
   setFloorPlan: (bizId: string, plan: FloorPlan) => void;
   updateFloorTable: (bizId: string, tableId: string, updates: Partial<FloorTable>) => void;
   addFloorTable: (bizId: string, table: FloorTable) => void;
@@ -97,7 +98,7 @@ interface AppState {
   addFloorZone: (bizId: string, zone: FloorZone) => void;
   deleteFloorZone: (bizId: string, zoneId: string) => void;
 
-  // â”€â”€ Settings CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Settings CRUD ─────────────────────────────────────────────────────────────
   updateBusinessConfig: (bizId: string, cfg: BusinessConfig) => void;
   updateBusinessHours: (bizId: string, hours: BusinessHours) => void;
   addBizShift: (bizId: string, shift: Omit<BizShift, 'id'>) => void;
@@ -105,22 +106,22 @@ interface AppState {
   deleteBizShift: (bizId: string, shiftId: string) => void;
   updateNotifConfig: (bizId: string, cfg: NotifConfig) => void;
 
-  // â”€â”€ Staff CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Staff CRUD ────────────────────────────────────────────────────────────────
   addEmployee: (emp: Omit<Employee, 'id'>) => void;
   updateEmployee: (id: string, updates: Partial<Employee>) => void;
   deleteEmployee: (id: string) => void;
   clockInEmployee: (id: string) => void;
   clockOutEmployee: (id: string) => void;
 
-  // â”€â”€ Role CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Role CRUD ─────────────────────────────────────────────────────────────────
   addEmployeeRole: (role: Omit<EmployeeRole, 'id'>) => void;
   updateEmployeeRole: (id: string, updates: Partial<EmployeeRole>) => void;
   deleteEmployeeRole: (id: string) => void;
 
-  // â”€â”€ Week schedule (legacy) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Week schedule (legacy) ────────────────────────────────────────────────────
   setWeekShift: (bizId: string, dow: number, shiftId: string, empIds: string[]) => void;
 
-  // â”€â”€ Employee shifts (intervals reals) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Employee shifts (intervals reals) ─────────────────────────────────────────
   employeeShifts: EmployeeShift[];
   addEmployeeShift: (s: Omit<EmployeeShift, 'id'>) => void;
   updateEmployeeShift: (id: string, updates: Partial<EmployeeShift>) => void;
@@ -134,8 +135,8 @@ const seedNotifs = (): Record<string, NotifConfig> => ({
   esquitx: { ...NOTIF_DEFAULTS },
 });
 
-export const useAppStore = create<AppState>()(persist((set) => ({
-  // â”€â”€ Core â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export const useAppStore = create<AppState>()(persist((set, get) => ({
+  // ── Core ──────────────────────────────────────────────────────────────────────
   selectedBusiness: 'ganxo',
   selectedDate: new Date(),
   reservations: RESERVATIONS,
@@ -144,185 +145,297 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   selectedCustomer: null,
   showWalkin: false,
 
-  // â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Auth ──────────────────────────────────────────────────────────────────────
   loggedIn: false,
   currentUser: null,
   setLoggedIn: (v, user) => set({ loggedIn: v, currentUser: user ?? null }),
   activeEmployeeId: null,
   setActiveEmployee: (id) => set({ activeEmployeeId: id }),
 
-  // â”€â”€ Modal state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modal state ───────────────────────────────────────────────────────────────
   confirmModalRes: null,
   cancelModalRes: null,
   blockModalTable: null,
   showWaitlist: false,
   mergeModalTable: null,
 
-  // â”€â”€ Shift notes + events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Shift notes + events ──────────────────────────────────────────────────────
   shiftNotes: SHIFT_NOTES,
   appEvents: APP_EVENTS,
 
-  // â”€â”€ Floor plans â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Floor plans ───────────────────────────────────────────────────────────────
   floorPlans: JSON.parse(JSON.stringify(FLOOR_PLANS)),
 
-  // â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Settings ──────────────────────────────────────────────────────────────────
   businessConfigs: JSON.parse(JSON.stringify(BUSINESS_CONFIGS)),
   businessHours:   JSON.parse(JSON.stringify(BUSINESS_HOURS)),
   bizShifts:       JSON.parse(JSON.stringify(BIZ_SHIFTS)),
   notifConfigs:    seedNotifs(),
 
-  // â”€â”€ Staff â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Staff ─────────────────────────────────────────────────────────────────────
   employees:       JSON.parse(JSON.stringify(EMPLOYEES)),
   employeeRoles:   JSON.parse(JSON.stringify(EMPLOYEE_ROLES)),
   weekSchedule:    JSON.parse(JSON.stringify(WEEK_SCHED)),
   employeeShifts:  JSON.parse(JSON.stringify(EMPLOYEE_SHIFTS_INIT)),
 
-  // â”€â”€ Setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Setters ───────────────────────────────────────────────────────────────────
   setSelectedBusiness: (id) => set({ selectedBusiness: id, selectedReservation: null }),
   setSelectedDate: (d) => set({ selectedDate: d, selectedReservation: null }),
   setSelectedReservation: (r) => set({ selectedReservation: r }),
   setSelectedCustomer: (c) => set({ selectedCustomer: c }),
   setShowWalkin: (v) => set({ showWalkin: v }),
 
-  // â”€â”€ Reservation CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  updateReservationStatus: (id, status) =>
+  // ── Reservation CRUD ──────────────────────────────────────────────────────────
+  updateReservationStatus: (id, status) => {
     set((s) => ({
       reservations: s.reservations.map((r) => r.id === id ? { ...r, status } : r),
       selectedReservation: s.selectedReservation?.id === id
         ? { ...s.selectedReservation, status } : s.selectedReservation,
-    })),
+    }));
+    const updated = get().reservations.find(r => r.id === id);
+    if (updated) cloud.upsertReservation(updated);
+  },
 
-  updateReservation: (id, updates) =>
+  updateReservation: (id, updates) => {
     set((s) => ({
       reservations: s.reservations.map((r) => r.id === id ? { ...r, ...updates } : r),
       selectedReservation: s.selectedReservation?.id === id
         ? { ...s.selectedReservation, ...updates } : s.selectedReservation,
-    })),
+    }));
+    const updated = get().reservations.find(r => r.id === id);
+    if (updated) cloud.upsertReservation(updated);
+  },
 
-  addReservation: (res) =>
-    set((s) => ({
-      reservations: [...s.reservations, { ...res, id: `${res.bizId}-${res.time}-${Date.now()}` }],
-    })),
+  addReservation: (res) => {
+    const newRes: Reservation = { ...res, id: `${res.bizId}-${res.time}-${Date.now()}` };
+    set((s) => ({ reservations: [...s.reservations, newRes] }));
+    cloud.upsertReservation(newRes);
+  },
 
-  // â”€â”€ Customer CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  addCustomer: (cust) =>
-    set((s) => ({ customers: [...s.customers, { ...cust, id: `cust-${Date.now()}` }] })),
+  // ── Customer CRUD ─────────────────────────────────────────────────────────────
+  addCustomer: (cust) => {
+    const newCust: Customer = { ...cust, id: `cust-${Date.now()}` };
+    set((s) => ({ customers: [...s.customers, newCust] }));
+    cloud.upsertCustomer(newCust);
+  },
 
-  updateCustomer: (id, updates) =>
-    set((s) => ({ customers: s.customers.map(c => c.id === id ? { ...c, ...updates } : c) })),
+  updateCustomer: (id, updates) => {
+    set((s) => ({ customers: s.customers.map(c => c.id === id ? { ...c, ...updates } : c) }));
+    const updated = get().customers.find(c => c.id === id);
+    if (updated) cloud.upsertCustomer(updated);
+  },
 
-  deleteCustomer: (id) =>
-    set((s) => ({ customers: s.customers.filter(c => c.id !== id) })),
+  deleteCustomer: (id) => {
+    set((s) => ({ customers: s.customers.filter(c => c.id !== id) }));
+    cloud.deleteCustomer(id);
+  },
 
-  // â”€â”€ Modal setters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Modal setters ─────────────────────────────────────────────────────────────
   setConfirmModalRes: (v) => set({ confirmModalRes: v }),
   setCancelModalRes: (v) => set({ cancelModalRes: v }),
   setBlockModalTable: (v) => set({ blockModalTable: v }),
   setShowWaitlist: (v) => set({ showWaitlist: v }),
   setMergeModalTable: (v) => set({ mergeModalTable: v }),
 
-  // â”€â”€ Shift notes CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  addShiftNote: (n) =>
-    set((s) => ({ shiftNotes: [...s.shiftNotes, { ...n, id: `sn-${Date.now()}` }] })),
-  editShiftNote: (id, body) =>
-    set((s) => ({ shiftNotes: s.shiftNotes.map((n) => n.id === id ? { ...n, body } : n) })),
-  deleteShiftNote: (id) =>
-    set((s) => ({ shiftNotes: s.shiftNotes.filter((n) => n.id !== id) })),
+  // ── Shift notes CRUD ──────────────────────────────────────────────────────────
+  addShiftNote: (n) => {
+    const newNote: ShiftNote = { ...n, id: `sn-${Date.now()}` };
+    set((s) => ({ shiftNotes: [...s.shiftNotes, newNote] }));
+    cloud.upsertShiftNote(newNote);
+  },
 
-  // â”€â”€ Events CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  addAppEvent: (e) =>
-    set((s) => ({ appEvents: [...s.appEvents, { ...e, id: `ev-${Date.now()}` }] })),
-  deleteAppEvent: (id) =>
-    set((s) => ({ appEvents: s.appEvents.filter((e) => e.id !== id) })),
+  editShiftNote: (id, body) => {
+    set((s) => ({ shiftNotes: s.shiftNotes.map((n) => n.id === id ? { ...n, body } : n) }));
+    const updated = get().shiftNotes.find(n => n.id === id);
+    if (updated) cloud.upsertShiftNote(updated);
+  },
 
-  // â”€â”€ Floor plan CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  setFloorPlan: (bizId, plan) =>
-    set((s) => ({ floorPlans: { ...s.floorPlans, [bizId]: plan } })),
-  updateFloorTable: (bizId, tableId, updates) =>
+  deleteShiftNote: (id) => {
+    set((s) => ({ shiftNotes: s.shiftNotes.filter((n) => n.id !== id) }));
+    cloud.deleteShiftNote(id);
+  },
+
+  // ── Events CRUD ───────────────────────────────────────────────────────────────
+  addAppEvent: (e) => {
+    const newEv: AppEvent = { ...e, id: `ev-${Date.now()}` };
+    set((s) => ({ appEvents: [...s.appEvents, newEv] }));
+    cloud.upsertEvent(newEv);
+  },
+
+  deleteAppEvent: (id) => {
+    set((s) => ({ appEvents: s.appEvents.filter((e) => e.id !== id) }));
+    cloud.deleteEvent(id);
+  },
+
+  // ── Floor plan CRUD ───────────────────────────────────────────────────────────
+  setFloorPlan: (bizId, plan) => {
+    set((s) => ({ floorPlans: { ...s.floorPlans, [bizId]: plan } }));
+    cloud.upsertFloorPlan(bizId, plan);
+  },
+
+  updateFloorTable: (bizId, tableId, updates) => {
     set((s) => {
       const plan = s.floorPlans[bizId]; if (!plan) return {};
       return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
         tables: plan.tables.map(t => t.id === tableId ? { ...t, ...updates } : t) } } };
-    }),
-  addFloorTable: (bizId, table) =>
+    });
+    const plan = get().floorPlans[bizId];
+    if (plan) cloud.upsertFloorPlan(bizId, plan);
+  },
+
+  addFloorTable: (bizId, table) => {
     set((s) => {
       const plan = s.floorPlans[bizId]; if (!plan) return {};
       return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan, tables: [...plan.tables, table] } } };
-    }),
-  deleteFloorTable: (bizId, tableId) =>
+    });
+    const plan = get().floorPlans[bizId];
+    if (plan) cloud.upsertFloorPlan(bizId, plan);
+  },
+
+  deleteFloorTable: (bizId, tableId) => {
     set((s) => {
       const plan = s.floorPlans[bizId]; if (!plan) return {};
       return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
         tables: plan.tables.filter(t => t.id !== tableId) } } };
-    }),
-  updateFloorZone: (bizId, zoneId, updates) =>
+    });
+    const plan = get().floorPlans[bizId];
+    if (plan) cloud.upsertFloorPlan(bizId, plan);
+  },
+
+  updateFloorZone: (bizId, zoneId, updates) => {
     set((s) => {
       const plan = s.floorPlans[bizId]; if (!plan) return {};
       return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
         zones: plan.zones.map(z => z.id === zoneId ? { ...z, ...updates } : z) } } };
-    }),
-  addFloorZone: (bizId, zone) =>
+    });
+    const plan = get().floorPlans[bizId];
+    if (plan) cloud.upsertFloorPlan(bizId, plan);
+  },
+
+  addFloorZone: (bizId, zone) => {
     set((s) => {
       const plan = s.floorPlans[bizId]; if (!plan) return {};
       return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan, zones: [...plan.zones, zone] } } };
-    }),
-  deleteFloorZone: (bizId, zoneId) =>
+    });
+    const plan = get().floorPlans[bizId];
+    if (plan) cloud.upsertFloorPlan(bizId, plan);
+  },
+
+  deleteFloorZone: (bizId, zoneId) => {
     set((s) => {
       const plan = s.floorPlans[bizId]; if (!plan) return {};
       return { floorPlans: { ...s.floorPlans, [bizId]: { ...plan,
         zones: plan.zones.filter(z => z.id !== zoneId),
         tables: plan.tables.filter(t => t.zone !== zoneId) } } };
-    }),
+    });
+    const plan = get().floorPlans[bizId];
+    if (plan) cloud.upsertFloorPlan(bizId, plan);
+  },
 
-  // â”€â”€ Settings CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  updateBusinessConfig: (bizId, cfg) =>
-    set((s) => ({ businessConfigs: { ...s.businessConfigs, [bizId]: cfg } })),
+  // ── Settings CRUD ─────────────────────────────────────────────────────────────
+  updateBusinessConfig: (bizId, cfg) => {
+    set((s) => ({ businessConfigs: { ...s.businessConfigs, [bizId]: cfg } }));
+    const s = get();
+    cloud.upsertBizSettings(bizId, cfg,
+      s.businessHours[bizId], s.bizShifts[bizId] ?? [], s.notifConfigs[bizId]);
+  },
 
-  updateBusinessHours: (bizId, hours) =>
-    set((s) => ({ businessHours: { ...s.businessHours, [bizId]: hours } })),
+  updateBusinessHours: (bizId, hours) => {
+    set((s) => ({ businessHours: { ...s.businessHours, [bizId]: hours } }));
+    const s = get();
+    cloud.upsertBizSettings(bizId,
+      s.businessConfigs[bizId], hours, s.bizShifts[bizId] ?? [], s.notifConfigs[bizId]);
+  },
 
-  addBizShift: (bizId, shift) =>
+  addBizShift: (bizId, shift) => {
+    const newShift: BizShift = { ...shift, id: `sh-${Date.now()}` };
     set((s) => ({
       bizShifts: { ...s.bizShifts,
-        [bizId]: [...(s.bizShifts[bizId] ?? []), { ...shift, id: `sh-${Date.now()}` }] },
-    })),
-  updateBizShift: (bizId, shiftId, updates) =>
+        [bizId]: [...(s.bizShifts[bizId] ?? []), newShift] },
+    }));
+    const s = get();
+    cloud.upsertBizSettings(bizId,
+      s.businessConfigs[bizId], s.businessHours[bizId], s.bizShifts[bizId] ?? [], s.notifConfigs[bizId]);
+  },
+
+  updateBizShift: (bizId, shiftId, updates) => {
     set((s) => ({
       bizShifts: { ...s.bizShifts,
         [bizId]: (s.bizShifts[bizId] ?? []).map(sh => sh.id === shiftId ? { ...sh, ...updates } : sh) },
-    })),
-  deleteBizShift: (bizId, shiftId) =>
+    }));
+    const s = get();
+    cloud.upsertBizSettings(bizId,
+      s.businessConfigs[bizId], s.businessHours[bizId], s.bizShifts[bizId] ?? [], s.notifConfigs[bizId]);
+  },
+
+  deleteBizShift: (bizId, shiftId) => {
     set((s) => ({
       bizShifts: { ...s.bizShifts,
         [bizId]: (s.bizShifts[bizId] ?? []).filter(sh => sh.id !== shiftId) },
-    })),
+    }));
+    const s = get();
+    cloud.upsertBizSettings(bizId,
+      s.businessConfigs[bizId], s.businessHours[bizId], s.bizShifts[bizId] ?? [], s.notifConfigs[bizId]);
+  },
 
-  updateNotifConfig: (bizId, cfg) =>
-    set((s) => ({ notifConfigs: { ...s.notifConfigs, [bizId]: cfg } })),
+  updateNotifConfig: (bizId, cfg) => {
+    set((s) => ({ notifConfigs: { ...s.notifConfigs, [bizId]: cfg } }));
+    const s = get();
+    cloud.upsertBizSettings(bizId,
+      s.businessConfigs[bizId], s.businessHours[bizId], s.bizShifts[bizId] ?? [], cfg);
+  },
 
-  // â”€â”€ Staff CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  addEmployee: (emp) =>
-    set((s) => ({ employees: [...s.employees, { ...emp, id: `emp-${Date.now()}` }] })),
-  updateEmployee: (id, updates) =>
-    set((s) => ({ employees: s.employees.map(e => e.id === id ? { ...e, ...updates } : e) })),
-  deleteEmployee: (id) =>
-    set((s) => ({ employees: s.employees.filter(e => e.id !== id) })),
-  clockInEmployee: (id) =>
+  // ── Staff CRUD ────────────────────────────────────────────────────────────────
+  addEmployee: (emp) => {
+    const newEmp: Employee = { ...emp, id: `emp-${Date.now()}` };
+    set((s) => ({ employees: [...s.employees, newEmp] }));
+    cloud.upsertEmployee(newEmp);
+  },
+
+  updateEmployee: (id, updates) => {
+    set((s) => ({ employees: s.employees.map(e => e.id === id ? { ...e, ...updates } : e) }));
+    const updated = get().employees.find(e => e.id === id);
+    if (updated) cloud.upsertEmployee(updated);
+  },
+
+  deleteEmployee: (id) => {
+    set((s) => ({ employees: s.employees.filter(e => e.id !== id) }));
+    cloud.deleteEmployee(id);
+  },
+
+  clockInEmployee: (id) => {
     set((s) => ({ employees: s.employees.map(e =>
-      e.id === id ? { ...e, clockedIn: true, startedAt: new Date().toTimeString().slice(0,5) } : e) })),
-  clockOutEmployee: (id) =>
+      e.id === id ? { ...e, clockedIn: true, startedAt: new Date().toTimeString().slice(0,5) } : e) }));
+    const updated = get().employees.find(e => e.id === id);
+    if (updated) cloud.upsertEmployee(updated);
+  },
+
+  clockOutEmployee: (id) => {
     set((s) => ({ employees: s.employees.map(e =>
-      e.id === id ? { ...e, clockedIn: false, startedAt: null } : e) })),
+      e.id === id ? { ...e, clockedIn: false, startedAt: null } : e) }));
+    const updated = get().employees.find(e => e.id === id);
+    if (updated) cloud.upsertEmployee(updated);
+  },
 
-  // â”€â”€ Role CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  addEmployeeRole: (role) =>
-    set((s) => ({ employeeRoles: [...s.employeeRoles, { ...role, id: `er-${Date.now()}` }] })),
-  updateEmployeeRole: (id, updates) =>
-    set((s) => ({ employeeRoles: s.employeeRoles.map(r => r.id === id ? { ...r, ...updates } : r) })),
-  deleteEmployeeRole: (id) =>
-    set((s) => ({ employeeRoles: s.employeeRoles.filter(r => r.id !== id) })),
+  // ── Role CRUD ─────────────────────────────────────────────────────────────────
+  addEmployeeRole: (role) => {
+    const newRole: EmployeeRole = { ...role, id: `er-${Date.now()}` };
+    set((s) => ({ employeeRoles: [...s.employeeRoles, newRole] }));
+    cloud.upsertRole(newRole);
+  },
 
-  // â”€â”€ Week schedule (legacy) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  updateEmployeeRole: (id, updates) => {
+    set((s) => ({ employeeRoles: s.employeeRoles.map(r => r.id === id ? { ...r, ...updates } : r) }));
+    const updated = get().employeeRoles.find(r => r.id === id);
+    if (updated) cloud.upsertRole(updated);
+  },
+
+  deleteEmployeeRole: (id) => {
+    set((s) => ({ employeeRoles: s.employeeRoles.filter(r => r.id !== id) }));
+    cloud.deleteRole(id);
+  },
+
+  // ── Week schedule (legacy) ────────────────────────────────────────────────────
   setWeekShift: (bizId, dow, shiftId, empIds) =>
     set((s) => ({
       weekSchedule: {
@@ -334,13 +447,23 @@ export const useAppStore = create<AppState>()(persist((set) => ({
       },
     })),
 
-  // â”€â”€ Employee shifts (intervals reals) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  addEmployeeShift: (s) =>
-    set((st) => ({ employeeShifts: [...st.employeeShifts, { ...s, id: `es-${Date.now()}` }] })),
-  updateEmployeeShift: (id, updates) =>
-    set((s) => ({ employeeShifts: s.employeeShifts.map(sh => sh.id === id ? { ...sh, ...updates } : sh) })),
-  deleteEmployeeShift: (id) =>
-    set((s) => ({ employeeShifts: s.employeeShifts.filter(sh => sh.id !== id) })),
+  // ── Employee shifts (intervals reals) ─────────────────────────────────────────
+  addEmployeeShift: (s) => {
+    const newShift: EmployeeShift = { ...s, id: `es-${Date.now()}` };
+    set((st) => ({ employeeShifts: [...st.employeeShifts, newShift] }));
+    cloud.upsertEmpShift(newShift);
+  },
+
+  updateEmployeeShift: (id, updates) => {
+    set((s) => ({ employeeShifts: s.employeeShifts.map(sh => sh.id === id ? { ...sh, ...updates } : sh) }));
+    const updated = get().employeeShifts.find(sh => sh.id === id);
+    if (updated) cloud.upsertEmpShift(updated);
+  },
+
+  deleteEmployeeShift: (id) => {
+    set((s) => ({ employeeShifts: s.employeeShifts.filter(sh => sh.id !== id) }));
+    cloud.deleteEmpShift(id);
+  },
 }), {
   name: 'ncr-reserves-storage',
   partialize: (s) => ({
@@ -363,6 +486,3 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     employeeShifts:    s.employeeShifts,
   }),
 }));
-
-
-
