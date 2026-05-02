@@ -367,7 +367,14 @@ function DatePickerSheet({ selected, onSelect, onClose, reservations, bizId }: {
 
 // ─── Detail bottom sheet ──────────────────────────────────────────────────────
 function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => void }) {
-  const { updateReservationStatus } = useAppStore();
+  const { updateReservationStatus, deleteReservation } = useAppStore();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function handleDelete() {
+    deleteReservation(r.id);
+    onClose();
+  }
+
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.25)' }} />
@@ -401,7 +408,7 @@ function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => 
             <Icon d={I.phone} size={13} /> {r.phone}
           </div>
         )}
-        <div style={{ display:'flex', gap:8 }}>
+        <div style={{ display:'flex', gap:8, marginBottom:8 }}>
           {r.phone && (
             <a href={`tel:${r.phone}`}
               style={{ flex:1, padding:'10px', textAlign:'center', background:'var(--ink-100)', borderRadius:11, textDecoration:'none', fontSize:13, fontWeight:600, color:'var(--ink-800)', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
@@ -415,7 +422,34 @@ function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => 
             </button>
           )}
         </div>
+        <button onClick={() => setConfirmDelete(true)}
+          style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid rgba(200,50,50,0.25)', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'#c0392b', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+          <Icon d={I.trash} size={14} /> Eliminar reserva
+        </button>
       </div>
+
+      {/* ── Confirm delete ───────────────────────────────────────── */}
+      {confirmDelete && (
+        <div style={{ position:'fixed', inset:0, zIndex:110, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'flex-end' }}>
+          <div style={{ width:'100%', background:'var(--paper)', padding:'20px 18px calc(env(safe-area-inset-bottom) + 24px)', borderRadius:'20px 20px 0 0' }}>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--ink-900)', marginBottom:6 }}>Eliminar reserva</div>
+            <div style={{ fontSize:13.5, color:'var(--ink-600)', marginBottom:20, lineHeight:1.55 }}>
+              Segur que vols eliminar la reserva de <b>{r.name}</b>?<br />
+              <span style={{ color:'var(--ink-400)', fontSize:12.5 }}>Aquesta acció no es pot desfer.</span>
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setConfirmDelete(false)}
+                style={{ flex:1, padding:'13px', background:'var(--ink-100)', border:'none', borderRadius:12, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:600, color:'var(--ink-800)' }}>
+                Cancel·lar
+              </button>
+              <button onClick={handleDelete}
+                style={{ flex:1, padding:'13px', background:'#c0392b', border:'none', borderRadius:12, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:700, color:'white' }}>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

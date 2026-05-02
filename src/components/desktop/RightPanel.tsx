@@ -304,18 +304,26 @@ function EventCard({ event, fmtDate, onDelete }: { event: AppEvent; fmtDate: (s:
 
 // ─── Reservation detail panel ─────────────────────────────────────
 function ResDetailPanel({ biz: _biz, res, onClose }: { biz: Business; res: Reservation; onClose?: () => void }) {
-  const { updateReservationStatus, updateReservation } = useAppStore();
+  const { updateReservationStatus, updateReservation, deleteReservation, setSelectedReservation } = useAppStore();
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const states: ReservationStatus[] = ['pending', 'confirmed', 'seated', 'completed'];
   const curIdx = states.indexOf(res.status as typeof states[number]);
 
   if (editing) {
-    return <EditResForm res={res} onSave={(updates) => { updateReservation(res.id, updates); setEditing(false); }} onCancel={() => setEditing(false)} onClose={onClose} />;
+    return <EditResForm res={res} onSave={(updates) => { updateReservation(res.id, updates); setEditing(false); }} onCancel={() => setEditing(false)} onClose={onClose} onDelete={() => { setEditing(false); setConfirmDelete(true); }} />;
+  }
+
+  function handleDelete() {
+    deleteReservation(res.id);
+    setConfirmDelete(false);
+    setSelectedReservation(null);
+    if (onClose) onClose();
   }
 
   return (
-    <aside style={{ width:312, flex:'none', borderLeft:'var(--hair)', background:'var(--cream)', display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+    <aside style={{ width:312, flex:'none', borderLeft:'var(--hair)', background:'var(--cream)', display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', position:'relative' }}>
       {/* Header */}
       <div style={{ padding:'16px 18px 12px', borderBottom:'var(--hair)', display:'flex', alignItems:'flex-start', gap:10 }}>
         <span className={`avatar lg av-${avIdx(res.name)}`}>{initials(res.name)}</span>
@@ -390,16 +398,45 @@ function ResDetailPanel({ biz: _biz, res, onClose }: { biz: Business; res: Reser
         </Field>
       </div>
 
-      <div style={{ padding:14, borderTop:'var(--hair)', display:'flex', gap:6 }}>
-        <button onClick={() => setEditing(true)}
-          style={{ flex:1, padding:'7px 12px', background:'transparent', border:'1px solid rgba(60,40,20,0.14)', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:550, color:'var(--ink-800)' }}>
-          <Icon d={I.pencil} size={13} /> Editar
-        </button>
-        <button onClick={() => updateReservationStatus(res.id, 'seated')}
-          style={{ flex:1, padding:'7px 12px', background:'var(--ink-900)', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:550, color:'var(--cream)' }}>
-          A taula
+      <div style={{ padding:14, borderTop:'var(--hair)', display:'flex', flexDirection:'column', gap:8 }}>
+        <div style={{ display:'flex', gap:6 }}>
+          <button onClick={() => setEditing(true)}
+            style={{ flex:1, padding:'7px 12px', background:'transparent', border:'1px solid rgba(60,40,20,0.14)', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:550, color:'var(--ink-800)', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+            <Icon d={I.pencil} size={13} /> Editar
+          </button>
+          <button onClick={() => updateReservationStatus(res.id, 'seated')}
+            style={{ flex:1, padding:'7px 12px', background:'var(--ink-900)', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:550, color:'var(--cream)' }}>
+            A taula
+          </button>
+        </div>
+        <button onClick={() => setConfirmDelete(true)}
+          style={{ width:'100%', padding:'7px 12px', background:'transparent', border:'1px solid rgba(200,50,50,0.25)', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:550, color:'#c0392b', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+          <Icon d={I.trash} size={13} /> Eliminar reserva
         </button>
       </div>
+
+      {/* ── Confirm delete overlay ───────────────────────────────── */}
+      {confirmDelete && (
+        <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.45)', display:'flex', alignItems:'flex-end', zIndex:20 }}>
+          <div style={{ width:'100%', background:'var(--paper)', padding:'20px 18px 24px', borderRadius:'18px 18px 0 0' }}>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--ink-900)', marginBottom:6 }}>Eliminar reserva</div>
+            <div style={{ fontSize:13, color:'var(--ink-600)', marginBottom:18, lineHeight:1.5 }}>
+              Segur que vols eliminar la reserva de <b>{res.name}</b>?<br />
+              <span style={{ color:'var(--ink-500)' }}>Aquesta acció no es pot desfer.</span>
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setConfirmDelete(false)}
+                style={{ flex:1, padding:'9px', background:'transparent', border:'1px solid rgba(60,40,20,.14)', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>
+                Cancel·lar
+              </button>
+              <button onClick={handleDelete}
+                style={{ flex:1, padding:'9px', background:'#c0392b', border:'none', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'white' }}>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
@@ -414,11 +451,12 @@ const ALL_TAGS = [
   { id:'terrassa', label:'🌿 Terrassa' },
 ];
 
-function EditResForm({ res, onSave, onCancel, onClose }: {
+function EditResForm({ res, onSave, onCancel, onClose, onDelete }: {
   res: Reservation;
   onSave: (u: Partial<Reservation>) => void;
   onCancel: () => void;
   onClose?: () => void;
+  onDelete?: () => void;
 }) {
   const [name,   setName]   = useState(res.name);
   const [phone,  setPhone]  = useState(res.phone  || '');
@@ -553,6 +591,14 @@ function EditResForm({ res, onSave, onCancel, onClose }: {
           <Icon d={I.check} size={13} /> Guardar
         </button>
       </div>
+      {onDelete && (
+        <div style={{ padding:'0 14px 14px' }}>
+          <button onClick={onDelete}
+            style={{ width:'100%', padding:'7px', background:'transparent', border:'1px solid rgba(200,50,50,0.25)', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:550, color:'#c0392b', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+            <Icon d={I.trash} size={13} /> Eliminar reserva
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

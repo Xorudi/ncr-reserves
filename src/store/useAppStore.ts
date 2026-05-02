@@ -67,6 +67,7 @@ interface AppState {
   updateReservationStatus: (id: string, status: ReservationStatus) => void;
   updateReservation: (id: string, updates: Partial<Reservation>) => void;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
+  deleteReservation: (id: string) => void;
 
   // ── Customer CRUD ─────────────────────────────────────────────────────────────
   addCustomer:    (c: Omit<Customer, 'id'>) => void;
@@ -210,6 +211,33 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     const newRes: Reservation = { ...res, id: `${res.bizId}-${res.time}-${Date.now()}` };
     set((s) => ({ reservations: [...s.reservations, newRes] }));
     cloud.upsertReservation(newRes);
+  },
+
+  deleteReservation: (id) => {
+    const toDelete = get().reservations.find(r => r.id === id);
+    const bizId = toDelete?.bizId;
+    set((s) => {
+      const reservations = s.reservations.filter(r => r.id !== id);
+      const selectedReservation = s.selectedReservation?.id === id ? null : s.selectedReservation;
+      // Free any floor table linked to this reservation (match by id or name)
+      let floorPlans = s.floorPlans;
+      if (bizId && s.floorPlans[bizId] && toDelete) {
+        const plan = s.floorPlans[bizId];
+        const tables = plan.tables.map(t => {
+          if ((t.res === id || t.res === toDelete.name) && t.status !== 'blocked') {
+            return { ...t, res: undefined, time: undefined, status: 'free' as const };
+          }
+          return t;
+        });
+        floorPlans = { ...s.floorPlans, [bizId]: { ...plan, tables } };
+      }
+      return { reservations, selectedReservation, floorPlans };
+    });
+    cloud.deleteReservation(id);
+    if (bizId) {
+      const plan = get().floorPlans[bizId];
+      if (plan) cloud.upsertFloorPlan(bizId, plan);
+    }
   },
 
   // ── Customer CRUD ─────────────────────────────────────────────────────────────
