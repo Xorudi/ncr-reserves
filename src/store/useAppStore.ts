@@ -68,6 +68,11 @@ interface AppState {
   updateReservation: (id: string, updates: Partial<Reservation>) => void;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
   deleteReservation: (id: string) => void;
+  assignTablesToReservation: (resId: string, tableIds: string[]) => void;
+
+  // ── Table management ──────────────────────────────────────────────────────────
+  releaseTable: (bizId: string, tableId: string) => void;
+  releaseAllTables: (bizId: string, includeBlocked?: boolean) => void;
 
   // ── Customer CRUD ─────────────────────────────────────────────────────────────
   addCustomer:    (c: Omit<Customer, 'id'>) => void;
@@ -188,13 +193,41 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   // ── Reservation CRUD ──────────────────────────────────────────────────────────
   updateReservationStatus: (id, status) => {
-    set((s) => ({
-      reservations: s.reservations.map((r) => r.id === id ? { ...r, status } : r),
-      selectedReservation: s.selectedReservation?.id === id
-        ? { ...s.selectedReservation, status } : s.selectedReservation,
-    }));
+    const res = get().reservations.find(r => r.id === id);
+    const bizId = res?.bizId;
+    const tableIds = res?.tableIds ?? [];
+    const tableStatus =
+      status === 'seated'     ? 'seated' as const :
+      status === 'confirmed'  ? 'confirmed' as const :
+      status === 'pending'    ? 'reserved' as const :
+      'free' as const; // completed / cancelled / noshow → free
+
+    set((s) => {
+      const reservations = s.reservations.map((r) => r.id === id ? { ...r, status } : r);
+      const selectedReservation = s.selectedReservation?.id === id
+        ? { ...s.selectedReservation, status } : s.selectedReservation;
+
+      let floorPlans = s.floorPlans;
+      if (bizId && tableIds.length > 0 && s.floorPlans[bizId]) {
+        const plan = s.floorPlans[bizId];
+        const releasing = tableStatus === 'free';
+        const tables = plan.tables.map(t => {
+          if (!tableIds.includes(t.id)) return t;
+          return releasing
+            ? { ...t, status: 'free' as const, res: undefined, time: undefined }
+            : { ...t, status: tableStatus };
+        });
+        floorPlans = { ...s.floorPlans, [bizId]: { ...plan, tables } };
+      }
+      return { reservations, selectedReservation, floorPlans };
+    });
+
     const updated = get().reservations.find(r => r.id === id);
     if (updated) cloud.upsertReservation(updated);
+    if (bizId && tableIds.length > 0) {
+      const plan = get().floorPlans[bizId];
+      if (plan) cloud.upsertFloorPlan(bizId, plan);
+    }
   },
 
   updateReservation: (id, updates) => {
@@ -211,6 +244,85 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     const newRes: Reservation = { ...res, id: `${res.bizId}-${res.time}-${Date.now()}` };
     set((s) => ({ reservations: [...s.reservations, newRes] }));
     cloud.upsertReservation(newRes);
+  },
+
+  assignTablesToReservation: (resId, tableIds) => {
+    const res = get().reservations.find(r => r.id === resId);
+    if (!res) return;
+    const bizId = res.bizId;
+    const oldTableIds = res.tableIds ?? [];
+    const tableStatus =
+      res.status === 'seated'    ? 'seated'    as const :
+      res.status === 'confirmed' ? 'confirmed' as const :
+      'reserved' as const;
+
+    set((s) => {
+      const reservations = s.reservations.map(r => r.id === resId ? { ...r, tableIds } : r);
+      const selectedReservation = s.selectedReservation?.id === resId
+        ? { ...s.selectedReservation, tableIds } : s.selectedReservation;
+
+      const plan = s.floorPlans[bizId];
+      if (!plan) return { reservations, selectedReservation };
+
+      const tables = plan.tables.map(t => {
+        if (tableIds.includes(t.id)) {
+          return { ...t, status: tableStatus, res: res.name, time: res.time };
+        }
+        if (oldTableIds.includes(t.id) && !tableIds.includes(t.id) && t.status !== 'blocked') {
+          return { ...t, status: 'free' as const, res: undefined, time: undefined };
+        }
+        return t;
+      });
+      return { reservations, selectedReservation, floorPlans: { ...s.floorPlans, [bizId]: { ...plan, tables } } };
+    });
+
+    const updatedRes = get().reservations.find(r => r.id === resId);
+    if (updatedRes) cloud.upsertReservation(updatedRes);
+    const plan = get().floorPlans[bizId];
+    if (plan) cloud.upsertFloorPlan(bizId, plan);
+  },
+
+  releaseTable: (bizId, tableId) => {
+    const ownerResId = get().reservations.find(r => r.tableIds?.includes(tableId))?.id;
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      const table = plan.tables.find(t => t.id === tableId);
+      if (!table || table.status === 'blocked') return {};
+      const tables = plan.tables.map(t =>
+        t.id === tableId ? { ...t, status: 'free' as const, res: undefined, time: undefined } : t
+      );
+      const reservations = ownerResId
+        ? s.reservations.map(r => r.id === ownerResId
+            ? { ...r, tableIds: (r.tableIds ?? []).filter(id => id !== tableId) }
+            : r)
+        : s.reservations;
+      return { reservations, floorPlans: { ...s.floorPlans, [bizId]: { ...plan, tables } } };
+    });
+    const updatedPlan = get().floorPlans[bizId];
+    if (updatedPlan) cloud.upsertFloorPlan(bizId, updatedPlan);
+    if (ownerResId) {
+      const updatedRes = get().reservations.find(r => r.id === ownerResId);
+      if (updatedRes) cloud.upsertReservation(updatedRes);
+    }
+  },
+
+  releaseAllTables: (bizId, includeBlocked = false) => {
+    set((s) => {
+      const plan = s.floorPlans[bizId];
+      if (!plan) return {};
+      const tables = plan.tables.map(t => {
+        if (!includeBlocked && t.status === 'blocked') return t;
+        return { ...t, status: 'free' as const, res: undefined, time: undefined };
+      });
+      const reservations = s.reservations.map(r =>
+        r.bizId === bizId && (r.tableIds?.length ?? 0) > 0 ? { ...r, tableIds: [] } : r
+      );
+      return { reservations, floorPlans: { ...s.floorPlans, [bizId]: { ...plan, tables } } };
+    });
+    const updatedPlan = get().floorPlans[bizId];
+    if (updatedPlan) cloud.upsertFloorPlan(bizId, updatedPlan);
+    get().reservations.filter(r => r.bizId === bizId).forEach(r => cloud.upsertReservation(r));
   },
 
   deleteReservation: (id) => {

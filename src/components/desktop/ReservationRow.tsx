@@ -7,10 +7,11 @@ import type { Reservation } from '@/types';
 interface Props {
   res: Reservation;
   selected?: boolean;
+  tableLabel?: string;   // e.g. "T12" or "T12 + T13"
   onClick?: () => void;
 }
 
-export function ReservationRow({ res, selected = false, onClick }: Props) {
+export function ReservationRow({ res, selected = false, tableLabel, onClick }: Props) {
   return (
     <button onClick={onClick} style={{ display:'grid',gridTemplateColumns:'28px 1fr auto auto',alignItems:'center',gap:12,padding:'9px 10px',background:selected?'var(--ink-900)':'transparent',color:selected?'var(--cream)':'var(--ink-800)',border:'none',borderRadius:8,fontFamily:'inherit',cursor:'pointer',textAlign:'left',transition:'background .1s',width:'100%' }}
       onMouseEnter={e=>{if(!selected)(e.currentTarget as HTMLElement).style.background='var(--ink-50)';}}
@@ -35,6 +36,16 @@ export function ReservationRow({ res, selected = false, onClick }: Props) {
       <div style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:selected?'rgba(251,247,238,0.75)':'var(--ink-600)' }}>
         <Icon d={I.users} size={12} stroke={2} />
         <span style={{ fontWeight:600 }}>{res.pax}</span>
+        {tableLabel && (
+          <span style={{
+            fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:5,
+            background: selected ? 'rgba(255,255,255,.18)' : 'rgba(60,40,20,.09)',
+            color: selected ? 'rgba(251,247,238,.85)' : 'var(--ink-700)',
+            marginLeft:2,
+          }}>
+            {tableLabel}
+          </span>
+        )}
       </div>
 
       <StatusChip state={res.status} size="sm" />

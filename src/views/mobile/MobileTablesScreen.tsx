@@ -14,10 +14,15 @@ const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: stri
 };
 
 export default function MobileTablesScreen() {
-  const { selectedBusiness, floorPlans, updateFloorTable } = useAppStore();
+  const { selectedBusiness, floorPlans, updateFloorTable, releaseTable, releaseAllTables } = useAppStore();
   const plan       = floorPlans[selectedBusiness];
   const [zoneId, setZoneId] = useState<string>('__all__');
   const [selTable, setSelTable] = useState<FloorTable | null>(null);
+
+  // Release-all double confirmation state
+  const [showRelease1, setShowRelease1] = useState(false);
+  const [showRelease2, setShowRelease2] = useState(false);
+  const [confirmText, setConfirmText]   = useState('');
 
   const zones  = useMemo(() => plan ? [...plan.zones].sort((a, b) => a.order - b.order) : [], [plan]);
   const tables = useMemo(() => {
@@ -41,6 +46,8 @@ export default function MobileTablesScreen() {
       <div style={{ fontFamily:'var(--font-serif)', fontSize:16 }}>Sense plànol configurat</div>
     </div>
   );
+
+  const occupiedCount = (counts['seated'] ?? 0) + (counts['confirmed'] ?? 0) + (counts['reserved'] ?? 0) + (counts['pending'] ?? 0);
 
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -100,6 +107,12 @@ export default function MobileTablesScreen() {
                 {t.time && (
                   <span className="mono" style={{ fontSize:10.5, color:'var(--ink-700)' }}>{t.time}</span>
                 )}
+                {t.res && (
+                  <span style={{ fontSize:10, color:'var(--ink-600)', lineHeight:1.2, marginTop:1 }}
+                    title={t.res}>
+                    {t.res.length > 12 ? t.res.slice(0, 11) + '…' : t.res}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -107,6 +120,22 @@ export default function MobileTablesScreen() {
         {tables.length === 0 && (
           <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink-500)', fontSize:14 }}>
             Cap taula en aquesta zona
+          </div>
+        )}
+
+        {/* ── Danger zone: release all ──────────────────────────── */}
+        {occupiedCount > 0 && (
+          <div style={{ marginTop:24, padding:'14px 16px', background:'rgba(200,50,50,.05)', border:'1px solid rgba(200,50,50,.15)', borderRadius:12 }}>
+            <div style={{ fontSize:11.5, fontWeight:700, color:'#a03030', letterSpacing:.04, textTransform:'uppercase', marginBottom:8 }}>
+              Zona de risc
+            </div>
+            <div style={{ fontSize:12.5, color:'var(--ink-600)', marginBottom:12, lineHeight:1.45 }}>
+              Hi ha <b>{occupiedCount}</b> taula{occupiedCount > 1 ? 'es' : ''} en ús. Pots alliberar-les totes alhora.
+            </div>
+            <button onClick={() => setShowRelease1(true)}
+              style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid rgba(200,50,50,.35)', borderRadius:10, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:700, color:'#c0392b' }}>
+              🔓 Alliberar totes les taules
+            </button>
           </div>
         )}
       </div>
@@ -120,25 +149,97 @@ export default function MobileTablesScreen() {
             updateFloorTable(selectedBusiness, selTable.id, { status });
             setSelTable(null);
           }}
+          onRelease={() => {
+            releaseTable(selectedBusiness, selTable.id);
+            setSelTable(null);
+          }}
           onClose={() => setSelTable(null)}
         />
+      )}
+
+      {/* ── Release all — step 1 ──────────────────────────────────── */}
+      {showRelease1 && (
+        <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'flex-end' }}>
+          <div style={{ width:'100%', background:'var(--paper)', padding:'20px 18px calc(env(safe-area-inset-bottom) + 24px)', borderRadius:'20px 20px 0 0' }}>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--ink-900)', marginBottom:8 }}>🔓 Alliberar totes les taules</div>
+            <div style={{ fontSize:13.5, color:'var(--ink-600)', marginBottom:20, lineHeight:1.55 }}>
+              Aquesta acció alliberarà totes les taules ocupades o reservades.<br />
+              <span style={{ color:'var(--ink-400)', fontSize:12.5 }}>Les taules bloquejades es mantindran.</span>
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => setShowRelease1(false)}
+                style={{ flex:1, padding:'13px', background:'var(--ink-100)', border:'none', borderRadius:12, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:600, color:'var(--ink-800)' }}>
+                Cancel·lar
+              </button>
+              <button onClick={() => { setShowRelease1(false); setShowRelease2(true); setConfirmText(''); }}
+                style={{ flex:1, padding:'13px', background:'#c0392b', border:'none', borderRadius:12, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:700, color:'white' }}>
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Release all — step 2: type ALLIBERAR ─────────────────── */}
+      {showRelease2 && (
+        <div style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'flex-end' }}>
+          <div style={{ width:'100%', background:'var(--paper)', padding:'20px 18px calc(env(safe-area-inset-bottom) + 24px)', borderRadius:'20px 20px 0 0' }}>
+            <div style={{ fontSize:15, fontWeight:700, color:'#c0392b', marginBottom:8 }}>Confirmació final</div>
+            <div style={{ fontSize:13.5, color:'var(--ink-600)', marginBottom:16, lineHeight:1.55 }}>
+              Escriu <b style={{ color:'#c0392b', fontFamily:'monospace' }}>ALLIBERAR</b> per confirmar.
+            </div>
+            <input
+              value={confirmText}
+              onChange={e => setConfirmText(e.target.value)}
+              placeholder="ALLIBERAR"
+              autoFocus
+              style={{
+                width:'100%', padding:'12px 14px', fontSize:15, fontFamily:'monospace',
+                border:'2px solid rgba(200,50,50,.35)', borderRadius:10,
+                background:'var(--cream)', color:'var(--ink-900)', outline:'none',
+                boxSizing:'border-box', marginBottom:16,
+                letterSpacing:2,
+              }}
+            />
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => { setShowRelease2(false); setConfirmText(''); }}
+                style={{ flex:1, padding:'13px', background:'var(--ink-100)', border:'none', borderRadius:12, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:600, color:'var(--ink-800)' }}>
+                Cancel·lar
+              </button>
+              <button
+                disabled={confirmText !== 'ALLIBERAR'}
+                onClick={() => { releaseAllTables(selectedBusiness); setShowRelease2(false); setConfirmText(''); }}
+                style={{
+                  flex:1, padding:'13px', border:'none', borderRadius:12, cursor: confirmText === 'ALLIBERAR' ? 'pointer' : 'not-allowed',
+                  fontFamily:'inherit', fontSize:14, fontWeight:700, color:'white',
+                  background: confirmText === 'ALLIBERAR' ? '#c0392b' : 'rgba(200,50,50,.3)',
+                  transition:'background .15s',
+                }}>
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
 // ─── Table action sheet ───────────────────────────────────────────────────────
-function TableActionSheet({ table: t, onAction, onClose }: {
+function TableActionSheet({ table: t, onAction, onRelease, onClose }: {
   table: FloorTable; bizId: string;
-  onAction: (status: TableStatus) => void; onClose: () => void;
+  onAction: (status: TableStatus) => void;
+  onRelease: () => void;
+  onClose: () => void;
 }) {
   const st = STATUS_STYLE[t.status];
+  const isOccupied = ['seated','confirmed','reserved','pending'].includes(t.status);
 
   const allActions: Array<{ label: string; status: TableStatus; color?: string }> = [
-    { label: '✅ Marcar lliure',    status: 'free' as TableStatus },
-    { label: '🍽️ Marcar ocupada',  status: 'seated' as TableStatus,    color: 'var(--terracotta-600)' },
+    { label: '✅ Marcar lliure',     status: 'free'      as TableStatus },
+    { label: '🍽️ Marcar ocupada',   status: 'seated'    as TableStatus, color: 'var(--terracotta-600)' },
     { label: '📋 Confirmar reserva', status: 'confirmed' as TableStatus, color: '#1a4ea0' },
-    { label: '🔒 Bloquejar',        status: 'blocked' as TableStatus,   color: '#888' },
+    { label: '🔒 Bloquejar',         status: 'blocked'   as TableStatus, color: '#888' },
   ];
   const actions = allActions.filter(a => a.status !== t.status);
 
@@ -163,6 +264,11 @@ function TableActionSheet({ table: t, onAction, onClose }: {
               {t.cap} pax · <span style={{ color:st.color, fontWeight:600 }}>{st.label}</span>
               {t.time ? ` · ${t.time}` : ''}
             </div>
+            {t.res && (
+              <div style={{ fontSize:12, color:'var(--ink-700)', fontWeight:600, marginTop:2 }}>
+                {t.res}
+              </div>
+            )}
           </div>
           <button onClick={onClose} style={{ marginLeft:'auto', background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)' }}>
             <Icon d={I.x} size={18} />
@@ -171,6 +277,17 @@ function TableActionSheet({ table: t, onAction, onClose }: {
 
         {/* Actions */}
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {isOccupied && (
+            <button onClick={onRelease}
+              style={{
+                padding:'12px 16px', borderRadius:11, border:'1px solid rgba(200,50,50,.25)',
+                background:'rgba(200,50,50,.05)', cursor:'pointer', fontFamily:'inherit',
+                fontSize:14, fontWeight:600, textAlign:'left',
+                color: '#c0392b',
+              }}>
+              🔓 Alliberar taula
+            </button>
+          )}
           {actions.map(a => (
             <button key={a.status} onClick={() => onAction(a.status)}
               style={{

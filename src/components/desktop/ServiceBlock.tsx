@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { ReservationRow } from './ReservationRow';
+import { useAppStore } from '@/store/useAppStore';
 import type { Reservation } from '@/types';
 
 function parseTime(t: string) {
@@ -27,6 +28,9 @@ interface Props {
 }
 
 export function ServiceBlock({ label, sub, ico, list, selectedId, onSelect, nowTime, defaultOpen = true, activeStaff }: Props) {
+  const { floorPlans, selectedBusiness } = useAppStore();
+  const plan = floorPlans[selectedBusiness];
+
   const [open, setOpen] = useState(defaultOpen);
   const [staffOpen, setStaffOpen] = useState(false);
   const staffRef = useRef<HTMLDivElement>(null);
@@ -145,11 +149,17 @@ export function ServiceBlock({ label, sub, ico, list, selectedId, onSelect, nowT
                   <span style={{ fontSize:10.5,color:'var(--ink-500)',marginTop:1 }}>{rows.length} res · {rows.reduce((s,r)=>s+r.pax,0)} pax</span>
                 </div>
                 <div style={{ display:'flex',flexDirection:'column' }}>
-                  {rows.map(r => (
-                    <ReservationRow key={r.id} res={r}
-                      selected={selectedId === r.id}
-                      onClick={() => onSelect?.(r)} />
-                  ))}
+                  {rows.map(r => {
+                    const tableLabel = (r.tableIds ?? []).length > 0
+                      ? (r.tableIds ?? []).map(id => plan?.tables.find(t => t.id === id)?.name ?? id).join('+')
+                      : undefined;
+                    return (
+                      <ReservationRow key={r.id} res={r}
+                        selected={selectedId === r.id}
+                        tableLabel={tableLabel}
+                        onClick={() => onSelect?.(r)} />
+                    );
+                  })}
                 </div>
               </div>
             );

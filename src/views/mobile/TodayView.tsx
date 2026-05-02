@@ -3,6 +3,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate, BUSINESSES } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
+import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import type { Reservation, BusinessId, ReservationStatus } from '@/types';
 
 const DAYS_CA   = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
@@ -367,8 +368,14 @@ function DatePickerSheet({ selected, onSelect, onClose, reservations, bizId }: {
 
 // ─── Detail bottom sheet ──────────────────────────────────────────────────────
 function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => void }) {
-  const { updateReservationStatus, deleteReservation } = useAppStore();
+  const { updateReservationStatus, deleteReservation, assignTablesToReservation, floorPlans } = useAppStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showTableSel, setShowTableSel] = useState(false);
+
+  const plan = floorPlans[r.bizId];
+  const assignedTableNames = (r.tableIds ?? [])
+    .map(id => plan?.tables.find(t => t.id === id)?.name ?? id)
+    .join(' + ');
 
   function handleDelete() {
     deleteReservation(r.id);
@@ -422,6 +429,18 @@ function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => 
             </button>
           )}
         </div>
+        {/* ── Table assignment row ─────────────────────────────── */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderTop:'var(--hair)', marginBottom:8 }}>
+          <Icon d={I.tableIco} size={14} />
+          <span style={{ flex:1, fontSize:13, color: r.tableIds && r.tableIds.length > 0 ? 'var(--ink-900)' : 'var(--ink-500)', fontStyle: r.tableIds && r.tableIds.length > 0 ? 'normal' : 'italic', fontWeight: r.tableIds && r.tableIds.length > 0 ? 600 : 400 }}>
+            {r.tableIds && r.tableIds.length > 0 ? assignedTableNames : 'Sense taula assignada'}
+          </span>
+          <button onClick={() => setShowTableSel(true)}
+            style={{ padding:'4px 10px', fontSize:12, background:'transparent', border:'1px solid rgba(60,40,20,.15)', borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, color:'var(--ink-700)' }}>
+            {r.tableIds && r.tableIds.length > 0 ? 'Canviar' : 'Assignar taula'}
+          </button>
+        </div>
+
         <button onClick={() => setConfirmDelete(true)}
           style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid rgba(200,50,50,0.25)', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'#c0392b', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
           <Icon d={I.trash} size={14} /> Eliminar reserva
@@ -449,6 +468,17 @@ function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => 
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Table selector modal ─────────────────────────────────── */}
+      {showTableSel && (
+        <TableSelectorModal
+          bizId={r.bizId}
+          pax={r.pax}
+          currentIds={r.tableIds ?? []}
+          onSave={ids => assignTablesToReservation(r.id, ids)}
+          onClose={() => setShowTableSel(false)}
+        />
       )}
     </>
   );

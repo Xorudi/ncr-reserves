@@ -26,6 +26,7 @@ export interface Reservation {
   notes?: string;
   source?: string;
   tags?: string[];
+  tableIds?: string[];   // IDs of assigned FloorTable entries
 }
 
 export interface Customer {

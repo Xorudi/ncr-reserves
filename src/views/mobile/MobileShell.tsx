@@ -15,7 +15,7 @@ export type MobileTab = 'reservations' | 'tables' | 'walkin' | 'clients' | 'more
 
 const TABS: { id: MobileTab; label: string; ico: React.ReactNode; special?: boolean }[] = [
   { id: 'reservations', label: 'Reserves', ico: I.calendar },
-  { id: 'tables',       label: 'Meses',    ico: I.tableIco },
+  { id: 'tables',       label: 'Taules',    ico: I.tableIco },
   { id: 'walkin',       label: 'Walk-in',  ico: I.walkin,  special: true },
   { id: 'clients',      label: 'Clients',  ico: I.users },
   { id: 'more',         label: 'Més',      ico: I.dotsH },

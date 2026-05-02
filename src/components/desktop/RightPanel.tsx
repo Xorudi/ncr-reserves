@@ -3,6 +3,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip, Tag } from '@/components/shared/StatusChip';
 import { initials, avIdx, STATE_LABELS, isoDate, timeAgo, BUSINESSES } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
+import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import type { Business, Reservation, ReservationStatus, ShiftNote, AppEvent } from '@/types';
 
 interface Props {
@@ -304,9 +305,15 @@ function EventCard({ event, fmtDate, onDelete }: { event: AppEvent; fmtDate: (s:
 
 // ─── Reservation detail panel ─────────────────────────────────────
 function ResDetailPanel({ biz: _biz, res, onClose }: { biz: Business; res: Reservation; onClose?: () => void }) {
-  const { updateReservationStatus, updateReservation, deleteReservation, setSelectedReservation } = useAppStore();
+  const { updateReservationStatus, updateReservation, deleteReservation, setSelectedReservation, assignTablesToReservation, floorPlans } = useAppStore();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showTableSel, setShowTableSel] = useState(false);
+
+  const plan = floorPlans[res.bizId];
+  const assignedTableNames = (res.tableIds ?? [])
+    .map(id => plan?.tables.find(t => t.id === id)?.name ?? id)
+    .join(' + ');
 
   const states: ReservationStatus[] = ['pending', 'confirmed', 'seated', 'completed'];
   const curIdx = states.indexOf(res.status as typeof states[number]);
@@ -323,6 +330,7 @@ function ResDetailPanel({ biz: _biz, res, onClose }: { biz: Business; res: Reser
   }
 
   return (
+  <>
     <aside style={{ width:312, flex:'none', borderLeft:'var(--hair)', background:'var(--cream)', display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', position:'relative' }}>
       {/* Header */}
       <div style={{ padding:'16px 18px 12px', borderBottom:'var(--hair)', display:'flex', alignItems:'flex-start', gap:10 }}>
@@ -377,8 +385,17 @@ function ResDetailPanel({ biz: _biz, res, onClose }: { biz: Business; res: Reser
           <span className="mono" style={{ fontSize:12.5 }}>{res.phone || '—'}</span>
         </Field>
         <Field label="Taula">
-          <span style={{ fontSize:13, color:'var(--ink-800)' }}>Sense assignar</span>
-          <button style={{ padding:'3px 8px', fontSize:11.5, background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-600)' }}>Assignar →</button>
+          {res.tableIds && res.tableIds.length > 0 ? (
+            <span style={{ fontSize:13, fontWeight:600, color:'var(--ink-900)' }}>
+              {assignedTableNames}
+            </span>
+          ) : (
+            <span style={{ fontSize:13, color:'var(--ink-500)', fontStyle:'italic' }}>Sense taula assignada</span>
+          )}
+          <button onClick={() => setShowTableSel(true)}
+            style={{ padding:'3px 8px', fontSize:11.5, background:'transparent', border:'1px solid rgba(60,40,20,.15)', borderRadius:6, cursor:'pointer', color:'var(--ink-700)', fontFamily:'inherit', fontWeight:600 }}>
+            {res.tableIds && res.tableIds.length > 0 ? 'Canviar taula' : 'Assignar taula'}
+          </button>
         </Field>
         {res.notes && (
           <Field label="Notes">
@@ -438,6 +455,18 @@ function ResDetailPanel({ biz: _biz, res, onClose }: { biz: Business; res: Reser
         </div>
       )}
     </aside>
+
+    {/* ── Table selector modal ─────────────────────────────────── */}
+    {showTableSel && (
+      <TableSelectorModal
+        bizId={res.bizId}
+        pax={res.pax}
+        currentIds={res.tableIds ?? []}
+        onSave={ids => assignTablesToReservation(res.id, ids)}
+        onClose={() => setShowTableSel(false)}
+      />
+    )}
+  </>
   );
 }
 
