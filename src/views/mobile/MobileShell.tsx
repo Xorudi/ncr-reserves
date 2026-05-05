@@ -121,8 +121,9 @@ export default function MobileShell() {
         flexShrink:  0,
         display:     'grid',
         gridTemplateColumns: 'repeat(5,1fr)',
-        /* Push the tab bar above the iOS home indicator / Android gesture bar */
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        /* Push the tab bar above the iOS home indicator / Android gesture bar.
+           Using both the CSS env() and a fallback so it works in browser AND PWA. */
+        paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
         paddingLeft:   'env(safe-area-inset-left)',
         paddingRight:  'env(safe-area-inset-right)',
       }}>
@@ -138,9 +139,12 @@ export default function MobileShell() {
                 }}>
                 <span style={{
                   width:42, height:30, borderRadius:10, display:'grid', placeItems:'center',
-                  background: active ? 'var(--terracotta-600)' : 'var(--terracotta-50)',
+                  /* Active → solid terracotta fill. Inactive → outline only, no fill. */
+                  background: active ? 'var(--terracotta-600)' : 'transparent',
+                  border: active ? 'none' : '1.5px solid var(--terracotta-500)',
                   color: active ? 'white' : 'var(--terracotta-600)',
-                  transition:'background .15s',
+                  transition:'background .15s, border .15s',
+                  boxSizing:'border-box',
                 }}>
                   <Icon d={t.ico} size={20} stroke={active ? 2.2 : 1.8} />
                 </span>

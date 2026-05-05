@@ -111,6 +111,8 @@ html {
 
 body {
   margin: 0;
+  padding: 0;
+  height: 100dvh;
   min-height: 100dvh;
   font-family: var(--font-sans);
   font-feature-settings: "ss01","cv11";
