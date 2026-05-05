@@ -141,8 +141,15 @@ export default function MobileShell() {
       </header>
 
       {/* ── Main content — swipe L/R changes date on date-aware tabs ── */}
+      {/* paddingBottom ensures content isn't hidden behind the fixed nav */}
       <main
-        style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}
+        style={{
+          flex: 1,
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          paddingBottom: 'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px))',
+        }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -153,18 +160,21 @@ export default function MobileShell() {
         {tab === 'more'         && <MobileMoreScreen onSwitchTab={setTab} />}
       </main>
 
-      {/* ── Bottom nav ────────────────────────────────────────────────── */}
+      {/* ── Bottom nav — fixed so it always sticks to screen edge ──── */}
       <nav style={{
+        position:    'fixed',
+        bottom:      0,
+        left:        0,
+        right:       0,
+        zIndex:      50,
         borderTop:   'var(--hair)',
         background:  'var(--paper)',
-        flexShrink:  0,
         display:     'grid',
         gridTemplateColumns: 'repeat(5,1fr)',
-        /* Push the tab bar above the iOS home indicator / Android gesture bar.
-           Using both the CSS env() and a fallback so it works in browser AND PWA. */
-        paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
-        paddingLeft:   'env(safe-area-inset-left)',
-        paddingRight:  'env(safe-area-inset-right)',
+        /* Push buttons above iOS home indicator / Android gesture bar */
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft:   'env(safe-area-inset-left,   0px)',
+        paddingRight:  'env(safe-area-inset-right,  0px)',
       }}>
         {TABS.map(t => {
           const active = tab === t.id;
