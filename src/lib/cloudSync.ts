@@ -276,6 +276,29 @@ export async function bootstrapFromCloud(): Promise<boolean> {
       return true;
     }
 
+    // ── Smart merge: preserve local tableIds if cloud has none yet ────────────
+    // This handles the case where assignments were made before cloudSync sent
+    // table_ids, so cloud has [] but local state has the real data.
+    const localTableIds: Record<string, string[]> = {};
+    local.reservations.forEach(r => {
+      if (r.tableIds && r.tableIds.length > 0) localTableIds[r.id] = r.tableIds;
+    });
+
+    const mergedReservations = (resR.data ?? []).map(rowToRes).map(r => {
+      if ((!r.tableIds || r.tableIds.length === 0) && localTableIds[r.id]) {
+        return { ...r, tableIds: localTableIds[r.id] };
+      }
+      return r;
+    });
+
+    // Push merged tableIds back to Supabase (fire-and-forget)
+    const toSync = mergedReservations.filter(r => r.tableIds && r.tableIds.length > 0 && localTableIds[r.id]);
+    if (toSync.length > 0) {
+      console.log(`[CloudSync] Pushing ${toSync.length} local tableIds to cloud`);
+      Promise.allSettled(toSync.map(r => supabase!.from('reservations').upsert(resToRow(r))));
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     // Cloud has data → merge into local state
     const currentFloorPlans = local.floorPlans;
     const cloudFloorPlans: Record<string, FloorPlan> = { ...currentFloorPlans };
@@ -284,7 +307,7 @@ export async function bootstrapFromCloud(): Promise<boolean> {
     }
 
     useAppStore.setState({
-      reservations:  (resR.data   ?? []).map(rowToRes),
+      reservations:  mergedReservations,
       customers:     (custR.data  ?? []).map(rowToCust),
       floorPlans:    cloudFloorPlans,
       shiftNotes:    (snR.data    ?? []).map(rowToSn),
