@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
@@ -30,14 +30,49 @@ export default function MobileShell() {
     selectedBusiness, setSelectedBusiness,
     employees, employeeRoles,
     activeEmployeeId, setActiveEmployee,
+    selectedDate, setSelectedDate,
   } = useAppStore();
 
   const isStandalone = useIsStandalonePWA();
+
+  // ── Fix iOS Safari viewport height (browser chrome steals space) ──────────
+  useEffect(() => {
+    const setVh = () => {
+      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+    };
+    setVh();
+    window.addEventListener('resize', setVh);
+    window.addEventListener('orientationchange', setVh);
+    return () => {
+      window.removeEventListener('resize', setVh);
+      window.removeEventListener('orientationchange', setVh);
+    };
+  }, []);
+
+  // ── Swipe left/right to change date (only on date-aware tabs) ────────────
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (tab !== 'reservations' && tab !== 'tables') return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    // Only act on clearly horizontal swipes (dx dominant, >50 px)
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + (dx < 0 ? 1 : -1));
+    setSelectedDate(next);
+  };
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100dvh', background:'var(--cream)', overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column', height:'calc(var(--vh, 1dvh) * 100)', background:'var(--cream)', overflow:'hidden' }}>
 
       {/* ── Top header ────────────────────────────────────────────────── */}
       <header style={{
@@ -105,8 +140,12 @@ export default function MobileShell() {
         </button>
       </header>
 
-      {/* ── Main content ──────────────────────────────────────────────── */}
-      <main style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+      {/* ── Main content — swipe L/R changes date on date-aware tabs ── */}
+      <main
+        style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {tab === 'reservations' && <MobileTodayView />}
         {tab === 'tables'       && <MobileTablesScreen />}
         {tab === 'walkin'       && <MobileWalkInScreen onSwitchTab={setTab} />}
