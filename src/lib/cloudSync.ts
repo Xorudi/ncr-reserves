@@ -30,32 +30,34 @@ export const getSyncStatus = () => _status;
 
 function resToRow(r: Reservation) {
   return {
-    id:     r.id,
-    biz_id: r.bizId,
-    date:   r.date,
-    time:   r.time,
-    name:   r.name,
-    pax:    r.pax,
-    status: r.status,
-    phone:  r.phone  ?? null,
-    notes:  r.notes  ?? null,
-    source: r.source ?? null,
-    tags:   r.tags   ?? [],
+    id:        r.id,
+    biz_id:    r.bizId,
+    date:      r.date,
+    time:      r.time,
+    name:      r.name,
+    pax:       r.pax,
+    status:    r.status,
+    phone:     r.phone    ?? null,
+    notes:     r.notes    ?? null,
+    source:    r.source   ?? null,
+    tags:      r.tags     ?? [],
+    table_ids: r.tableIds ?? [],   // ← taules assignades
   };
 }
 function rowToRes(row: any): Reservation {
   return {
-    id:     row.id,
-    bizId:  row.biz_id,
-    date:   row.date,
-    time:   row.time,
-    name:   row.name,
-    pax:    row.pax,
-    status: row.status,
-    phone:  row.phone  ?? undefined,
-    notes:  row.notes  ?? undefined,
-    source: row.source ?? undefined,
-    tags:   row.tags   ?? [],
+    id:       row.id,
+    bizId:    row.biz_id,
+    date:     row.date,
+    time:     row.time,
+    name:     row.name,
+    pax:      row.pax,
+    status:   row.status,
+    phone:    row.phone    ?? undefined,
+    notes:    row.notes    ?? undefined,
+    source:   row.source   ?? undefined,
+    tags:     row.tags     ?? [],
+    tableIds: row.table_ids ?? [],   // ← taules assignades
   };
 }
 

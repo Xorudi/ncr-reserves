@@ -20,8 +20,13 @@ create table if not exists reservations (
   notes      text,
   source     text,
   tags       jsonb  default '[]'::jsonb,
+  table_ids  jsonb  default '[]'::jsonb,  -- FloorTable IDs assigned to this reservation
   updated_at timestamptz default now()
 );
+
+-- ── Migration: add table_ids if upgrading from older schema ──
+-- Run this if the table already exists without the column:
+-- alter table reservations add column if not exists table_ids jsonb default '[]'::jsonb;
 
 -- ── customers ────────────────────────────────────────────────
 create table if not exists customers (
