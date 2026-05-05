@@ -153,7 +153,7 @@ export default function MobileTablesScreen() {
           {tables.map(t => {
             const st = STATUS_STYLE[t.status];
             return (
-              <button key={t.id} onClick={() => setSelTable(t)}
+              <button key={t.id} onClick={() => setSelTable(t)} className="press"
                 style={{
                   padding:'12px 10px', borderRadius:12, border:`1.5px solid ${st.bg}`,
                   background:st.bg, cursor:'pointer', fontFamily:'inherit', textAlign:'left',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
@@ -153,11 +154,14 @@ export default function MobileShell() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {tab === 'reservations' && <MobileTodayView />}
-        {tab === 'tables'       && <MobileTablesScreen />}
-        {tab === 'walkin'       && <MobileWalkInScreen onSwitchTab={setTab} />}
-        {tab === 'clients'      && <MobileClientsView />}
-        {tab === 'more'         && <MobileMoreScreen onSwitchTab={setTab} />}
+        {/* key triggers remount + tab-enter animation on every tab switch */}
+        <div key={tab} className="tab-enter" style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          {tab === 'reservations' && <MobileTodayView />}
+          {tab === 'tables'       && <MobileTablesScreen />}
+          {tab === 'walkin'       && <MobileWalkInScreen onSwitchTab={setTab} />}
+          {tab === 'clients'      && <MobileClientsView />}
+          {tab === 'more'         && <MobileMoreScreen onSwitchTab={setTab} />}
+        </div>
       </main>
 
       {/* ── Bottom nav — fixed so it always sticks to screen edge ──── */}
@@ -204,7 +208,7 @@ export default function MobileShell() {
             );
           }
           return (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => setTab(t.id)} className="nav-btn press"
               style={{
                 display:'flex', flexDirection:'column', alignItems:'center', gap:3,
                 padding:'10px 4px 10px', border:'none', background:'transparent',
@@ -219,38 +223,34 @@ export default function MobileShell() {
       </nav>
 
       {/* ── Biz picker sheet ──────────────────────────────────────────── */}
-      {showBizPicker && (
-        <BizPickerSheet
-          current={selectedBusiness}
-          onSelect={id => { setSelectedBusiness(id); setShowBizPicker(false); }}
-          onClose={() => setShowBizPicker(false)}
-        />
-      )}
+      <BizPickerSheet
+        open={showBizPicker}
+        current={selectedBusiness}
+        onSelect={id => { setSelectedBusiness(id); setShowBizPicker(false); }}
+        onClose={() => setShowBizPicker(false)}
+      />
 
       {/* ── User picker sheet ─────────────────────────────────────────── */}
-      {showUserPicker && (
-        <MobileUserPicker
-          bizId={selectedBusiness}
-          employees={employees}
-          employeeRoles={employeeRoles}
-          activeEmployeeId={activeEmployeeId}
-          onSelect={id => { setActiveEmployee(id); setShowUserPicker(false); }}
-          onClose={() => setShowUserPicker(false)}
-        />
-      )}
+      <MobileUserPicker
+        open={showUserPicker}
+        bizId={selectedBusiness}
+        employees={employees}
+        employeeRoles={employeeRoles}
+        activeEmployeeId={activeEmployeeId}
+        onSelect={id => { setActiveEmployee(id); setShowUserPicker(false); }}
+        onClose={() => setShowUserPicker(false)}
+      />
     </div>
   );
 }
 
 // ─── Biz picker ───────────────────────────────────────────────────────────────
-function BizPickerSheet({ current, onSelect, onClose }: {
-  current: BusinessId; onSelect: (id: BusinessId) => void; onClose: () => void;
+function BizPickerSheet({ open, current, onSelect, onClose }: {
+  open: boolean; current: BusinessId; onSelect: (id: BusinessId) => void; onClose: () => void;
 }) {
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:500, background:'rgba(0,0,0,.35)', display:'flex', alignItems:'flex-end' }}
-      onClick={onClose}>
-      <div style={{ width:'100%', background:'var(--paper)', borderRadius:'18px 18px 0 0', padding:'16px 14px 32px' }}
-        onClick={e => e.stopPropagation()}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={500}>
+      <div style={{ width:'100%', background:'var(--paper)', borderRadius:'18px 18px 0 0', padding:'16px 14px 32px' }}>
         <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
         <div style={{ fontSize:11, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, textTransform:'uppercase', marginBottom:10, paddingLeft:2 }}>
           Canviar negoci
@@ -277,13 +277,13 @@ function BizPickerSheet({ current, onSelect, onClose }: {
           </button>
         ))}
       </div>
-    </div>
+    </AnimatedSheet>
   );
 }
 
 // ─── User picker ──────────────────────────────────────────────────────────────
-function MobileUserPicker({ bizId, employees, employeeRoles, activeEmployeeId, onSelect, onClose }: {
-  bizId: BusinessId; employees: Employee[]; employeeRoles: EmployeeRole[];
+function MobileUserPicker({ open, bizId, employees, employeeRoles, activeEmployeeId, onSelect, onClose }: {
+  open: boolean; bizId: BusinessId; employees: Employee[]; employeeRoles: EmployeeRole[];
   activeEmployeeId: string | null; onSelect: (id: string | null) => void; onClose: () => void;
 }) {
   const bizEmps = employees.filter(e => e.bizId === bizId && e.active);
@@ -291,10 +291,8 @@ function MobileUserPicker({ bizId, employees, employeeRoles, activeEmployeeId, o
   const sorted  = [...bizEmps].sort((a, b) => (roleMap[a.roleId]?.order ?? 99) - (roleMap[b.roleId]?.order ?? 99));
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:500, background:'rgba(0,0,0,.35)', display:'flex', alignItems:'flex-end' }}
-      onClick={onClose}>
-      <div style={{ width:'100%', background:'var(--paper)', borderRadius:'18px 18px 0 0', padding:'16px 12px 32px', maxHeight:'72vh', overflowY:'auto' }}
-        onClick={e => e.stopPropagation()}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={500}>
+      <div style={{ width:'100%', background:'var(--paper)', borderRadius:'18px 18px 0 0', padding:'16px 12px 32px', maxHeight:'72dvh', overflowY:'auto' }}>
         <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 16px' }} />
         <div style={{ fontSize:11, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, textTransform:'uppercase', marginBottom:12, paddingLeft:4 }}>
           Usuari actiu
@@ -336,6 +334,6 @@ function MobileUserPicker({ bizId, employees, employeeRoles, activeEmployeeId, o
           </button>
         )}
       </div>
-    </div>
+    </AnimatedSheet>
   );
 }

@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
+import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
 
 function buildTableLine(res: Reservation, plan: FloorPlan | undefined): { icon: string; zone: string; tableStr: string; bg: string; color: string } | null {
@@ -37,6 +38,7 @@ export default function MobileTodayView() {
   const [sel, setSel]         = useState<Reservation | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showCal, setShowCal] = useState(false);
+  const dayDirRef             = useRef<'next' | 'prev' | null>(null);
 
   const dateStr  = isoDate(selectedDate);
   const d        = selectedDate;
@@ -61,6 +63,7 @@ export default function MobileTodayView() {
   const pending  = dayRes.filter(r => r.status === 'pending');
 
   function changeDay(delta: number) {
+    dayDirRef.current = delta > 0 ? 'next' : 'prev';
     const nd = new Date(selectedDate);
     nd.setDate(nd.getDate() + delta);
     setSelectedDate(nd);
@@ -68,6 +71,7 @@ export default function MobileTodayView() {
   }
 
   function goToday() {
+    dayDirRef.current = null;
     setSelectedDate(new Date());
     setSel(null);
   }
@@ -80,7 +84,7 @@ export default function MobileTodayView() {
 
         {/* Date navigation row */}
         <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:11 }}>
-          <button onClick={() => changeDay(-1)}
+          <button onClick={() => changeDay(-1)} className="day-btn"
             style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--cream)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)' }}>
             <Icon d={I.chevL} size={16} stroke={2} />
           </button>
@@ -91,7 +95,7 @@ export default function MobileTodayView() {
             <Icon d={I.calendar} size={14} />
           </button>
 
-          <button onClick={() => changeDay(1)}
+          <button onClick={() => changeDay(1)} className="day-btn"
             style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--cream)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)' }}>
             <Icon d={I.chevR} size={16} stroke={2} />
           </button>
@@ -119,8 +123,12 @@ export default function MobileTodayView() {
         )}
       </div>
 
-      {/* ── Reservation list ───────────────────────────────────────────── */}
-      <div className="scroll" style={{ flex:1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}>
+      {/* ── Reservation list — key forces remount + direction animation on day change ── */}
+      <div
+        key={dateStr}
+        className={`scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
+        style={{ flex:1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}
+      >
 
         {dayRes.length === 0 && (
           <div style={{ textAlign:'center', padding:'64px 20px', color:'var(--ink-500)' }}>
@@ -142,7 +150,7 @@ export default function MobileTodayView() {
       </div>
 
       {/* ── FAB ───────────────────────────────────────────────────────── */}
-      <button onClick={() => { setSel(null); setShowNew(true); }}
+      <button onClick={() => { setSel(null); setShowNew(true); }} className="fab"
         style={{
           position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 14px)',
           right:20, width:54, height:54, borderRadius:'50%',
@@ -153,25 +161,27 @@ export default function MobileTodayView() {
         <Icon d={I.plus} size={24} stroke={2.2} />
       </button>
 
-      {/* ── Sheets ────────────────────────────────────────────────────── */}
-      {sel && !showNew && !showCal && <ResDetailSheet res={sel} onClose={() => setSel(null)} />}
-      {showNew && (
-        <NewResSheet
-          bizId={selectedBusiness}
-          defaultDate={dateStr}
-          addReservation={addReservation}
-          onClose={() => setShowNew(false)}
-        />
-      )}
-      {showCal && (
-        <DatePickerSheet
-          selected={selectedDate}
-          onSelect={d => { setSelectedDate(d); setSel(null); setShowCal(false); }}
-          onClose={() => setShowCal(false)}
-          reservations={reservations}
-          bizId={selectedBusiness}
-        />
-      )}
+      {/* ── Sheets — AnimatedSheet handles slide-up/down with backdrop ── */}
+      <ResDetailSheet
+        open={!!(sel && !showNew && !showCal)}
+        res={sel}
+        onClose={() => setSel(null)}
+      />
+      <NewResSheet
+        open={showNew}
+        bizId={selectedBusiness}
+        defaultDate={dateStr}
+        addReservation={addReservation}
+        onClose={() => setShowNew(false)}
+      />
+      <DatePickerSheet
+        open={showCal}
+        selected={selectedDate}
+        onSelect={d => { setSelectedDate(d); setSel(null); setShowCal(false); }}
+        onClose={() => setShowCal(false)}
+        reservations={reservations}
+        bizId={selectedBusiness}
+      />
     </div>
   );
 }
@@ -238,13 +248,14 @@ function ResRow({ res: r, selected, onSel, plan }: {
   const tl = buildTableLine(r, plan);
 
   return (
-    <button onClick={() => onSel(r)}
+    <button onClick={() => onSel(r)} className="press"
       style={{
         display:'flex', alignItems:'center', gap:10, width:'100%',
         padding:'11px 16px',
         background: selected ? 'var(--ink-100)' : 'transparent',
         border:'none', borderBottom:'var(--hair)',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+        transition:'background 160ms var(--ease-ios), transform var(--dur-press) var(--ease-ios-fast), opacity var(--dur-press) linear',
       }}>
       {/* Time */}
       <span className="mono" style={{ fontSize:13, fontWeight:700, color:'var(--ink-700)', width:40, flex:'none' }}>
@@ -305,7 +316,8 @@ function ResRow({ res: r, selected, onSel, plan }: {
 }
 
 // ─── Date picker bottom sheet ─────────────────────────────────────────────────
-function DatePickerSheet({ selected, onSelect, onClose, reservations, bizId }: {
+function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizId }: {
+  open: boolean;
   selected: Date;
   onSelect: (d: Date) => void;
   onClose: () => void;
@@ -337,10 +349,8 @@ function DatePickerSheet({ selected, onSelect, onClose, reservations, bizId }: {
   const selStr   = isoDate(selected);
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,.35)' }} />
+    <AnimatedSheet open={open} onClose={onClose} zIndex={201}>
       <div style={{
-        position:'fixed', bottom:0, left:0, right:0, zIndex:201,
         background:'var(--paper)', borderRadius:'20px 20px 0 0',
         padding:'14px 14px calc(24px + env(safe-area-inset-bottom))',
         boxShadow:'0 -4px 24px rgba(0,0,0,.18)',
@@ -414,34 +424,40 @@ function DatePickerSheet({ selected, onSelect, onClose, reservations, bizId }: {
           </button>
         </div>
       </div>
-    </>
+    </AnimatedSheet>
   );
 }
 
 // ─── Detail bottom sheet ──────────────────────────────────────────────────────
-function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => void }) {
+function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservation | null; onClose: () => void }) {
   const { updateReservationStatus, deleteReservation, assignTablesToReservation, floorPlans } = useAppStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showTableSel, setShowTableSel] = useState(false);
+  // Snapshot: preserve last reservation so content stays visible during close animation
+  const [snap, setSnap] = useState(res);
+  if (res && res !== snap) setSnap(res);
+  const r = snap;
 
-  const plan = floorPlans[r.bizId];
-  const assignedTableNames = (r.tableIds ?? [])
+  const plan = r ? floorPlans[r.bizId] : undefined;
+  const assignedTableNames = (r?.tableIds ?? [])
     .map(id => plan?.tables.find(t => t.id === id)?.name ?? id)
     .join(' + ');
 
   function handleDelete() {
+    if (!r) return;
     deleteReservation(r.id);
     onClose();
   }
 
+  if (!r) return null;
+
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.25)' }} />
+    <AnimatedSheet open={open} onClose={onClose} zIndex={100}>
       <div style={{
-        position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom))',
-        left:0, right:0, zIndex:100,
         background:'var(--paper)', borderRadius:'18px 18px 0 0',
-        boxShadow:'0 -4px 24px rgba(0,0,0,.15)', padding:'14px 18px 26px',
+        boxShadow:'0 -4px 24px rgba(0,0,0,.15)',
+        padding:'14px 18px',
+        paddingBottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 12px)',
       }}>
         <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
@@ -532,12 +548,13 @@ function ResDetailSheet({ res: r, onClose }: { res: Reservation; onClose: () => 
           onClose={() => setShowTableSel(false)}
         />
       )}
-    </>
+    </AnimatedSheet>
   );
 }
 
 // ─── New reservation bottom sheet ─────────────────────────────────────────────
-function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
+function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
+  open: boolean;
   bizId: BusinessId;
   defaultDate: string;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
@@ -614,13 +631,11 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
   };
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.4)' }} />
+    <AnimatedSheet open={open} onClose={onClose} zIndex={100}>
       <div style={{
-        position:'fixed', bottom:0, left:0, right:0, zIndex:100,
         background:'var(--paper)', borderRadius:'20px 20px 0 0',
         boxShadow:'0 -4px 32px rgba(0,0,0,.2)',
-        maxHeight:'92vh', overflowY:'auto',
+        maxHeight:'92dvh', overflowY:'auto',
         paddingBottom:'max(env(safe-area-inset-bottom), 20px)',
       }}>
         <div style={{ padding:'14px 18px 0' }}>
@@ -809,6 +824,6 @@ function NewResSheet({ bizId, defaultDate, addReservation, onClose }: {
           </button>
         </div>
       </div>
-    </>
+    </AnimatedSheet>
   );
 }

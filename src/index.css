@@ -213,3 +213,134 @@ body {
 .serif  { font-family: var(--font-serif); }
 .nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .muted  { color: var(--ink-500); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATION SYSTEM — iOS-style: fast, elegant, purposeful
+   Easing: cubic-bezier(0.25, 1, 0.5, 1) = smooth deceleration (ease-out-quart)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ease-ios:       cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-ios-in:    cubic-bezier(0.5, 0, 0.75, 0);
+  --ease-ios-fast:  cubic-bezier(0.4,  1, 0.6, 1);
+  --dur-press:      110ms;
+  --dur-micro:      160ms;
+  --dur-fast:       210ms;
+  --dur-base:       270ms;
+  --dur-sheet:      390ms;
+  --dur-sheet-exit: 270ms;
+}
+
+/* ── Sheet backdrop ─────────────────────────────────────────────────────── */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .38);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-ios);
+}
+.sheet-backdrop.vis { opacity: 1; }
+
+/* ── Sheet panel ────────────────────────────────────────────────────────── */
+.sheet-panel {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  transform: translateY(100%);
+  opacity: 0;
+  transition:
+    transform var(--dur-sheet)      var(--ease-ios),
+    opacity   var(--dur-fast)       linear;
+  will-change: transform;
+}
+.sheet-panel.vis {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* ── Touch / press feedback — iOS scale ─────────────────────────────────── */
+.press {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--dur-press) var(--ease-ios-fast),
+    opacity   var(--dur-press) linear;
+  cursor: pointer;
+}
+.press:active {
+  transform: scale(0.965);
+  opacity: 0.82;
+}
+
+/* ── FAB button — scale down on press, bouncy pop on mount ─────────────── */
+@keyframes fab-pop {
+  0%   { transform: scale(0.65); opacity: 0; }
+  70%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.fab {
+  transition: transform var(--dur-press) var(--ease-ios-fast),
+              box-shadow var(--dur-micro) var(--ease-ios);
+}
+.fab:active { transform: scale(0.90); }
+
+/* ── Tab content entrance ───────────────────────────────────────────────── */
+@keyframes tab-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.tab-enter {
+  animation: tab-enter var(--dur-fast) var(--ease-ios) both;
+}
+
+/* ── Day-change content animation (directional) ─────────────────────────── */
+@keyframes day-next {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+@keyframes day-prev {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+.day-next { animation: day-next var(--dur-fast) var(--ease-ios) both; }
+.day-prev { animation: day-prev var(--dur-fast) var(--ease-ios) both; }
+
+/* ── Nav tab indicator slide ────────────────────────────────────────────── */
+.nav-btn {
+  transition: color var(--dur-micro) var(--ease-ios);
+}
+
+/* ── Status chip color transitions ─────────────────────────────────────── */
+.chip {
+  transition:
+    background var(--dur-micro) var(--ease-ios),
+    color      var(--dur-micro) var(--ease-ios),
+    box-shadow var(--dur-micro) var(--ease-ios);
+}
+
+/* ── Save/confirm success flash ─────────────────────────────────────────── */
+@keyframes success-flash {
+  0%   { background: var(--olive-100); }
+  60%  { background: var(--olive-50);  }
+  100% { background: transparent;      }
+}
+.success-flash { animation: success-flash 700ms var(--ease-ios) both; }
+
+/* ── Date nav arrow buttons ─────────────────────────────────────────────── */
+.day-btn {
+  transition: background var(--dur-micro) var(--ease-ios),
+              transform  var(--dur-press) var(--ease-ios-fast);
+}
+.day-btn:active { transform: scale(0.88); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION — all animations disabled or instant
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel {
+    transform: none !important;
+    transition: opacity 120ms linear !important;
+  }
+  .sheet-backdrop { transition: opacity 120ms linear !important; }
+  .press:active, .fab:active, .day-btn:active { transform: none !important; }
+  .tab-enter, .day-next, .day-prev { animation: none !important; }
+  .fab { transition: none !important; }
+}
