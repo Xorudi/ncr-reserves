@@ -1,10 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip } from '@/components/shared/StatusChip';
-import { initials, avIdx, isoDate, BUSINESSES } from '@/data/mockData';
+import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
-import type { Reservation, BusinessId, ReservationStatus } from '@/types';
+import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
+
+function buildTableLine(res: Reservation, plan: FloorPlan | undefined): { icon: string; zone: string; tableStr: string; bg: string; color: string } | null {
+  if (!plan || !res.tableIds || res.tableIds.length === 0) return null;
+  const tables = res.tableIds
+    .map(id => plan.tables.find(t => t.id === id))
+    .filter(Boolean) as NonNullable<ReturnType<typeof plan.tables.find>>[];
+  if (tables.length === 0) return null;
+  const zoneId   = tables[0].zone;
+  const zone     = plan.zones.find(z => z.id === zoneId);
+  const zoneLabel = zone?.label ?? zoneId;
+  const names    = tables.map(t => t.name ?? t.id);
+  const tableStr = names.length === 1 ? `Taula ${names[0]}` : `Taules ${names.join(' + ')}`;
+  return { icon: getZoneIcon(zoneLabel), zone: zoneLabel, tableStr, ...getZoneColor(zoneLabel) };
+}
 
 const DAYS_CA   = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
 const MONTHS_CA = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
@@ -16,8 +30,9 @@ function parseH(t: string) { return parseInt(t.split(':')[0], 10); }
 export default function MobileTodayView() {
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
-    addReservation, businessConfigs,
+    addReservation, businessConfigs, floorPlans,
   } = useAppStore();
+  const plan = floorPlans[selectedBusiness];
 
   const [sel, setSel]         = useState<Reservation | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -117,12 +132,12 @@ export default function MobileTodayView() {
 
         {migdia.length > 0 && (
           <ServiceSection label="Servei de migdia" hours="13:00 – 16:00" ico="☀️" isMigdia={true}
-            list={migdia} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} />
+            list={migdia} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} plan={plan} />
         )}
 
         {nit.length > 0 && (
           <ServiceSection label="Servei de nit" hours="20:30 – 00:00" ico="🌙" isMigdia={false}
-            list={nit} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} />
+            list={nit} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} plan={plan} />
         )}
       </div>
 
@@ -183,9 +198,10 @@ function KpiCell({ value, label, accent, dividers }: { value: string | number; l
 }
 
 // ─── Service section ──────────────────────────────────────────────────────────
-function ServiceSection({ label, hours, ico, isMigdia, list, selId, onSel }: {
+function ServiceSection({ label, hours, ico, isMigdia, list, selId, onSel, plan }: {
   label: string; hours: string; ico: string; isMigdia: boolean;
   list: Reservation[]; selId: string | null; onSel: (r: Reservation) => void;
+  plan?: FloorPlan;
 }) {
   const totalPax  = list.reduce((s, r) => s + r.pax, 0);
   const accentBg  = isMigdia ? 'rgba(180,130,40,.07)' : 'rgba(60,30,100,.05)';
@@ -209,41 +225,77 @@ function ServiceSection({ label, hours, ico, isMigdia, list, selId, onSel }: {
           </div>
         </div>
       </div>
-      {list.map(r => <ResRow key={r.id} res={r} selected={selId === r.id} onSel={onSel} />)}
+      {list.map(r => <ResRow key={r.id} res={r} selected={selId === r.id} onSel={onSel} plan={plan} />)}
     </div>
   );
 }
 
 // ─── Reservation row ──────────────────────────────────────────────────────────
-function ResRow({ res: r, selected, onSel }: {
+function ResRow({ res: r, selected, onSel, plan }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
+  plan?: FloorPlan;
 }) {
+  const tl = buildTableLine(r, plan);
+
   return (
     <button onClick={() => onSel(r)}
       style={{
-        display:'flex', alignItems:'center', gap:12, width:'100%',
+        display:'flex', alignItems:'center', gap:10, width:'100%',
         padding:'11px 16px',
         background: selected ? 'var(--ink-100)' : 'transparent',
         border:'none', borderBottom:'var(--hair)',
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
+      {/* Time */}
       <span className="mono" style={{ fontSize:13, fontWeight:700, color:'var(--ink-700)', width:40, flex:'none' }}>
         {r.time}
       </span>
+
+      {/* Avatar */}
       <span className={`avatar av-${avIdx(r.name)}`} style={{ flex:'none' }}>{initials(r.name)}</span>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)', display:'flex', alignItems:'center', gap:5 }}>
-          <span style={{ flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
+
+      {/* Name + zone/table */}
+      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:3 }}>
+        {/* Name line */}
+        <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--ink-900)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {r.name}
+          </span>
           {r.tags?.includes('vip') && (
             <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:4, background:'#c9a227', color:'white' }}>VIP</span>
           )}
+          {r.tags?.includes('birthday') && <span style={{ fontSize:11 }}>🎂</span>}
         </div>
+
+        {/* Zone + table line */}
+        {tl ? (
+          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <span style={{
+              display:'inline-flex', alignItems:'center', gap:3,
+              fontSize:10.5, fontWeight:600, padding:'1px 6px', borderRadius:5,
+              background: tl.bg, color: tl.color,
+            }}>
+              {tl.icon} {tl.zone}
+            </span>
+            <span style={{ fontSize:11.5, color:'var(--ink-600)', fontWeight:500 }}>
+              {tl.tableStr}
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontSize:11, color:'var(--ink-400)', fontStyle:'italic' }}>
+            🪑 Sense assignar
+          </div>
+        )}
+
+        {/* Notes */}
         {r.notes && (
-          <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          <div style={{ fontSize:11, color:'var(--ink-400)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {r.notes}
           </div>
         )}
       </div>
+
+      {/* Status + pax */}
       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flex:'none' }}>
         <StatusChip state={r.status} size="sm" />
         <span style={{ fontSize:12, color:'var(--ink-600)', fontWeight:500 }}>{r.pax} pax</span>

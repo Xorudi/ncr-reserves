@@ -764,3 +764,25 @@ export const NOTIF_DEFAULTS: NotifConfig = {
   channel: 'intern',
   advanceMinutes: 60,
 };
+
+// ─── Zone helpers ──────────────────────────────────────────────────────────────
+export function getZoneIcon(label: string): string {
+  const l = label.toLowerCase();
+  if (l.includes('barra'))                    return '🍺';
+  if (l.includes('bar'))                      return '🍷';
+  if (l.includes('menjador') || l.includes('sala')) return '🍽️';
+  if (l.includes('terrassa') || l.includes('jardí') || l.includes('jardin')) return '🌿';
+  if (l.includes('vip'))                      return '⭐';
+  if (l.includes('joc') || l.includes('pàdel')) return '🎾';
+  return '📍';
+}
+
+export function getZoneColor(label: string): { bg: string; color: string } {
+  const l = label.toLowerCase();
+  if (l.includes('barra'))                    return { bg:'rgba(110,55,0,.10)',  color:'#7a3c00' };
+  if (l.includes('bar'))                      return { bg:'rgba(200,90,0,.10)',  color:'#a05000' };
+  if (l.includes('menjador') || l.includes('sala')) return { bg:'rgba(40,130,60,.09)', color:'#256d38' };
+  if (l.includes('terrassa') || l.includes('jardí')) return { bg:'rgba(20,90,210,.08)', color:'#1a4ea0' };
+  if (l.includes('vip'))                      return { bg:'rgba(160,120,0,.10)', color:'#806000' };
+  return { bg:'rgba(60,40,20,.08)', color:'var(--ink-600)' };
+}

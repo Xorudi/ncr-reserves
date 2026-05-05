@@ -1,8 +1,24 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { ReservationRow } from './ReservationRow';
+import type { TableInfo } from './ReservationRow';
 import { useAppStore } from '@/store/useAppStore';
-import type { Reservation } from '@/types';
+import { getZoneIcon, getZoneColor } from '@/data/mockData';
+import type { Reservation, FloorPlan } from '@/types';
+
+function buildTableInfo(res: Reservation, plan: FloorPlan | undefined): TableInfo | null {
+  if (!plan || !res.tableIds || res.tableIds.length === 0) return null;
+  const tables = res.tableIds
+    .map(id => plan.tables.find(t => t.id === id))
+    .filter(Boolean) as NonNullable<ReturnType<typeof plan.tables.find>>[];
+  if (tables.length === 0) return null;
+  const zoneId    = tables[0].zone;
+  const zone      = plan.zones.find(z => z.id === zoneId);
+  const zoneLabel = zone?.label ?? zoneId;
+  const names     = tables.map(t => t.name ?? t.id);
+  const tableStr  = names.length === 1 ? `Taula ${names[0]}` : `Taules ${names.join(' + ')}`;
+  return { icon: getZoneIcon(zoneLabel), zoneLabel, tableStr, ...getZoneColor(zoneLabel) };
+}
 
 function parseTime(t: string) {
   const [h, m] = t.split(':').map(Number);
@@ -149,17 +165,12 @@ export function ServiceBlock({ label, sub, ico, list, selectedId, onSelect, nowT
                   <span style={{ fontSize:10.5,color:'var(--ink-500)',marginTop:1 }}>{rows.length} res · {rows.reduce((s,r)=>s+r.pax,0)} pax</span>
                 </div>
                 <div style={{ display:'flex',flexDirection:'column' }}>
-                  {rows.map(r => {
-                    const tableLabel = (r.tableIds ?? []).length > 0
-                      ? (r.tableIds ?? []).map(id => plan?.tables.find(t => t.id === id)?.name ?? id).join('+')
-                      : undefined;
-                    return (
-                      <ReservationRow key={r.id} res={r}
-                        selected={selectedId === r.id}
-                        tableLabel={tableLabel}
-                        onClick={() => onSelect?.(r)} />
-                    );
-                  })}
+                  {rows.map(r => (
+                    <ReservationRow key={r.id} res={r}
+                      selected={selectedId === r.id}
+                      tableInfo={buildTableInfo(r, plan)}
+                      onClick={() => onSelect?.(r)} />
+                  ))}
                 </div>
               </div>
             );
