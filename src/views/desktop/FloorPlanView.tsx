@@ -1,7 +1,26 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
-import type { FloorTable, FloorZone, TableShape, TableStatus } from '@/types';
+import { isoDate } from '@/data/mockData';
+import type { FloorTable, FloorZone, TableShape, TableStatus, Reservation } from '@/types';
+
+function effectiveTable(t: FloorTable, dayRes: Reservation[]): FloorTable {
+  if (t.status === 'blocked' || t.status === 'playing') return t;
+  const active = dayRes.filter(r =>
+    r.tableIds?.includes(t.id) &&
+    !['cancelled', 'noshow', 'completed'].includes(r.status),
+  );
+  if (active.length === 0) return { ...t, status: 'free', res: undefined, time: undefined };
+  const best =
+    active.find(r => r.status === 'seated') ??
+    active.find(r => r.status === 'confirmed') ??
+    active[0];
+  const tableStatus: TableStatus =
+    best.status === 'seated'    ? 'seated'    :
+    best.status === 'confirmed' ? 'confirmed' :
+    'reserved';
+  return { ...t, status: tableStatus, res: best.name, time: best.time };
+}
 
 const CELL = 58;
 
@@ -29,9 +48,21 @@ export default function FloorPlanView() {
     setBlockModalTable, setMergeModalTable,
     floorPlans, updateFloorTable, addFloorTable, deleteFloorTable,
     updateFloorZone, addFloorZone, deleteFloorZone, setFloorPlan,
+    reservations, selectedDate,
   } = useAppStore();
 
-  const plan = floorPlans[selectedBusiness];
+  const plan    = floorPlans[selectedBusiness];
+  const dateStr = isoDate(selectedDate);
+
+  const dayRes = useMemo(
+    () => reservations.filter(r => r.bizId === selectedBusiness && r.date === dateStr),
+    [reservations, selectedBusiness, dateStr],
+  );
+
+  const livePlan = useMemo(() => {
+    if (!plan) return plan;
+    return { ...plan, tables: plan.tables.map(t => effectiveTable(t, dayRes)) };
+  }, [plan, dayRes]);
 
   const sortedZones = useMemo(
     () => [...(plan?.zones ?? [])].sort((a, b) => a.order - b.order),
@@ -67,9 +98,10 @@ export default function FloorPlanView() {
 
   const activeZone = sortedZones.find(z => z.id === activeZoneId);
 
+  // Use livePlan (date-aware) for display; plan for edit mutations
   const zoneTables = useMemo(
-    () => (plan?.tables ?? []).filter(t => t.zone === activeZoneId),
-    [plan?.tables, activeZoneId],
+    () => (livePlan?.tables ?? []).filter(t => t.zone === activeZoneId),
+    [livePlan?.tables, activeZoneId],
   );
 
   // canvas auto-size from table extents
@@ -173,7 +205,7 @@ export default function FloorPlanView() {
     setTimeout(() => { setRenamingZone(newId); setRenameVal('Nova zona'); }, 50);
   }
 
-  const selectedTable = plan?.tables.find(t => t.id === selectedTableId) ?? null;
+  const selectedTable = livePlan?.tables.find(t => t.id === selectedTableId) ?? null;
 
   if (!plan) return (
     <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-400)', fontSize:14 }}>
@@ -251,7 +283,7 @@ export default function FloorPlanView() {
                 }}>
                 {z.label}
                 <span style={{ marginLeft:6, fontSize:11, opacity:.7 }}>
-                  {(plan.tables).filter(t => t.zone === z.id).length}
+                  {(livePlan?.tables ?? []).filter(t => t.zone === z.id).length}
                 </span>
               </button>
             )}

@@ -1,7 +1,39 @@
 import React, { useState, useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
-import type { FloorTable, TableStatus } from '@/types';
+import { isoDate } from '@/data/mockData';
+import type { FloorTable, TableStatus, Reservation } from '@/types';
+
+/** Derives the effective table status from that day's reservations.
+ *  'blocked' and 'playing' are manual overrides — kept as-is.
+ *  Everything else is computed from which reservations reference this table. */
+function effectiveTable(
+  t: FloorTable,
+  dayRes: Reservation[],
+): FloorTable {
+  // Manual overrides survive date changes
+  if (t.status === 'blocked' || t.status === 'playing') return t;
+
+  const active = dayRes.filter(r =>
+    r.tableIds?.includes(t.id) &&
+    !['cancelled', 'noshow', 'completed'].includes(r.status),
+  );
+
+  if (active.length === 0) return { ...t, status: 'free', res: undefined, time: undefined };
+
+  // Priority: seated > confirmed > pending
+  const best =
+    active.find(r => r.status === 'seated') ??
+    active.find(r => r.status === 'confirmed') ??
+    active[0];
+
+  const tableStatus: TableStatus =
+    best.status === 'seated'    ? 'seated'    :
+    best.status === 'confirmed' ? 'confirmed' :
+    'reserved';
+
+  return { ...t, status: tableStatus, res: best.name, time: best.time };
+}
 
 const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: string }> = {
   free:      { bg:'rgba(70,130,60,.12)',   color:'#2e7040', label:'Lliure'    },
@@ -14,10 +46,27 @@ const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: stri
 };
 
 export default function MobileTablesScreen() {
-  const { selectedBusiness, floorPlans, updateFloorTable, releaseTable, releaseAllTables } = useAppStore();
-  const plan       = floorPlans[selectedBusiness];
+  const {
+    selectedBusiness, floorPlans, updateFloorTable, releaseTable, releaseAllTables,
+    reservations, selectedDate,
+  } = useAppStore();
+  const plan    = floorPlans[selectedBusiness];
+  const dateStr = isoDate(selectedDate);
+
   const [zoneId, setZoneId] = useState<string>('__all__');
   const [selTable, setSelTable] = useState<FloorTable | null>(null);
+
+  // Reservations for the selected date and business
+  const dayRes = useMemo(
+    () => reservations.filter(r => r.bizId === selectedBusiness && r.date === dateStr),
+    [reservations, selectedBusiness, dateStr],
+  );
+
+  // Floor plan tables with statuses derived from today's reservations
+  const liveTables = useMemo(
+    () => (plan?.tables ?? []).map(t => effectiveTable(t, dayRes)),
+    [plan, dayRes],
+  );
 
   // Release-all double confirmation state
   const [showRelease1, setShowRelease1] = useState(false);
@@ -26,19 +75,17 @@ export default function MobileTablesScreen() {
 
   const zones  = useMemo(() => plan ? [...plan.zones].sort((a, b) => a.order - b.order) : [], [plan]);
   const tables = useMemo(() => {
-    if (!plan) return [];
-    const base = zoneId === '__all__' ? plan.tables : plan.tables.filter(t => t.zone === zoneId);
+    const base = zoneId === '__all__' ? liveTables : liveTables.filter(t => t.zone === zoneId);
     return [...base].sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id));
-  }, [plan, zoneId]);
+  }, [liveTables, zoneId]);
 
-  // Counts
+  // Counts (based on live date-aware statuses)
   const counts = useMemo(() => {
-    if (!plan) return {} as Record<TableStatus, number>;
-    return plan.tables.reduce((acc, t) => {
+    return liveTables.reduce((acc, t) => {
       acc[t.status] = (acc[t.status] ?? 0) + 1;
       return acc;
     }, {} as Record<TableStatus, number>);
-  }, [plan]);
+  }, [liveTables]);
 
   if (!plan) return (
     <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-500)', flexDirection:'column', gap:10 }}>
@@ -49,11 +96,26 @@ export default function MobileTablesScreen() {
 
   const occupiedCount = (counts['seated'] ?? 0) + (counts['confirmed'] ?? 0) + (counts['reserved'] ?? 0) + (counts['pending'] ?? 0);
 
+  // Format selected date for display
+  const d = selectedDate;
+  const DAY_NAMES = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
+  const MONTHS    = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+  const dateLabel = `${DAY_NAMES[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const isToday   = isoDate(new Date()) === dateStr;
+
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
+      {/* Date header */}
+      <div style={{ padding:'8px 14px 6px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
+        <span style={{ fontSize:12.5, fontWeight:600, color:'var(--ink-700)' }}>
+          {isToday ? 'Avui' : dateLabel}
+        </span>
+        <span style={{ fontSize:11.5, color:'var(--ink-400)' }}>· taules del dia</span>
+      </div>
+
       {/* Status summary strip */}
-      <div style={{ padding:'10px 14px 8px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0 }}>
+      <div style={{ padding:'8px 14px 6px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0 }}>
         <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:2 }}>
           {(['free','seated','confirmed','reserved','pending','blocked'] as TableStatus[]).map(s => {
             const n = counts[s] ?? 0;
@@ -70,7 +132,7 @@ export default function MobileTablesScreen() {
 
       {/* Zone tabs */}
       <div style={{ background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0, overflowX:'auto', display:'flex', padding:'6px 10px' }}>
-        {[{ id:'__all__', label:`Totes (${plan.tables.length})` }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => (
+        {[{ id:'__all__', label:`Totes (${liveTables.length})` }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => (
           <button key={z.id} onClick={() => setZoneId(z.id)}
             style={{
               flexShrink:0, padding:'5px 12px', borderRadius:8, border:'none',
