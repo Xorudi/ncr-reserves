@@ -39,6 +39,8 @@ export default function MobileTodayView() {
   const [showNew, setShowNew] = useState(false);
   const [showCal, setShowCal] = useState(false);
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
+  const [fabFaded, setFabFaded] = useState(false);
+  const fabTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dateStr  = isoDate(selectedDate);
   const d        = selectedDate;
@@ -74,6 +76,12 @@ export default function MobileTodayView() {
     dayDirRef.current = null;
     setSelectedDate(new Date());
     setSel(null);
+  }
+
+  function handleListScroll() {
+    setFabFaded(true);
+    if (fabTimerRef.current) clearTimeout(fabTimerRef.current);
+    fabTimerRef.current = setTimeout(() => setFabFaded(false), 700);
   }
 
   return (
@@ -128,6 +136,7 @@ export default function MobileTodayView() {
         key={dateStr}
         className={`scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
         style={{ flex:1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}
+        onScroll={handleListScroll}
       >
 
         {dayRes.length === 0 && (
@@ -152,13 +161,17 @@ export default function MobileTodayView() {
       {/* ── FAB ───────────────────────────────────────────────────────── */}
       <button onClick={() => { setSel(null); setShowNew(true); }} className="fab"
         style={{
-          position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 10px)',
-          right:20, width:54, height:54, borderRadius:'50%',
+          position:'fixed',
+          bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 12px)',
+          right:18, width:50, height:50, borderRadius:'50%',
           background:'var(--terracotta-600)', color:'white', border:'none',
-          boxShadow:'0 4px 16px rgba(160,60,20,.4)', cursor:'pointer',
-          display:'grid', placeItems:'center', zIndex:50,
+          boxShadow: fabFaded ? '0 2px 8px rgba(160,60,20,.15)' : '0 4px 14px rgba(160,60,20,.38)',
+          cursor:'pointer', display:'grid', placeItems:'center', zIndex:40,
+          opacity: fabFaded ? 0.32 : 1,
+          transform: fabFaded ? 'scale(0.80)' : 'scale(1)',
+          transition:'opacity 280ms var(--ease-ios), transform 280ms var(--ease-ios), box-shadow 280ms var(--ease-ios)',
         }}>
-        <Icon d={I.plus} size={24} stroke={2.2} />
+        <Icon d={I.plus} size={22} stroke={2.2} />
       </button>
 
       {/* ── Sheets — AnimatedSheet handles slide-up/down with backdrop ── */}
