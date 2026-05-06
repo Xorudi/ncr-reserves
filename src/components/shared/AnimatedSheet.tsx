@@ -1,18 +1,19 @@
 /**
  * AnimatedSheet — iOS-style bottom sheet with slide-up entrance and slide-down exit.
  *
+ * Uses ReactDOM.createPortal to render directly in document.body, bypassing any
+ * overflow:hidden ancestors (which on iOS Safari clip position:fixed children).
+ *
  * Usage:
  *   <AnimatedSheet open={show} onClose={close} zIndex={100}>
  *     <div style={{ borderRadius:'18px 18px 0 0', background:'var(--paper)', ... }}>
  *       ...content...
  *     </div>
  *   </AnimatedSheet>
- *
- * The component manages its own mount/unmount lifecycle so both enter and
- * exit animations play fully before the DOM node disappears.
  */
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Props {
   open: boolean;
@@ -46,7 +47,7 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
 
   if (!mounted) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -61,6 +62,7 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
       >
         {children}
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

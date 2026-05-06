@@ -457,7 +457,7 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
         background:'var(--paper)', borderRadius:'18px 18px 0 0',
         boxShadow:'0 -4px 24px rgba(0,0,0,.15)',
         padding:'14px 18px',
-        paddingBottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 12px)',
+        paddingBottom:'max(env(safe-area-inset-bottom, 0px), 16px)',
       }}>
         <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
@@ -643,7 +643,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
         boxShadow:'0 -4px 32px rgba(0,0,0,.2)',
         display:'flex', flexDirection:'column',
         maxHeight:'calc(100dvh - env(safe-area-inset-top, 0px) - 20px)',
-        overflowX:'hidden',
+        overflow:'hidden',
         width:'100%',
       }}>
 
