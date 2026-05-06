@@ -152,7 +152,7 @@ export default function MobileTodayView() {
       {/* ── FAB ───────────────────────────────────────────────────────── */}
       <button onClick={() => { setSel(null); setShowNew(true); }} className="fab"
         style={{
-          position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 14px)',
+          position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 10px)',
           right:20, width:54, height:54, borderRadius:'50%',
           background:'var(--terracotta-600)', color:'white', border:'none',
           boxShadow:'0 4px 16px rgba(160,60,20,.4)', cursor:'pointer',
@@ -632,50 +632,71 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
 
   return (
     <AnimatedSheet open={open} onClose={onClose} zIndex={100}>
+      {/*
+       * Layout: flex-column inside AnimatedSheet (which is position:fixed bottom:0)
+       *   1. Sticky header  — drag handle + title + close
+       *   2. Scrollable body — all form fields, no horizontal overflow
+       *   3. Sticky footer  — "Crear reserva" always visible
+       */}
       <div style={{
         background:'var(--paper)', borderRadius:'20px 20px 0 0',
         boxShadow:'0 -4px 32px rgba(0,0,0,.2)',
-        maxHeight:'92dvh', overflowY:'auto',
-        paddingBottom:'max(env(safe-area-inset-bottom), 20px)',
+        display:'flex', flexDirection:'column',
+        maxHeight:'calc(100dvh - env(safe-area-inset-top, 0px) - 20px)',
+        overflowX:'hidden',
+        width:'100%',
       }}>
-        <div style={{ padding:'14px 18px 0' }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
-          <div style={{ display:'flex', alignItems:'center', marginBottom:16 }}>
-            <div style={{ flex:1 }}>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:19, fontWeight:500, color:'var(--ink-900)' }}>Nova reserva</div>
-              <div style={{ fontSize:12, color:'var(--ink-500)', marginTop:2 }}>{biz.name}</div>
+
+        {/* ── Sticky header ─────────────────────────────────────────── */}
+        <div style={{ flexShrink:0, padding:'12px 18px 10px', borderBottom:'var(--hair)' }}>
+          <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 12px' }} />
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:'var(--ink-900)', lineHeight:1.2 }}>Nova reserva</div>
+              <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:1 }}>{biz.name}</div>
             </div>
-            <button onClick={onClose} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:6 }}>
-              <Icon d={I.x} size={20} />
+            <button onClick={onClose} className="press"
+              style={{ background:'var(--cream)', border:'none', cursor:'pointer', color:'var(--ink-500)',
+                       padding:8, borderRadius:8, display:'grid', placeItems:'center', flexShrink:0 }}>
+              <Icon d={I.x} size={18} />
             </button>
           </div>
         </div>
 
-        <div style={{ padding:'0 18px 20px', display:'flex', flexDirection:'column', gap:14 }}>
+        {/* ── Scrollable content ────────────────────────────────────── */}
+        <div className="scroll" style={{
+          flex:1, overflowY:'auto', overflowX:'hidden',
+          padding:'16px 18px 8px',
+          display:'flex', flexDirection:'column', gap:14,
+          minHeight:0,
+        }}>
 
-          {/* Date + Time */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <div>
+          {/* Data + Hora */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, minWidth:0 }}>
+            <div style={{ minWidth:0 }}>
               <label style={lbl}>Data</label>
-              <input type="date" value={form.date} onChange={e => upd('date', e.target.value)} style={inp} />
+              <input type="date" value={form.date} onChange={e => upd('date', e.target.value)}
+                style={{ ...inp, minWidth:0 }} />
             </div>
-            <div>
+            <div style={{ minWidth:0 }}>
               <label style={lbl}>Hora</label>
-              <input type="time" value={form.time} onChange={e => upd('time', e.target.value)} style={inp} />
+              <input type="time" value={form.time} onChange={e => upd('time', e.target.value)}
+                style={{ ...inp, minWidth:0 }} />
             </div>
           </div>
 
-          {/* Pax — single row with horizontal scroll + stepper for >8 */}
+          {/* Persones — chips en scroll horitzontal intern + stepper */}
           <div>
             <label style={lbl}>Persones</label>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              {/* Quick tiles 1–8, scroll horizontally */}
-              <div style={{ display:'flex', gap:6, overflowX:'auto', flex:1, paddingBottom:2,
-                            scrollbarWidth:'none', msOverflowStyle:'none' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+              <div style={{
+                display:'flex', gap:6, overflowX:'auto', flex:1, paddingBottom:3,
+                scrollbarWidth:'none', msOverflowStyle:'none', minWidth:0,
+              }}>
                 {[1,2,3,4,5,6,7,8].map(n => (
-                  <button key={n} onClick={() => upd('pax', n)}
+                  <button key={n} onClick={() => upd('pax', n)} className="press"
                     style={{
-                      flexShrink:0, width:40, height:40, borderRadius:9,
+                      flexShrink:0, width:38, height:38, borderRadius:9,
                       border: form.pax === n ? '2px solid var(--terracotta-600)' : '1.5px solid rgba(60,40,20,.15)',
                       background: form.pax === n ? 'var(--terracotta-50)' : 'var(--cream)',
                       color: form.pax === n ? 'var(--terracotta-700)' : 'var(--ink-700)',
@@ -686,24 +707,23 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
                   </button>
                 ))}
               </div>
-              {/* Stepper for values outside 1–8 */}
-              <div style={{ display:'flex', alignItems:'center', gap:0, flexShrink:0,
+              <div style={{ display:'flex', alignItems:'center', flexShrink:0,
                             border:'1.5px solid rgba(60,40,20,.15)', borderRadius:9, overflow:'hidden' }}>
                 <button onClick={() => upd('pax', Math.max(1, form.pax - 1))}
-                  style={{ width:34, height:40, border:'none', background:'var(--cream)', cursor:'pointer',
-                           fontFamily:'inherit', fontSize:18, fontWeight:600, color:'var(--ink-700)',
+                  style={{ width:32, height:38, border:'none', background:'var(--cream)', cursor:'pointer',
+                           fontFamily:'inherit', fontSize:17, fontWeight:600, color:'var(--ink-700)',
                            display:'flex', alignItems:'center', justifyContent:'center' }}>
                   −
                 </button>
-                <div style={{ minWidth:28, textAlign:'center', fontSize:14, fontWeight:700,
+                <div style={{ minWidth:26, textAlign:'center', fontSize:13, fontWeight:700,
                               color:'var(--terracotta-700)', background:'var(--terracotta-50)',
-                              height:40, display:'flex', alignItems:'center', justifyContent:'center',
+                              height:38, display:'flex', alignItems:'center', justifyContent:'center',
                               borderLeft:'1px solid rgba(60,40,20,.1)', borderRight:'1px solid rgba(60,40,20,.1)' }}>
                   {form.pax}
                 </div>
                 <button onClick={() => upd('pax', form.pax + 1)}
-                  style={{ width:34, height:40, border:'none', background:'var(--cream)', cursor:'pointer',
-                           fontFamily:'inherit', fontSize:18, fontWeight:600, color:'var(--ink-700)',
+                  style={{ width:32, height:38, border:'none', background:'var(--cream)', cursor:'pointer',
+                           fontFamily:'inherit', fontSize:17, fontWeight:600, color:'var(--ink-700)',
                            display:'flex', alignItems:'center', justifyContent:'center' }}>
                   +
                 </button>
@@ -711,20 +731,17 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
             </div>
           </div>
 
-          {/* Client picker — search existing clients */}
+          {/* Client de la cartera */}
           <div style={{ position:'relative' }}>
             <label style={lbl}>Client de la cartera</label>
             <div style={{ position:'relative' }}>
-              <input
-                type="text"
-                placeholder="Cerca per nom o telèfon…"
+              <input type="text" placeholder="Cerca per nom o telèfon…"
                 value={clientQuery}
                 onFocus={() => setShowDropdown(true)}
                 onChange={e => { setClientQuery(e.target.value); setShowDropdown(true); }}
-                style={{ ...inp, paddingLeft:36 }}
-              />
+                style={{ ...inp, paddingLeft:36 }} />
               <span style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)',
-                         color:'var(--ink-400)', pointerEvents:'none', display:'flex' }}>
+                             color:'var(--ink-400)', pointerEvents:'none', display:'flex' }}>
                 <Icon d={I.search} size={15} />
               </span>
             </div>
@@ -733,8 +750,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
                 position:'absolute', left:0, right:0, top:'100%', marginTop:4, zIndex:200,
                 background:'var(--paper)', borderRadius:12,
                 boxShadow:'0 4px 20px rgba(0,0,0,.15)',
-                border:'1px solid rgba(60,40,20,.1)',
-                overflow:'hidden',
+                border:'1px solid rgba(60,40,20,.1)', overflow:'hidden',
               }}>
                 {clientMatches.map(c => (
                   <button key={c.id}
@@ -742,19 +758,16 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
                     style={{
                       width:'100%', padding:'10px 14px', border:'none', background:'transparent',
                       cursor:'pointer', display:'flex', alignItems:'center', gap:10,
-                      borderBottom:'1px solid rgba(60,40,20,.06)',
-                      fontFamily:'inherit',
+                      borderBottom:'1px solid rgba(60,40,20,.06)', fontFamily:'inherit',
                     }}>
-                    <span className={`avatar av-${avIdx(c.name)}`} style={{ flexShrink:0 }}>
-                      {initials(c.name)}
-                    </span>
-                    <div style={{ flex:1, textAlign:'left' }}>
-                      <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)' }}>{c.name}</div>
+                    <span className={`avatar av-${avIdx(c.name)}`} style={{ flexShrink:0 }}>{initials(c.name)}</span>
+                    <div style={{ flex:1, textAlign:'left', minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</div>
                       {c.phone && <div style={{ fontSize:12, color:'var(--ink-500)', fontFamily:'monospace', marginTop:1 }}>{c.phone}</div>}
                     </div>
                     {c.tags?.includes('vip') && (
                       <span style={{ fontSize:10, fontWeight:700, color:'var(--terracotta-600)',
-                                     background:'var(--terracotta-50)', padding:'2px 6px', borderRadius:4 }}>VIP</span>
+                                     background:'var(--terracotta-50)', padding:'2px 6px', borderRadius:4, flexShrink:0 }}>VIP</span>
                     )}
                   </button>
                 ))}
@@ -762,7 +775,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
             )}
           </div>
 
-          {/* Name */}
+          {/* Nom */}
           <div>
             <label style={lbl}>Nom *</label>
             <input type="text" placeholder="Nom del client" value={form.name}
@@ -774,7 +787,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
             )}
           </div>
 
-          {/* Phone */}
+          {/* Telèfon */}
           <div>
             <label style={lbl}>Telèfon</label>
             <input type="tel" placeholder="+34 600 000 000" value={form.phone}
@@ -783,19 +796,21 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
               style={inp} />
           </div>
 
-          {/* Status + Source */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <div>
+          {/* Estat + Origen */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, minWidth:0 }}>
+            <div style={{ minWidth:0 }}>
               <label style={lbl}>Estat</label>
-              <select value={form.status} onChange={e => upd('status', e.target.value as ReservationStatus)} style={{ ...inp, paddingRight:8 }}>
+              <select value={form.status} onChange={e => upd('status', e.target.value as ReservationStatus)}
+                style={{ ...inp, paddingRight:6, minWidth:0 }}>
                 <option value="pending">Pendent</option>
                 <option value="confirmed">Confirmat</option>
                 <option value="seated">A taula</option>
               </select>
             </div>
-            <div>
+            <div style={{ minWidth:0 }}>
               <label style={lbl}>Origen</label>
-              <select value={form.source} onChange={e => upd('source', e.target.value)} style={{ ...inp, paddingRight:8 }}>
+              <select value={form.source} onChange={e => upd('source', e.target.value)}
+                style={{ ...inp, paddingRight:6, minWidth:0 }}>
                 <option value="directe">Directe</option>
                 <option value="telèfon">Telèfon</option>
                 <option value="web">Web</option>
@@ -813,12 +828,22 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
               style={{ ...inp, resize:'none', lineHeight:1.5 }} />
           </div>
 
-          <button onClick={handleSave} disabled={saved}
+        </div>
+
+        {/* ── Sticky footer — "Crear reserva" always visible ────────── */}
+        <div style={{
+          flexShrink:0,
+          padding:'12px 18px',
+          paddingBottom:'max(env(safe-area-inset-bottom, 0px), 16px)',
+          borderTop:'var(--hair)',
+          background:'var(--paper)',
+        }}>
+          <button onClick={handleSave} disabled={saved} className="press"
             style={{
-              padding:'14px', borderRadius:12, border:'none', cursor:'pointer',
+              width:'100%', padding:'14px', borderRadius:12, border:'none', cursor:'pointer',
               fontFamily:'inherit', fontSize:15, fontWeight:700, color:'white',
-              background: saved ? '#4a8a4a' : 'var(--terracotta-600)',
-              transition:'background .3s',
+              background: saved ? 'var(--olive-600)' : 'var(--terracotta-600)',
+              transition:'background 300ms var(--ease-ios)',
             }}>
             {saved ? '✓  Reserva creada!' : 'Crear reserva'}
           </button>

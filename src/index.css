@@ -114,6 +114,7 @@ body {
   padding: 0;
   height: 100dvh;
   min-height: 100dvh;
+  overflow-x: hidden;
   font-family: var(--font-sans);
   font-feature-settings: "ss01","cv11";
   color: var(--ink-800);
