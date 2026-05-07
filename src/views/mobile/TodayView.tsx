@@ -562,7 +562,8 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   onClose: () => void;
 }) {
   const biz = BUSINESSES.find(b => b.id === bizId)!;
-  const { customers } = useAppStore();
+  const { customers, floorPlans } = useAppStore();
+  const plan = floorPlans[bizId];
 
   const [form, setForm] = useState({
     date:   defaultDate,
@@ -578,8 +579,10 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   const [touched,       setTouched]       = useState(false);
   const [clientQuery,   setClientQuery]   = useState('');
   const [showDropdown,  setShowDropdown]  = useState(false);
-  const [editingPax,    setEditingPax]    = useState(false);
-  const [paxInput,      setPaxInput]      = useState('');
+  const [editingPax,       setEditingPax]       = useState(false);
+  const [paxInput,         setPaxInput]         = useState('');
+  const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
+  const [showTableSel,     setShowTableSel]     = useState(false);
 
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
@@ -590,7 +593,19 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
     setClientQuery('');
     setShowDropdown(false);
     setEditingPax(false);
+    setSelectedTableIds([]);
+    setShowTableSel(false);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Computed: names of selected tables
+  const allTables = plan ? plan.tables : [];
+  const assignedTableNames = selectedTableIds.length > 0
+    ? selectedTableIds
+        .map(id => allTables.find(t => t.id === id))
+        .filter(Boolean)
+        .map(t => t!.name || t!.id)
+        .join(', ')
+    : null;
 
   function upd<K extends keyof typeof form>(k: K, v: typeof form[K]) {
     setForm(f => ({ ...f, [k]: v }));
@@ -621,14 +636,15 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
     if (!form.name.trim()) return;
     addReservation({
       bizId,
-      date:   form.date,
-      time:   form.time,
-      name:   form.name.trim(),
-      pax:    form.pax,
-      status: form.status,
-      phone:  form.phone || undefined,
-      notes:  form.notes || undefined,
-      source: form.source,
+      date:     form.date,
+      time:     form.time,
+      name:     form.name.trim(),
+      pax:      form.pax,
+      status:   form.status,
+      phone:    form.phone || undefined,
+      notes:    form.notes || undefined,
+      source:   form.source,
+      tableIds: selectedTableIds.length > 0 ? selectedTableIds : undefined,
     });
     setSaved(true);
     setTimeout(onClose, 700);
@@ -875,6 +891,32 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
               style={{ ...inp, resize:'none', lineHeight:1.5 }} />
           </div>
 
+          {/* Taula */}
+          {plan && (
+            <div>
+              <label style={lbl}>Taula</label>
+              <button onClick={() => setShowTableSel(true)} className="press"
+                style={{
+                  ...inp, display:'flex', alignItems:'center', gap:8, cursor:'pointer',
+                  textAlign:'left', padding:'10px 12px',
+                  color: assignedTableNames ? 'var(--ink-900)' : 'var(--ink-400)',
+                }}>
+                <Icon d={I.tableIco} size={16} />
+                <span style={{ flex:1, fontSize:14, fontStyle: assignedTableNames ? 'normal' : 'italic',
+                               fontWeight: assignedTableNames ? 600 : 400 }}>
+                  {assignedTableNames ?? 'Sense taula assignada (opcional)'}
+                </span>
+                {assignedTableNames && (
+                  <span onClick={e => { e.stopPropagation(); setSelectedTableIds([]); }}
+                    style={{ padding:'2px 6px', fontSize:11, borderRadius:5,
+                             background:'rgba(60,40,20,.08)', color:'var(--ink-500)', cursor:'pointer' }}>
+                    ✕
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
         </div>
 
         {/* ── Sticky footer — "Crear reserva" always visible ────────── */}
@@ -896,6 +938,16 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
           </button>
         </div>
       </div>
+
+      {showTableSel && (
+        <TableSelectorModal
+          bizId={bizId}
+          pax={form.pax}
+          currentIds={selectedTableIds}
+          onSave={ids => { setSelectedTableIds(ids); setShowTableSel(false); }}
+          onClose={() => setShowTableSel(false)}
+        />
+      )}
     </AnimatedSheet>
   );
 }
