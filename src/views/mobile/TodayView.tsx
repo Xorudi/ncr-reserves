@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
-import { StatusChip } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
@@ -33,13 +32,14 @@ interface TodayViewProps { newResTrigger?: number; }
 export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
-    addReservation, businessConfigs, floorPlans,
+    addReservation, floorPlans,
   } = useAppStore();
   const plan = floorPlans[selectedBusiness];
 
   const [sel, setSel]         = useState<Reservation | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showCal, setShowCal] = useState(false);
+  const [shift, setShift]     = useState<'M' | 'N'>(() => new Date().getHours() >= 18 ? 'N' : 'M');
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
   const prevTrigger = useRef(-1);
 
@@ -67,12 +67,15 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
   const migdia = dayRes.filter(r => parseH(r.time) < 18);
   const nit    = dayRes.filter(r => parseH(r.time) >= 18);
 
+  // Active shift list — auto-promote to migdia/nit if only one service exists
+  const effectiveShift = migdia.length === 0 && nit.length > 0 ? 'N'
+                       : nit.length   === 0 && migdia.length > 0 ? 'M'
+                       : shift;
+  const activeList = effectiveShift === 'N' ? nit : migdia;
+
   const totalRes = dayRes.length;
   const totalPax = dayRes.reduce((s, r) => s + r.pax, 0);
-  const cap      = businessConfigs[selectedBusiness]?.capacity
-                ?? BUSINESSES.find(b => b.id === selectedBusiness)?.capacity ?? 80;
-  const occ      = cap > 0 ? Math.min(100, Math.round(totalPax / cap * 100)) : 0;
-  const pending  = dayRes.filter(r => r.status === 'pending');
+  const activePax = activeList.reduce((s, r) => s + r.pax, 0);
 
   function changeDay(delta: number) {
     dayDirRef.current = delta > 0 ? 'next' : 'prev';
@@ -91,24 +94,24 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
 
-      {/* ── Date nav + KPI header ──────────────────────────────────────── */}
-      <div style={{ flexShrink:0, background:'var(--paper)', borderBottom:'var(--hair)', padding:'10px 14px 12px' }}>
+      {/* ── Date nav + segment control ──────────────────────────────────── */}
+      <div style={{ flexShrink:0, background:'var(--cream)', padding:'10px 14px 0' }}>
 
         {/* Date navigation row */}
-        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:11 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
           <button onClick={() => changeDay(-1)} className="day-btn"
-            style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--cream)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)' }}>
+            style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--paper)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)', boxShadow:'var(--sh-1)' }}>
             <Icon d={I.chevL} size={16} stroke={2} />
           </button>
 
           <button onClick={() => setShowCal(true)}
             style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', padding:'4px 0' }}>
-            <span style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>{dayLabel}</span>
+            <span className="mono" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>{dayLabel}</span>
             <Icon d={I.calendar} size={14} />
           </button>
 
           <button onClick={() => changeDay(1)} className="day-btn"
-            style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--cream)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)' }}>
+            style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--paper)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)', boxShadow:'var(--sh-1)' }}>
             <Icon d={I.chevR} size={16} stroke={2} />
           </button>
 
@@ -120,29 +123,61 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
           )}
         </div>
 
-        {/* KPI strip — 3 equal columns, border separators */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', background:'var(--cream)', borderRadius:12, overflow:'hidden', border:'1px solid rgba(60,40,20,.07)' }}>
-          <KpiCell value={totalRes} label="reserves" />
-          <KpiCell value={totalPax} label="pax" dividers />
-          <KpiCell value={`${occ}%`} label="ocupació" accent={occ >= 80} />
-        </div>
-
-        {pending.length > 0 && (
-          <div style={{ marginTop:9, padding:'7px 11px', background:'rgba(185,90,30,.1)', borderRadius:8, fontSize:12, color:'var(--clay-700)', fontWeight:600, display:'flex', alignItems:'center', gap:6 }}>
-            <span>⚠️</span>
-            <span>{pending.length} {pending.length === 1 ? 'reserva pendent' : 'reserves pendents'} de confirmar</span>
+        {/* Segmented control + count */}
+        {(migdia.length > 0 || nit.length > 0) && (
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:10 }}>
+            <div style={{ display:'inline-flex', padding:3, background:'rgba(60,40,20,.06)', borderRadius:999, gap:2 }}>
+              {[
+                { v: 'M', label: 'Migdia', count: migdia.length },
+                { v: 'N', label: 'Nit',    count: nit.length    },
+              ].map(o => {
+                const a = effectiveShift === o.v;
+                return (
+                  <button key={o.v} onClick={() => setShift(o.v as 'M' | 'N')}
+                    style={{
+                      padding:'7px 14px', borderRadius:999, border:'none',
+                      background: a ? 'var(--paper)' : 'transparent',
+                      color: a ? 'var(--ink-900)' : 'var(--ink-500)',
+                      fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                      boxShadow: a ? 'var(--sh-1)' : 'none',
+                      transition:'background .15s, box-shadow .15s',
+                    }}>
+                    {o.label}
+                    <span style={{ marginLeft:5, fontSize:11, opacity:.7, fontWeight:500 }}>{o.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize:11.5, color:'var(--ink-500)', fontWeight:600 }}>
+              {activeList.length} res · {activePax} pax
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Reservation list — key forces remount + direction animation on day change ── */}
+      {/* ── Stat boxes — Confirmades / Pendents / A taula ───────────────── */}
+      {activeList.length > 0 && (
+        <div style={{ flexShrink:0, background:'var(--cream)', padding:'0 14px 10px',
+                      display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+          {([
+            ['Confirmades', activeList.filter(r => r.status === 'confirmed').length, 'var(--olive-700)',       'var(--olive-50)'],
+            ['Pendents',    activeList.filter(r => r.status === 'pending').length,   'var(--clay-700)',        'var(--clay-50)'],
+            ['A taula',     activeList.filter(r => r.status === 'seated').length,    'var(--terracotta-700)', 'var(--terracotta-50)'],
+          ] as [string, number, string, string][]).map(([label, n, fg, bg]) => (
+            <div key={label} style={{ background:bg, borderRadius:12, padding:'10px 12px' }}>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500, color:fg, lineHeight:1 }}>{n}</div>
+              <div style={{ fontSize:10.5, color:fg, fontWeight:600, marginTop:4, opacity:.85 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Reservation list ────────────────────────────────────────────── */}
       <div
-        key={dateStr}
-        className={`scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
-        style={{ flex:1, overflowY:'auto', paddingBottom: 24 }}
-
+        key={`${dateStr}-${effectiveShift}`}
+        className={`scroll mob-scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
+        style={{ flex:1, overflowY:'auto' }}
       >
-
         {dayRes.length === 0 && (
           <div style={{ textAlign:'center', padding:'64px 20px', color:'var(--ink-500)' }}>
             <div style={{ fontSize:32, marginBottom:10 }}>🔭</div>
@@ -151,15 +186,34 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
           </div>
         )}
 
-        {migdia.length > 0 && (
-          <ServiceSection label="Servei de migdia" hours="13:00 – 16:00" ico="☀️" isMigdia={true}
-            list={migdia} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} plan={plan} />
+        {dayRes.length > 0 && activeList.length === 0 && (
+          <div style={{ textAlign:'center', padding:'48px 20px', color:'var(--ink-500)' }}>
+            <div style={{ fontFamily:'var(--font-serif)', fontSize:16, color:'var(--ink-600)' }}>
+              Cap reserva per al {effectiveShift === 'M' ? 'migdia' : 'vespre'}
+            </div>
+          </div>
         )}
 
-        {nit.length > 0 && (
-          <ServiceSection label="Servei de nit" hours="20:30 – 00:00" ico="🌙" isMigdia={false}
-            list={nit} selId={sel?.id ?? null} onSel={r => setSel(prev => prev?.id === r.id ? null : r)} plan={plan} />
-        )}
+        {activeList.map((r, i) => {
+          const prev = i > 0 ? activeList[i - 1] : null;
+          const showTimeHeader = !prev || prev.time !== r.time;
+          return (
+            <React.Fragment key={r.id}>
+              {showTimeHeader && (
+                <div style={{ padding:'14px 18px 6px', display:'flex', alignItems:'center', gap:10 }}>
+                  <span className="mono" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)', flexShrink:0 }}>{r.time}</span>
+                  <div style={{ flex:1, height:1, background:'rgba(60,40,20,.08)' }} />
+                </div>
+              )}
+              <ResRow
+                res={r}
+                selected={sel?.id === r.id}
+                onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
+                plan={plan}
+              />
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* ── Sheets — AnimatedSheet handles slide-up/down with backdrop ── */}
@@ -187,61 +241,29 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
   );
 }
 
-// ─── KPI cell ─────────────────────────────────────────────────────────────────
-function KpiCell({ value, label, accent, dividers }: { value: string | number; label: string; accent?: boolean; dividers?: boolean }) {
+// ─── Status pill (mobile style — no dot, just coloured label) ────────────────
+function ResStatePill({ state }: { state: ReservationStatus }) {
+  const map: Record<string, { bg: string; fg: string; label: string }> = {
+    pending:   { bg:'var(--clay-50)',        fg:'var(--clay-700)',        label:'Pendent'    },
+    confirmed: { bg:'var(--olive-50)',       fg:'var(--olive-700)',       label:'Confirmada' },
+    seated:    { bg:'var(--terracotta-50)',  fg:'var(--terracotta-700)',  label:'A taula'    },
+    completed: { bg:'var(--ink-100)',        fg:'var(--ink-600)',         label:'Acabada'    },
+    cancelled: { bg:'#f2ebe4',              fg:'var(--ink-500)',         label:'Cancel·lada' },
+    noshow:    { bg:'var(--rose-50)',        fg:'var(--rose-700)',        label:'No-show'    },
+  };
+  const s = map[state] ?? map.pending;
   return (
-    <div style={{
-      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      padding:'12px 6px 10px',
-      borderLeft:  dividers ? '1px solid rgba(60,40,20,.09)' : undefined,
-      borderRight: dividers ? '1px solid rgba(60,40,20,.09)' : undefined,
-    }}>
-      <span style={{
-        fontFamily:'var(--font-serif)', fontSize:28, fontWeight:500, lineHeight:1,
-        color: accent ? 'var(--terracotta-700)' : 'var(--ink-900)',
-        letterSpacing:'-0.02em',
-      }}>
-        {value}
-      </span>
-      <span style={{ fontSize:10.5, color:'var(--ink-500)', fontWeight:500, marginTop:4, textAlign:'center' }}>{label}</span>
-    </div>
+    <span style={{
+      display:'inline-flex', alignItems:'center',
+      padding:'3px 9px', borderRadius:999,
+      background:s.bg, color:s.fg,
+      fontSize:11.5, fontWeight:600, whiteSpace:'nowrap',
+      ...(state === 'cancelled' ? { textDecoration:'line-through' } : {}),
+    }}>{s.label}</span>
   );
 }
 
-// ─── Service section ──────────────────────────────────────────────────────────
-function ServiceSection({ label, hours, ico, isMigdia, list, selId, onSel, plan }: {
-  label: string; hours: string; ico: string; isMigdia: boolean;
-  list: Reservation[]; selId: string | null; onSel: (r: Reservation) => void;
-  plan?: FloorPlan;
-}) {
-  const totalPax  = list.reduce((s, r) => s + r.pax, 0);
-  const accentBg  = isMigdia ? 'rgba(180,130,40,.07)' : 'rgba(60,30,100,.05)';
-  const accentTxt = isMigdia ? 'var(--clay-700)' : 'var(--plum-700)';
-
-  return (
-    <div>
-      <div style={{ padding:'11px 16px 9px', background:accentBg, borderBottom:'var(--hair)' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:17 }}>{ico}</span>
-          <div>
-            <div style={{ fontSize:14.5, fontFamily:'var(--font-serif)', fontWeight:500, color:'var(--ink-900)' }}>
-              {label}
-              <span style={{ fontSize:11.5, fontWeight:400, color:'var(--ink-500)', marginLeft:6 }}>· {hours}</span>
-            </div>
-            <div style={{ fontSize:11.5, color:'var(--ink-600)', marginTop:1 }}>
-              <b style={{ color:accentTxt }}>{list.length}</b> reserves
-              <span style={{ margin:'0 5px', color:'var(--ink-300)' }}>·</span>
-              <b style={{ color:accentTxt }}>{totalPax}</b> pax
-            </div>
-          </div>
-        </div>
-      </div>
-      {list.map(r => <ResRow key={r.id} res={r} selected={selId === r.id} onSel={onSel} plan={plan} />)}
-    </div>
-  );
-}
-
-// ─── Reservation row ──────────────────────────────────────────────────────────
+// ─── Reservation row (new design) ─────────────────────────────────────────────
 function ResRow({ res: r, selected, onSel, plan }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
@@ -251,67 +273,60 @@ function ResRow({ res: r, selected, onSel, plan }: {
   return (
     <button onClick={() => onSel(r)} className="press"
       style={{
-        display:'flex', alignItems:'center', gap:10, width:'100%',
-        padding:'11px 16px',
-        background: selected ? 'var(--ink-100)' : 'transparent',
-        border:'none', borderBottom:'var(--hair)',
-        cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-        transition:'background 160ms var(--ease-ios), transform var(--dur-press) var(--ease-ios-fast), opacity var(--dur-press) linear',
+        width:'100%', textAlign:'left',
+        background: selected ? 'var(--terracotta-50)' : 'var(--paper)',
+        border:'none', borderTop:'var(--hair)',
+        padding:'12px 18px', cursor:'pointer',
+        display:'flex', gap:12, alignItems:'center',
+        transition:'background 160ms var(--ease-ios)',
       }}>
-      {/* Time */}
-      <span className="mono" style={{ fontSize:13, fontWeight:700, color:'var(--ink-700)', width:40, flex:'none' }}>
-        {r.time}
-      </span>
 
-      {/* Avatar */}
-      <span className={`avatar av-${avIdx(r.name)}`} style={{ flex:'none' }}>{initials(r.name)}</span>
+      {/* Pax circle — Fraunces serif */}
+      <div style={{
+        width:42, height:42, borderRadius:12, flexShrink:0,
+        background:'var(--cream)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:'var(--ink-900)',
+      }}>{r.pax}</div>
 
       {/* Name + zone/table */}
-      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:3 }}>
+      <div style={{ flex:1, minWidth:0 }}>
         {/* Name line */}
-        <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-          <span style={{ flex:1, fontSize:14, fontWeight:600, color:'var(--ink-900)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {r.name}
-          </span>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+          <span style={{ fontSize:15, fontWeight:600, color:'var(--ink-900)' }}>{r.name}</span>
           {r.tags?.includes('vip') && (
-            <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:4, background:'#c9a227', color:'white' }}>VIP</span>
+            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'#2a2119', color:'#f3dca6', fontWeight:700, letterSpacing:.3 }}>VIP</span>
           )}
-          {r.tags?.includes('birthday') && <span style={{ fontSize:11 }}>🎂</span>}
+          {r.tags?.includes('allergy') && (
+            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'var(--rose-50)', color:'var(--rose-700)', fontWeight:700, letterSpacing:.3 }}>AL·LÈRGIA</span>
+          )}
+          {r.tags?.includes('birthday') && (
+            <span style={{ fontSize:10.5 }}>🎂</span>
+          )}
         </div>
 
-        {/* Zone + table line */}
-        {tl ? (
-          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-            <span style={{
-              display:'inline-flex', alignItems:'center', gap:3,
-              fontSize:10.5, fontWeight:600, padding:'1px 6px', borderRadius:5,
-              background: tl.bg, color: tl.color,
-            }}>
-              {tl.icon} {tl.zone}
-            </span>
-            <span style={{ fontSize:11.5, color:'var(--ink-600)', fontWeight:500 }}>
-              {tl.tableStr}
-            </span>
-          </div>
-        ) : (
-          <div style={{ fontSize:11, color:'var(--ink-400)', fontStyle:'italic' }}>
-            🪑 Sense assignar
-          </div>
-        )}
+        {/* Zone + table / notes line */}
+        <div style={{ fontSize:12.5, color:'var(--ink-500)', marginTop:4, display:'flex', gap:6, alignItems:'center', overflow:'hidden', whiteSpace:'nowrap' }}>
+          {tl ? (
+            <>
+              <span style={{
+                display:'inline-flex', alignItems:'center', gap:3,
+                fontSize:10.5, fontWeight:600, padding:'1px 6px', borderRadius:5,
+                background:tl.bg, color:tl.color, flexShrink:0,
+              }}>{tl.icon} {tl.zone}</span>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{tl.tableStr}</span>
+            </>
+          ) : r.notes ? (
+            <span style={{ overflow:'hidden', textOverflow:'ellipsis', fontStyle:'italic', color:'var(--ink-400)' }}>{r.notes}</span>
+          ) : (
+            <span style={{ fontStyle:'italic', color:'var(--ink-400)' }}>Sense taula</span>
+          )}
 
-        {/* Notes */}
-        {r.notes && (
-          <div style={{ fontSize:11, color:'var(--ink-400)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {r.notes}
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* Status + pax */}
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flex:'none' }}>
-        <StatusChip state={r.status} size="sm" />
-        <span style={{ fontSize:12, color:'var(--ink-600)', fontWeight:500 }}>{r.pax} pax</span>
-      </div>
+      {/* State pill */}
+      <ResStatePill state={r.status} />
     </button>
   );
 }
@@ -469,7 +484,7 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
               {r.time} · {r.pax} pax{r.source ? ` · ${r.source}` : ''}
             </div>
           </div>
-          <StatusChip state={r.status} />
+          <ResStatePill state={r.status} />
           <button onClick={onClose} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:4 }}>
             <Icon d={I.x} size={18} />
           </button>

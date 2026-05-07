@@ -27,13 +27,23 @@ import TouchMoreScreen         from '@/views/mobile/MobileMoreScreen';
 
 export type TouchTab = 'reservations' | 'tables' | 'walkin' | 'clients' | 'more';
 
-// Bottom-nav tabs — "more" lives in the header on mobile, in side rail on tablet
-const NAV_TABS: { id: TouchTab; label: string; ico: React.ReactNode; special?: boolean }[] = [
-  { id: 'reservations', label: 'Reserves', ico: I.calendar },
-  { id: 'walkin',       label: 'Walk-in',  ico: I.walkin,  special: true },
-  // center slot is the "+" action button — rendered separately
-  { id: 'tables',       label: 'Taules',   ico: I.tableIco },
-  { id: 'clients',      label: 'Clients',  ico: I.users },
+// Header title per tab
+const TAB_TITLES: Record<TouchTab, string> = {
+  reservations: "Reserves d'avui",
+  tables:       'Plànol de taules',
+  walkin:       'Walk-in',
+  clients:      'Clients',
+  more:         'Configuració',
+};
+
+// Bottom-nav tabs for mobile (4 tabs split around center FAB)
+const MOB_LEFT_TABS:  { id: TouchTab; label: string; ico: React.ReactNode }[] = [
+  { id: 'reservations', label: 'Reserves', ico: I.calendar  },
+  { id: 'tables',       label: 'Taules',   ico: I.tableIco  },
+];
+const MOB_RIGHT_TABS: { id: TouchTab; label: string; ico: React.ReactNode }[] = [
+  { id: 'clients',      label: 'Clients',  ico: I.users     },
+  { id: 'walkin',       label: 'Walk-in',  ico: I.walkin    },
 ];
 
 // Side-rail tabs on tablet (includes Més)
@@ -245,147 +255,163 @@ export default function TouchShell() {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // MOBILE LAYOUT — top header + fixed bottom navigation bar
+  // MOBILE LAYOUT — top header + bottom navigation bar (new design)
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <div style={{
+      position: 'relative',           // FAB anchor
       display: 'flex', flexDirection: 'column',
       height: appH,
       background: 'var(--cream)', overflow: 'hidden',
     }}>
 
-      {/* ── Top header ──────────────────────────────────────────────── */}
+      {/* ── Top header — Fraunces serif title + avatar ───────────────── */}
       <header style={{
-        paddingTop:    isStandalone ? 'calc(10px + env(safe-area-inset-top))' : '10px',
-        paddingBottom: '9px',
-        paddingLeft:   '14px',
-        paddingRight:  '14px',
+        paddingTop:    isStandalone ? 'calc(env(safe-area-inset-top) + 14px)' : '54px',
+        paddingBottom: '14px',
+        paddingLeft:   '18px',
+        paddingRight:  '18px',
         borderBottom:  'var(--hair)',
-        background:    'var(--paper)',
+        background:    'var(--cream)',
         flexShrink:    0,
         display:       'flex',
-        alignItems:    'center',
-        gap:           10,
+        alignItems:    'flex-end',
+        gap:           12,
       }}>
-        {/* Biz switcher */}
-        <button onClick={() => setShowBizPicker(true)}
+        {/* Employee avatar — taps to switch user */}
+        <button onClick={() => setShowUserPicker(true)}
           style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            fontFamily: 'inherit', textAlign: 'left', padding: 0,
+            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+            background: activeEmp ? 'var(--terracotta-600)' : 'var(--ink-200)',
+            color: activeEmp ? '#fff' : 'var(--ink-600)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-serif)',
+            border: 'none', cursor: 'pointer',
           }}>
-          <span style={{
-            width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-            background: biz.hueSoft, color: biz.hue,
-            fontWeight: 700, fontSize: 11, fontFamily: 'var(--font-serif)',
-            display: 'grid', placeItems: 'center',
-          }}>
-            {biz.monogram}
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {biz.name}
-            </div>
-            <div style={{ fontSize: 10.5, color: 'var(--ink-500)', lineHeight: 1.1 }}>{biz.kind}</div>
-          </div>
-          <Icon d={I.chevD} size={13} />
+          {activeEmp ? activeEmp.initials : <Icon d={I.users} size={16} />}
         </button>
 
-        {/* Més button — moved from bottom nav to header */}
+        {/* Title block */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <button onClick={() => setShowBizPicker(true)} style={{
+            fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+            letterSpacing: 0.4, textTransform: 'uppercase',
+            background: 'none', border: 'none', padding: 0,
+            cursor: 'pointer', fontFamily: 'inherit', display: 'block',
+          }}>
+            {biz.name.toUpperCase()}
+          </button>
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 500,
+            color: 'var(--ink-900)', letterSpacing: -0.3, lineHeight: 1.1, marginTop: 2,
+          }}>
+            {TAB_TITLES[tab]}
+          </div>
+        </div>
+
+        {/* Més button */}
         <button onClick={() => setTab('more')}
           style={{
-            width: 34, height: 34, borderRadius: 9, flexShrink: 0,
-            display: 'grid', placeItems: 'center',
-            border: '1px solid rgba(60,40,20,.12)',
-            background: tab === 'more' ? 'var(--terracotta-50)' : 'var(--cream)',
+            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid rgba(60,40,20,.14)',
+            background: tab === 'more' ? 'var(--terracotta-50)' : 'var(--paper)',
             color: tab === 'more' ? 'var(--terracotta-600)' : 'var(--ink-500)',
             cursor: 'pointer',
           }}>
           <Icon d={I.dotsH} size={18} stroke={1.8} />
         </button>
-
-        {/* User pill */}
-        <button onClick={() => setShowUserPicker(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '4px 10px 4px 5px',
-            border: '1px solid rgba(60,40,20,.12)', borderRadius: 20,
-            background: 'var(--cream)', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-          }}>
-          {activeEmp ? (
-            <>
-              <span className={`avatar av-${avIdx(activeEmp.fullName)}`}
-                style={{ width: 22, height: 22, fontSize: 8.5, display: 'grid', placeItems: 'center', borderRadius: '50%' }}>
-                {activeEmp.initials}
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-800)' }}>
-                {activeEmp.fullName.split(' ')[0]}
-              </span>
-            </>
-          ) : (
-            <span style={{ fontSize: 12, color: 'var(--ink-500)' }}>Usuari</span>
-          )}
-        </button>
       </header>
 
       {/* ── Main content ────────────────────────────────────────────── */}
       <main
-        style={{
-          flex: 1, overflow: 'hidden',
-          display: 'flex', flexDirection: 'column',
-        }}
+        style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         {screenContent}
       </main>
 
-      {/* ── Bottom nav — in-flow flex child, stable from first frame ── */}
+      {/* ── Bottom nav — in-flow, blur glass, split 2+2 around FAB spacer ── */}
       <nav style={{
         flexShrink: 0, zIndex: 50,
-        borderTop: 'var(--hair)', background: 'var(--paper)',
-        display: 'grid', gridTemplateColumns: 'repeat(5,1fr)',
-        alignItems: 'center',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        paddingLeft:   'env(safe-area-inset-left,   0px)',
-        paddingRight:  'env(safe-area-inset-right,  0px)',
+        paddingBottom: 'calc(22px + env(safe-area-inset-bottom, 0px))',
+        paddingTop: 6,
+        paddingLeft:  'max(4px, env(safe-area-inset-left,  0px))',
+        paddingRight: 'max(4px, env(safe-area-inset-right, 0px))',
+        background: 'rgba(255,255,255,0.88)',
+        backdropFilter: 'blur(24px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+        borderTop: 'var(--hair)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.7)',
+        display: 'flex', alignItems: 'stretch',
       }}>
-        {/* Reserves */}
-        <NavBtn id="reservations" tab={tab} setTab={setTab} label="Reserves" ico={I.calendar} />
-        {/* Walk-in */}
-        <NavBtn id="walkin" tab={tab} setTab={setTab} label="Walk-in" ico={I.walkin} special />
-        {/* Centre: "+" action button — not a nav tab */}
-        <button
-          onClick={openNewReservation}
-          className="press"
-          style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-            padding: '6px 4px 8px',
-          }}>
-          <span style={{
-            width: 48, height: 48, borderRadius: '50%',
-            background: 'var(--terracotta-600)',
-            boxShadow: '0 4px 14px rgba(160,60,20,.45)',
-            display: 'grid', placeItems: 'center',
-            color: 'white',
-            flexShrink: 0,
-          }}>
-            <Icon d={I.plus} size={24} stroke={2.2} />
-          </span>
-        </button>
-        {/* Taules */}
-        <NavBtn id="tables" tab={tab} setTab={setTab} label="Taules" ico={I.tableIco} />
-        {/* Clients */}
-        <NavBtn id="clients" tab={tab} setTab={setTab} label="Clients" ico={I.users} />
+        {MOB_LEFT_TABS.map(t => (
+          <MobNavBtn key={t.id} id={t.id} tab={tab} setTab={setTab} label={t.label} ico={t.ico} />
+        ))}
+        {/* Center spacer for floating FAB */}
+        <div style={{ width: 68, flexShrink: 0 }} aria-hidden />
+        {MOB_RIGHT_TABS.map(t => (
+          <MobNavBtn key={t.id} id={t.id} tab={tab} setTab={setTab} label={t.label} ico={t.ico} />
+        ))}
       </nav>
+
+      {/* ── Floating "+" FAB — absolutely positioned above nav center ── */}
+      <button
+        onClick={openNewReservation}
+        className="press"
+        aria-label="Nova reserva"
+        style={{
+          position: 'absolute',
+          left: '50%',
+          bottom: 'calc(36px + env(safe-area-inset-bottom, 0px))',
+          transform: 'translateX(-50%)',
+          width: 60, height: 60, borderRadius: 999,
+          background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+          color: '#fff',
+          border: '2.5px solid #fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', zIndex: 60, flexShrink: 0,
+          boxShadow: '0 -4px 18px rgba(168,74,42,.38), 0 4px 12px rgba(168,74,42,.3), 0 0 0 1px rgba(168,74,42,.12)',
+          WebkitTapHighlightColor: 'transparent',
+        }}>
+        <Icon d={I.plus} size={26} stroke={2.4} />
+      </button>
 
       {pickers}
     </div>
   );
 }
 
-// ─── Nav button — reusable tab button for bottom nav ──────────────────────────
+// ─── Mobile nav button (new design: dark icon when active, terracotta label) ──
+function MobNavBtn({ id, tab, setTab, label, ico }: {
+  id: TouchTab; tab: TouchTab; setTab: (t: TouchTab) => void;
+  label: string; ico: React.ReactNode;
+}) {
+  const active = tab === id;
+  return (
+    <button onClick={() => setTab(id)} className="nav-btn press"
+      style={{
+        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', gap: 3,
+        background: 'transparent', border: 'none', padding: '8px 0 6px',
+        cursor: 'pointer', minHeight: 50,
+        WebkitTapHighlightColor: 'transparent',
+        color: active ? 'var(--ink-900)' : 'var(--ink-400)',
+      }}>
+      <div style={{ height: 24, display: 'flex', alignItems: 'center' }}>
+        <Icon d={ico} size={22} stroke={active ? 2.1 : 1.6} />
+      </div>
+      <span style={{
+        fontSize: 10.5, fontWeight: active ? 650 : 500,
+        color: active ? 'var(--terracotta-700)' : 'var(--ink-500)',
+        letterSpacing: 0.05, lineHeight: 1,
+      }}>{label}</span>
+    </button>
+  );
+}
+
+// ─── Tablet rail nav button — unchanged ──────────────────────────────────────
 function NavBtn({ id, tab, setTab, label, ico, special }: {
   id: TouchTab; tab: TouchTab; setTab: (t: TouchTab) => void;
   label: string; ico: React.ReactNode; special?: boolean;
