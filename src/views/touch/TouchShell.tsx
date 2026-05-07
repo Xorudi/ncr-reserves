@@ -250,7 +250,7 @@ export default function TouchShell() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      height: 'calc(var(--vh, 1dvh) * 100)',
+      height: '100dvh',
       background: 'var(--cream)', overflow: 'hidden',
     }}>
 
@@ -333,7 +333,6 @@ export default function TouchShell() {
         style={{
           flex: 1, overflow: 'hidden',
           display: 'flex', flexDirection: 'column',
-          paddingBottom: 'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px))',
         }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -341,13 +340,12 @@ export default function TouchShell() {
         {screenContent}
       </main>
 
-      {/* ── Bottom nav — fixed so it always sticks to screen edge ──── */}
+      {/* ── Bottom nav — in-flow flex child, stable from first frame ── */}
       <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+        flexShrink: 0, zIndex: 50,
         borderTop: 'var(--hair)', background: 'var(--paper)',
         display: 'grid', gridTemplateColumns: 'repeat(5,1fr)',
         alignItems: 'center',
-        overflow: 'visible',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft:   'env(safe-area-inset-left,   0px)',
         paddingRight:  'env(safe-area-inset-right,  0px)',
@@ -363,15 +361,14 @@ export default function TouchShell() {
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-            padding: '8px 4px',
+            padding: '6px 4px 8px',
           }}>
           <span style={{
-            width: 50, height: 50, borderRadius: '50%',
+            width: 48, height: 48, borderRadius: '50%',
             background: 'var(--terracotta-600)',
-            boxShadow: '0 3px 12px rgba(160,60,20,.38)',
+            boxShadow: '0 4px 14px rgba(160,60,20,.45)',
             display: 'grid', placeItems: 'center',
             color: 'white',
-            transform: 'translateY(-8px)',
             flexShrink: 0,
           }}>
             <Icon d={I.plus} size={24} stroke={2.2} />

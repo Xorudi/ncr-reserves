@@ -139,7 +139,7 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
       <div
         key={dateStr}
         className={`scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
-        style={{ flex:1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}
+        style={{ flex:1, overflowY:'auto', paddingBottom: 24 }}
 
       >
 
