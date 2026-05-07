@@ -27,6 +27,7 @@ export interface Reservation {
   source?: string;
   tags?: string[];
   tableIds?: string[];   // IDs of assigned FloorTable entries
+  allergens?: string[];  // e.g. ['gluten','lactosa','marisc']
 }
 
 export interface Customer {

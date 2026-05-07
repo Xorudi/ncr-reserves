@@ -4,6 +4,7 @@ import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from 
 import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
+import { ALLERGENS, allergenById } from '@/utils/allergens';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
 
 function buildTableLine(res: Reservation, plan: FloorPlan | undefined): { icon: string; zone: string; tableStr: string; bg: string; color: string } | null {
@@ -294,6 +295,8 @@ function ResRow({ res: r, selected, onSel, plan }: {
 }) {
   const tl   = buildTableLine(r, plan);
   const tint = STATUS_TINT[r.status] ?? STATUS_TINT.pending;
+  const allergens = r.allergens ?? [];
+  const hasAllergens = allergens.length > 0 || r.tags?.includes('allergy');
 
   return (
     <button onClick={() => onSel(r)} className="press"
@@ -301,59 +304,144 @@ function ResRow({ res: r, selected, onSel, plan }: {
         width:'100%', textAlign:'left',
         background: selected ? 'var(--terracotta-50)' : tint.rowTint,
         border:'none', borderTop:'var(--hair)',
-        padding:'12px 18px', cursor:'pointer',
-        display:'flex', gap:12, alignItems:'center',
+        padding:'13px 18px', cursor:'pointer',
+        display:'flex', gap:14, alignItems:'flex-start',
         transition:'background 160ms var(--ease-ios)',
       }}>
 
-      {/* Pax circle — Fraunces serif amb anell de color segons estat */}
+      {/* Pax tile — bigger, with "pax" label, status ring */}
       <div style={{
-        width:42, height:42, borderRadius:12, flexShrink:0,
+        width:54, height:54, borderRadius:13, flexShrink:0,
         background: tint.paxBg,
         boxShadow: `inset 0 0 0 1.5px ${tint.paxRing}`,
-        display:'flex', alignItems:'center', justifyContent:'center',
-        fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
-        color: tint.paxFg,
-      }}>{r.pax}</div>
-
-      {/* Name + zone/table */}
-      <div style={{ flex:1, minWidth:0 }}>
-        {/* Name line */}
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-          <span style={{ fontSize:15, fontWeight:600, color:'var(--ink-900)' }}>{r.name}</span>
-          {r.tags?.includes('vip') && (
-            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'#2a2119', color:'#f3dca6', fontWeight:700, letterSpacing:.3 }}>VIP</span>
-          )}
-          {r.tags?.includes('allergy') && (
-            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'var(--rose-50)', color:'var(--rose-700)', fontWeight:700, letterSpacing:.3 }}>AL·LÈRGIA</span>
-          )}
-          {r.tags?.includes('birthday') && (
-            <span style={{ fontSize:10.5 }}>🎂</span>
-          )}
-        </div>
-
-        {/* Zone + table / notes line */}
-        <div style={{ fontSize:12.5, color:'var(--ink-500)', marginTop:4, display:'flex', gap:6, alignItems:'center', overflow:'hidden', whiteSpace:'nowrap' }}>
-          {tl ? (
-            <>
-              <span style={{
-                display:'inline-flex', alignItems:'center', gap:3,
-                fontSize:10.5, fontWeight:600, padding:'1px 6px', borderRadius:5,
-                background:tl.bg, color:tl.color, flexShrink:0,
-              }}>{tl.icon} {tl.zone}</span>
-              <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{tl.tableStr}</span>
-            </>
-          ) : r.notes ? (
-            <span style={{ overflow:'hidden', textOverflow:'ellipsis', fontStyle:'italic', color:'var(--ink-400)' }}>{r.notes}</span>
-          ) : (
-            <span style={{ fontStyle:'italic', color:'var(--ink-400)' }}>Sense taula</span>
-          )}
-
-        </div>
+        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+        gap:0,
+      }}>
+        <span style={{
+          fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500,
+          color: tint.paxFg, lineHeight:1,
+        }}>{r.pax}</span>
+        <span style={{
+          fontSize:8.5, fontWeight:700, color: tint.paxFg, opacity:.7,
+          letterSpacing:.08, marginTop:2,
+        }}>PAX</span>
       </div>
 
-      {/* State pill */}
-      <ResStatePill state={r.status} />
+      {/* Body — name, meta, zone, allergens, notes */}
+      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:4 }}>
+
+        {/* Name line + tags */}
+        <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>
+          <span style={{
+            fontSize:16, fontWeight:650, color:'var(--ink-900)', letterSpacing:-.005,
+          }}>{r.name}</span>
+          {r.tags?.includes('vip') && (
+            <span style={{
+              fontSize:9.5, padding:'2px 6px', borderRadius:4, fontWeight:700, letterSpacing:.4,
+              background:'#2a2119', color:'#f3dca6',
+            }}>VIP</span>
+          )}
+          {r.tags?.includes('birthday') && (
+            <span style={{ fontSize:13, lineHeight:1 }} aria-label="Aniversari">🎂</span>
+          )}
+        </div>
+
+        {/* Meta line: time · phone · source */}
+        <div style={{
+          display:'flex', alignItems:'center', gap:8,
+          fontSize:12.5, color:'var(--ink-500)', flexWrap:'wrap',
+        }}>
+          <span style={{
+            fontFamily:'var(--font-mono)', fontWeight:650, color:'var(--ink-700)',
+          }}>{r.time}</span>
+          {r.phone && (
+            <>
+              <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+              <span style={{ fontFamily:'var(--font-mono)' }}>{r.phone}</span>
+            </>
+          )}
+          {r.source && (
+            <>
+              <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+              <span style={{ textTransform:'capitalize' }}>{r.source}</span>
+            </>
+          )}
+        </div>
+
+        {/* Zone + table line */}
+        {tl && (
+          <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap', marginTop:1 }}>
+            <span style={{
+              display:'inline-flex', alignItems:'center', gap:4,
+              fontSize:11, fontWeight:650, padding:'2px 8px', borderRadius:6,
+              background:tl.bg, color:tl.color,
+            }}>{tl.icon} {tl.zone}</span>
+            <span style={{
+              fontSize:12, color:'var(--ink-600)', fontFamily:'var(--font-mono)', fontWeight:550,
+            }}>{tl.tableStr.replace(/^Taules?\s/, '')}</span>
+          </div>
+        )}
+
+        {/* Allergens — prominent rose banner */}
+        {hasAllergens && (
+          <div style={{
+            display:'flex', alignItems:'center', gap:6, flexWrap:'wrap',
+            marginTop:3, padding:'4px 9px',
+            background:'var(--rose-50)', borderRadius:7,
+            border:'1px solid rgba(194,74,74,.18)',
+            alignSelf:'flex-start', maxWidth:'100%',
+          }}>
+            <span style={{ fontSize:11, lineHeight:1 }}>⚠️</span>
+            <span style={{
+              fontSize:10, fontWeight:800, letterSpacing:.06,
+              color:'var(--rose-700)', textTransform:'uppercase',
+            }}>Al·lèrgens</span>
+            {allergens.length > 0 ? (
+              <span style={{
+                fontSize:11.5, color:'var(--rose-700)', fontWeight:600,
+                display:'inline-flex', alignItems:'center', gap:5, flexWrap:'wrap',
+              }}>
+                {allergens.slice(0, 4).map((id, i) => {
+                  const a = allergenById(id);
+                  if (!a) return null;
+                  return (
+                    <span key={id} style={{ display:'inline-flex', alignItems:'center', gap:3 }}>
+                      <span style={{ fontSize:12, lineHeight:1 }}>{a.emoji}</span>
+                      <span>{a.label}</span>
+                      {i < Math.min(allergens.length, 4) - 1 && (
+                        <span style={{ color:'var(--rose-600)', opacity:.5, marginLeft:2 }}>·</span>
+                      )}
+                    </span>
+                  );
+                })}
+                {allergens.length > 4 && (
+                  <span style={{ opacity:.7 }}>+{allergens.length - 4}</span>
+                )}
+              </span>
+            ) : (
+              <span style={{ fontSize:11.5, color:'var(--rose-700)', fontWeight:600 }}>
+                Cal preguntar
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Notes preview */}
+        {r.notes && (
+          <div style={{
+            fontSize:12, color:'var(--ink-500)', fontStyle:'italic',
+            marginTop:2, overflow:'hidden', textOverflow:'ellipsis',
+            display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' as const,
+          }}>
+            “{r.notes}”
+          </div>
+        )}
+      </div>
+
+      {/* Right side — status pill */}
+      <div style={{ flexShrink:0, alignSelf:'flex-start', marginTop:2 }}>
+        <ResStatePill state={r.status} />
+      </div>
     </button>
   );
 }
@@ -619,14 +707,15 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   };
 
   const [form, setForm] = useState({
-    date:   nowDate(),
-    time:   nowTime(),
-    name:   '',
-    phone:  '',
-    pax:    2,
-    notes:  '',
-    status: 'pending' as ReservationStatus,
-    source: 'directe',
+    date:      nowDate(),
+    time:      nowTime(),
+    name:      '',
+    phone:     '',
+    pax:       2,
+    notes:     '',
+    status:    'pending' as ReservationStatus,
+    source:    'directe',
+    allergens: [] as string[],
   });
   const [saved,         setSaved]         = useState(false);
   const [touched,       setTouched]       = useState(false);
@@ -640,7 +729,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
     if (!open) return;
-    setForm({ date: nowDate(), time: nowTime(), name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe' });
+    setForm({ date: nowDate(), time: nowTime(), name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe', allergens: [] });
     setSaved(false);
     setTouched(false);
     setClientQuery('');
@@ -689,15 +778,16 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
     if (!form.name.trim()) return;
     addReservation({
       bizId,
-      date:     form.date,
-      time:     form.time,
-      name:     form.name.trim(),
-      pax:      form.pax,
-      status:   form.status,
-      phone:    form.phone || undefined,
-      notes:    form.notes || undefined,
-      source:   form.source,
-      tableIds: selectedTableIds.length > 0 ? selectedTableIds : undefined,
+      date:      form.date,
+      time:      form.time,
+      name:      form.name.trim(),
+      pax:       form.pax,
+      status:    form.status,
+      phone:     form.phone || undefined,
+      notes:     form.notes || undefined,
+      source:    form.source,
+      tableIds:  selectedTableIds.length > 0 ? selectedTableIds : undefined,
+      allergens: form.allergens.length > 0 ? form.allergens : undefined,
     });
     setSaved(true);
     setTimeout(onClose, 700);
@@ -1080,10 +1170,45 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
                 </div>
               </div>
 
+              {/* Al·lèrgens — selector multi-chip */}
+              <div>
+                <label style={lbl}>
+                  Al·lèrgens i intoleràncies
+                  {form.allergens.length > 0 && (
+                    <span style={{ color:'var(--rose-700)', marginLeft:6, fontWeight:700 }}>
+                      · {form.allergens.length}
+                    </span>
+                  )}
+                </label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {ALLERGENS.map(a => {
+                    const active = form.allergens.includes(a.id);
+                    return (
+                      <button key={a.id} className="press"
+                        onClick={() => upd('allergens',
+                          active ? form.allergens.filter(x => x !== a.id)
+                                 : [...form.allergens, a.id])}
+                        style={{
+                          padding:'6px 11px', borderRadius:999,
+                          border: active ? '1.5px solid var(--rose-600)' : '1px solid rgba(60,40,20,.12)',
+                          background: active ? 'var(--rose-50)' : 'var(--paper)',
+                          color: active ? 'var(--rose-700)' : 'var(--ink-600)',
+                          fontFamily:'inherit', fontSize:12, fontWeight: active ? 700 : 550,
+                          cursor:'pointer',
+                          display:'flex', alignItems:'center', gap:4,
+                        }}>
+                        <span style={{ fontSize:13, lineHeight:1 }}>{a.emoji}</span>
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Notes */}
               <div>
                 <label style={lbl}>Notes</label>
-                <textarea rows={2} placeholder="Al·lèrgies, ocasió especial…" value={form.notes}
+                <textarea rows={2} placeholder="Ocasió especial, preferències…" value={form.notes}
                   onChange={e => upd('notes', e.target.value)}
                   onFocus={() => setShowDropdown(false)}
                   style={{ ...inp, padding:'10px 12px', resize:'none', lineHeight:1.5, fontSize:14 }} />
