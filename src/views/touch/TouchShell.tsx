@@ -335,15 +335,15 @@ export default function TouchShell() {
       {/* ── Bottom nav — in-flow, blur glass, split 2+2 around FAB spacer ── */}
       <nav style={{
         flexShrink: 0, zIndex: 50,
-        paddingBottom: 'calc(22px + env(safe-area-inset-bottom, 0px))',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingTop: 6,
         paddingLeft:  'max(4px, env(safe-area-inset-left,  0px))',
         paddingRight: 'max(4px, env(safe-area-inset-right, 0px))',
-        background: 'rgba(255,255,255,0.88)',
-        backdropFilter: 'blur(24px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+        background: 'rgba(255,255,255,0.96)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
         borderTop: 'var(--hair)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.7)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.8)',
         display: 'flex', alignItems: 'stretch',
       }}>
         {MOB_LEFT_TABS.map(t => (
@@ -364,7 +364,7 @@ export default function TouchShell() {
         style={{
           position: 'absolute',
           left: '50%',
-          bottom: 'calc(36px + env(safe-area-inset-bottom, 0px))',
+          bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
           transform: 'translateX(-50%)',
           width: 60, height: 60, borderRadius: 999,
           background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',

@@ -90,8 +90,8 @@
 
 /* ─── Layout helpers ─────────────────────────────────────────────────────── */
 :root {
-  /* Bottom-nav height used by mobile & tablet shells (new design: 78px) */
-  --mobile-nav-h: 78px;
+  /* Bottom-nav height used by mobile & tablet shells (new design: 56px + safe area) */
+  --mobile-nav-h: 56px;
   /* Safe-area shorthands (resolved from env() by the browser) */
   --safe-top:    env(safe-area-inset-top,    0px);
   --safe-right:  env(safe-area-inset-right,  0px);
