@@ -40,7 +40,7 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
     } else {
       setVis(false);
       // Keep mounted long enough for the exit transition to finish (--dur-sheet-exit ≈ 270ms)
-      const t = setTimeout(() => setMounted(false), 320);
+      const t = setTimeout(() => setMounted(false), 400);
       return () => clearTimeout(t);
     }
   }, [open]);

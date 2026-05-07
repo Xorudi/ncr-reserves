@@ -288,8 +288,10 @@ body::before {
   --dur-micro:      160ms;
   --dur-fast:       210ms;
   --dur-base:       270ms;
-  --dur-sheet:      420ms;
-  --dur-sheet-exit: 280ms;
+  /* Sheet timing: bumped from 420/280 because the previous values felt
+     abrupt in real testing — the user perceived the sheet snapping in. */
+  --dur-sheet:      540ms;
+  --dur-sheet-exit: 360ms;
 }
 
 /* ── Sheet backdrop ─────────────────────────────────────────────────────── */
@@ -358,40 +360,53 @@ body::before {
   animation-delay: calc(var(--row-i, 0) * 35ms);
 }
 
-/* ── Status morph — brief blur+scale dip when a status pill's value changes.
-   Bridges the colour swap so the eye reads it as one element transforming. */
+/* ── Status morph — deeper blur+scale dip so the colour swap is felt, not
+   just seen. Increased from 220ms / blur 2px / scale 0.94 after testing. */
 @keyframes status-morph {
-  0%   { filter: blur(0)   ; transform: scale(1);    opacity: 1;   }
-  45%  { filter: blur(2px) ; transform: scale(0.94); opacity: 0.55;}
-  100% { filter: blur(0)   ; transform: scale(1);    opacity: 1;   }
+  0%   { filter: blur(0)    ; transform: scale(1);    opacity: 1;   }
+  50%  { filter: blur(3.5px); transform: scale(0.86); opacity: 0.40;}
+  100% { filter: blur(0)    ; transform: scale(1);    opacity: 1;   }
 }
 .status-morph {
-  animation: status-morph 220ms var(--ease-in-out) both;
+  animation: status-morph 320ms var(--ease-in-out) both;
 }
 
-/* ── Number tween — used on KPI digits when their value changes.
-   Re-mounted via key={value} so the keyframes always run from the top. */
+/* ── Number tween — generous drop with a touch of scale so the new value
+   "lands". Bumped from translateY(-6) blur(1.5) 260ms after testing — the
+   previous fall was too short to register. */
 @keyframes number-drop {
-  from { opacity: 0; transform: translateY(-6px); filter: blur(1.5px); }
-  to   { opacity: 1; transform: translateY(0);    filter: blur(0);     }
+  from { opacity: 0; transform: translateY(-12px) scale(0.86); filter: blur(3px); }
+  60%  { opacity: 1; transform: translateY(2px)   scale(1.02); filter: blur(0);   }
+  to   {            transform: translateY(0)    scale(1);                        }
 }
 .number-tween {
-  animation: number-drop 260ms var(--ease-out) both;
+  animation: number-drop 420ms var(--ease-out) both;
   display: inline-block; /* needed so transform takes effect on inline text */
 }
 
-/* ── Save success morph — the new label rises into place with a subtle blur,
-   bridging the colour swap on the CTA. Used in the new-reservation form. */
+/* ── Save success morph — multi-stage: the new label rises into place with
+   a soft overshoot, the OLD label sinks out faster, and the button itself
+   gives a barely-perceptible pulse so the whole element registers the win.
+   Save is rare per-reservation so a tiny scale punch is permitted (Emil's
+   "bounce only for genuine success" carve-out). */
 @keyframes save-success-in {
-  from { opacity: 0; transform: scale(0.86) translateY(8px); filter: blur(3px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+  0%   { opacity: 0; transform: scale(0.72) translateY(16px); filter: blur(5px); }
+  55%  { opacity: 1; transform: scale(1.04) translateY(-2px); filter: blur(0);   }
+  100% {            transform: scale(1)    translateY(0);                       }
 }
 @keyframes save-success-out {
   from { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
-  to   { opacity: 0; transform: scale(0.94) translateY(-8px); filter: blur(2px); }
+  to   { opacity: 0; transform: scale(0.92) translateY(-10px); filter: blur(3px); }
 }
-.save-success-in  { animation: save-success-in  280ms var(--ease-out) both; }
-.save-success-out { animation: save-success-out 220ms var(--ease-out) both; }
+@keyframes save-button-pulse {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(1.018);}
+  70%  { transform: scale(0.997);}
+  100% { transform: scale(1);    }
+}
+.save-success-in    { animation: save-success-in  520ms var(--ease-out) both; }
+.save-success-out   { animation: save-success-out 280ms var(--ease-out) both; }
+.save-button-pulse  { animation: save-button-pulse 460ms var(--ease-in-out) both; }
 
 /* ── Chip tick — fires once when a toggle chip becomes active.
    A subtle scale pop without harsh overshoot. */

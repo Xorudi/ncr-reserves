@@ -17,6 +17,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useDevice } from '@/hooks/useDevice';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
+import Toaster from '@/components/shared/Toaster';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
 // ── Touch screens — shared between mobile and tablet ─────────────────────────
@@ -508,6 +509,7 @@ export default function TouchShell() {
         </main>
 
         {pickers}
+        <Toaster />
       </div>
     );
   }
@@ -658,6 +660,7 @@ export default function TouchShell() {
       </button>
 
       {pickers}
+      <Toaster />
     </div>
   );
 }

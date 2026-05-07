@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
+import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
 
 /**
@@ -288,7 +289,7 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
     addReservation, floorPlans, updateReservationStatus,
   } = useAppStore();
 
-  // Forward status progression for swipe-to-advance
+  // Forward status progression for swipe-to-advance + confirmation toast
   function advanceStatus(r: Reservation) {
     const next: Partial<Record<ReservationStatus, ReservationStatus>> = {
       pending:   'confirmed',
@@ -296,7 +297,19 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
       seated:    'completed',
     };
     const ns = next[r.status];
-    if (ns) updateReservationStatus(r.id, ns);
+    if (!ns) return;
+    updateReservationStatus(r.id, ns);
+    const labels: Record<string, string> = {
+      confirmed: 'Confirmada',
+      seated:    'A taula',
+      completed: 'Acabada',
+    };
+    const tones: Record<string, 'olive' | 'terracotta' | 'ink'> = {
+      confirmed: 'olive',
+      seated:    'terracotta',
+      completed: 'ink',
+    };
+    toast(`${r.name} · ${labels[ns]}`, { icon: 'check', tone: tones[ns] });
   }
   function swipeMetaFor(r: Reservation): {
     label: string; bg: string; fg: string; ring: string; disabled: boolean;
@@ -1560,7 +1573,8 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
           borderTop:'1px solid rgba(60,40,20,.08)',
           background:'var(--paper)',
         }}>
-          <button onClick={handleSave} disabled={saved} className="press"
+          <button onClick={handleSave} disabled={saved}
+            className={`press ${saved ? 'save-button-pulse' : ''}`}
             style={{
               position:'relative',
               width:'100%', padding:'15px', borderRadius:14, border:'none', cursor:'pointer',
