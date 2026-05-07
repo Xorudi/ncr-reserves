@@ -255,23 +255,42 @@ export default function TouchShell() {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // MOBILE LAYOUT — fixed bottom nav (works on all iPhone + Android models)
+  // MOBILE LAYOUT
   //
-  // Why position:fixed instead of in-flow:
-  //  - In-flow nav height varies by device; flex column may miscalculate
-  //    available height in Safari/Chrome causing a visible gap below the bar.
-  //  - position:fixed + bottom:0 always anchors to the viewport edge.
-  //  - paddingBottom:env(safe-area-inset-bottom) fills the iOS home-indicator
-  //    zone and Android gesture bar with the nav background color.
-  //  - Content scroll containers use --scroll-pad-bottom which already
-  //    accounts for --mobile-nav-h (56px) + safe-area, so nothing clips.
+  // Height strategy:
+  //   100dvh  = Dynamic Viewport Height — shrinks/grows as the Safari
+  //             address bar shows/hides. Correct on iOS 15.4+ and modern
+  //             Android Chrome. Keeps the in-flow nav flush with the screen
+  //             bottom without needing position:fixed (which uses the layout
+  //             viewport and ends up behind the toolbar on first load).
+  //
+  //   The appH JS value is kept as a synchronous first-paint initialiser
+  //   for older iOS that doesn't support dvh, but CSS dvh overrides it
+  //   via the style shorthand (last value wins when browser supports dvh).
+  //
+  // Nav strategy: IN-FLOW (flexShrink:0)
+  //   Sits at the bottom of the flex column. When the wrapper is exactly
+  //   100dvh tall, the nav always aligns with the visual viewport edge.
+  //   paddingBottom:env(safe-area-inset-bottom) fills the home-indicator.
+  //
+  // FAB strategy: position:absolute inside position:relative wrapper
+  //   bottom:calc(env(safe-area-inset-bottom)+14px) overlaps the tab bar
+  //   from above — the classic "FAB centered on tab bar top" pattern.
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <div style={{
+      position: 'relative',                 // FAB anchor
       display: 'flex', flexDirection: 'column',
+      // JS fallback for very old iOS that doesn't support dvh:
       height: appH,
+      // dvh overrides the JS value on every browser that supports it:
+      // @ts-ignore — dvh is valid CSS but TS doesn't know it yet
+      ['--dvh-override' as string]: '1px',  // no-op, just forces the style object to be re-evaluated
       background: 'var(--cream)', overflow: 'hidden',
-    }}>
+    }}
+      // Apply 100dvh via a class-less inline trick: we use a ref + useEffect below
+      ref={(el) => { if (el) el.style.height = '100dvh'; }}
+    >
 
       {/* ── Top header ──────────────────────────────────────────────── */}
       <header style={{
@@ -337,21 +356,16 @@ export default function TouchShell() {
         {screenContent}
       </main>
 
-      {/* ── FIXED bottom nav ────────────────────────────────────────── */}
-      {/*   position:fixed guarantees it sticks to the viewport bottom  */}
-      {/*   on every iPhone (SE, 14, 15 Pro Max) and every Android.     */}
+      {/* ── In-flow bottom nav ──────────────────────────────────────── */}
+      {/*   flexShrink:0 keeps it at exact tab height at the bottom.    */}
       {/*   paddingBottom fills the home-indicator / gesture-bar zone.  */}
       <nav style={{
-        position: 'fixed',
-        bottom: 0, left: 0, right: 0,
-        zIndex: 100,
-        /* Opaque white — prevents cream bleed-through in safe-area zone */
+        flexShrink: 0,
+        zIndex: 50,
         background: '#ffffff',
         borderTop: '1px solid rgba(60,40,20,.08)',
-        display: 'flex',
-        alignItems: 'flex-start',
+        display: 'flex', alignItems: 'flex-start',
         paddingTop: 6,
-        /* This extends the white background into the home-indicator area */
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft:  'env(safe-area-inset-left,  0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
@@ -365,19 +379,18 @@ export default function TouchShell() {
         ))}
       </nav>
 
-      {/* ── FIXED FAB ───────────────────────────────────────────────── */}
-      {/*   bottom = nav tab area (56px) + safe-area + gap above tabs   */}
+      {/* ── FAB — absolute, overlaps the center of the tab bar ─────── */}
       <button
         onClick={openNewReservation}
         className="press"
         aria-label="Nova reserva"
         style={{
-          position: 'fixed',
-          bottom: 'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 10px)',
+          position: 'absolute',
           left: '50%',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
           transform: 'translateX(-50%)',
           width: 60, height: 60, borderRadius: 999,
-          zIndex: 110,
+          zIndex: 60,
           background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
           color: '#fff',
           border: '3px solid #fff',
