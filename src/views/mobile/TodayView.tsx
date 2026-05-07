@@ -201,12 +201,24 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
           const showTimeHeader = !prev || prev.time !== r.time;
           return (
             <React.Fragment key={r.id}>
-              {showTimeHeader && (
-                <div style={{ padding:'14px 18px 6px', display:'flex', alignItems:'center', gap:10 }}>
-                  <span className="mono" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)', flexShrink:0 }}>{r.time}</span>
-                  <div style={{ flex:1, height:1, background:'rgba(60,40,20,.08)' }} />
-                </div>
-              )}
+              {showTimeHeader && (() => {
+                const isLunch = parseH(r.time) < 18;
+                const dotColor = isLunch ? 'var(--clay-500)' : 'var(--plum-600)';
+                const lineColor = isLunch ? 'rgba(204,144,73,.18)' : 'rgba(138,79,118,.18)';
+                return (
+                  <div style={{ padding:'14px 18px 6px', display:'flex', alignItems:'center', gap:10 }}>
+                    <span style={{
+                      width:7, height:7, borderRadius:999, background:dotColor, flexShrink:0,
+                      boxShadow:`0 0 0 3px ${isLunch ? 'rgba(204,144,73,.14)' : 'rgba(138,79,118,.14)'}`,
+                    }} />
+                    <span className="mono" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)', flexShrink:0 }}>{r.time}</span>
+                    <div style={{
+                      flex:1, height:1,
+                      background: `linear-gradient(90deg, ${lineColor} 0%, rgba(60,40,20,.04) 100%)`,
+                    }} />
+                  </div>
+                );
+              })()}
               <ResRow
                 res={r}
                 selected={sel?.id === r.id}
@@ -266,29 +278,42 @@ function ResStatePill({ state }: { state: ReservationStatus }) {
 }
 
 // ─── Reservation row (new design) ─────────────────────────────────────────────
+// Colors per estat — il·luminen la fila amb un toc subtil del color de l'estat
+const STATUS_TINT: Record<string, { paxBg: string; paxFg: string; paxRing: string; rowTint: string }> = {
+  pending:   { paxBg:'var(--clay-50)',       paxFg:'var(--clay-700)',       paxRing:'var(--clay-500)',       rowTint:'rgba(204,144,73,.04)'   },
+  confirmed: { paxBg:'var(--olive-50)',      paxFg:'var(--olive-700)',      paxRing:'var(--olive-600)',      rowTint:'rgba(116,133,74,.04)'   },
+  seated:    { paxBg:'var(--terracotta-50)', paxFg:'var(--terracotta-700)', paxRing:'var(--terracotta-600)', rowTint:'rgba(200,97,58,.05)'    },
+  completed: { paxBg:'var(--ink-100)',       paxFg:'var(--ink-700)',        paxRing:'var(--ink-500)',        rowTint:'transparent'            },
+  cancelled: { paxBg:'#f2ebe4',              paxFg:'var(--ink-500)',        paxRing:'var(--ink-400)',        rowTint:'transparent'            },
+  noshow:    { paxBg:'var(--rose-50)',       paxFg:'var(--rose-700)',       paxRing:'var(--rose-600)',       rowTint:'rgba(194,74,74,.04)'    },
+};
+
 function ResRow({ res: r, selected, onSel, plan }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
 }) {
-  const tl = buildTableLine(r, plan);
+  const tl   = buildTableLine(r, plan);
+  const tint = STATUS_TINT[r.status] ?? STATUS_TINT.pending;
 
   return (
     <button onClick={() => onSel(r)} className="press"
       style={{
         width:'100%', textAlign:'left',
-        background: selected ? 'var(--terracotta-50)' : 'var(--paper)',
+        background: selected ? 'var(--terracotta-50)' : tint.rowTint,
         border:'none', borderTop:'var(--hair)',
         padding:'12px 18px', cursor:'pointer',
         display:'flex', gap:12, alignItems:'center',
         transition:'background 160ms var(--ease-ios)',
       }}>
 
-      {/* Pax circle — Fraunces serif */}
+      {/* Pax circle — Fraunces serif amb anell de color segons estat */}
       <div style={{
         width:42, height:42, borderRadius:12, flexShrink:0,
-        background:'var(--cream)',
+        background: tint.paxBg,
+        boxShadow: `inset 0 0 0 1.5px ${tint.paxRing}`,
         display:'flex', alignItems:'center', justifyContent:'center',
-        fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:'var(--ink-900)',
+        fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
+        color: tint.paxFg,
       }}>{r.pax}</div>
 
       {/* Name + zone/table */}
