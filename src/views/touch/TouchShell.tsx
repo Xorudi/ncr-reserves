@@ -27,19 +27,35 @@ import TouchMoreScreen         from '@/views/mobile/MobileMoreScreen';
 
 export type TouchTab = 'reservations' | 'tables' | 'walkin' | 'clients' | 'more';
 
-const TABS: { id: TouchTab; label: string; ico: React.ReactNode; special?: boolean }[] = [
+// Bottom-nav tabs — "more" lives in the header on mobile, in side rail on tablet
+const NAV_TABS: { id: TouchTab; label: string; ico: React.ReactNode; special?: boolean }[] = [
   { id: 'reservations', label: 'Reserves', ico: I.calendar },
-  { id: 'tables',       label: 'Taules',   ico: I.tableIco },
   { id: 'walkin',       label: 'Walk-in',  ico: I.walkin,  special: true },
+  // center slot is the "+" action button — rendered separately
+  { id: 'tables',       label: 'Taules',   ico: I.tableIco },
+  { id: 'clients',      label: 'Clients',  ico: I.users },
+];
+
+// Side-rail tabs on tablet (includes Més)
+const RAIL_TABS: { id: TouchTab; label: string; ico: React.ReactNode; special?: boolean }[] = [
+  { id: 'reservations', label: 'Reserves', ico: I.calendar },
+  { id: 'walkin',       label: 'Walk-in',  ico: I.walkin,  special: true },
+  { id: 'tables',       label: 'Taules',   ico: I.tableIco },
   { id: 'clients',      label: 'Clients',  ico: I.users },
   { id: 'more',         label: 'Més',      ico: I.dotsH },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function TouchShell() {
-  const [tab, setTab]                   = useState<TouchTab>('reservations');
+  const [tab, setTab]                       = useState<TouchTab>('reservations');
   const [showBizPicker,  setShowBizPicker]  = useState(false);
   const [showUserPicker, setShowUserPicker] = useState(false);
+  const [newResTrigger,  setNewResTrigger]  = useState(0);
+
+  function openNewReservation() {
+    setTab('reservations');
+    setNewResTrigger(n => n + 1);
+  }
 
   const {
     selectedBusiness, setSelectedBusiness,
@@ -88,7 +104,7 @@ export default function TouchShell() {
   const screenContent = (
     <div key={tab} className="tab-enter"
       style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {tab === 'reservations' && <TouchReservationsScreen />}
+      {tab === 'reservations' && <TouchReservationsScreen newResTrigger={newResTrigger} />}
       {tab === 'tables'       && <TouchTablesScreen />}
       {tab === 'walkin'       && <TouchWalkInScreen onSwitchTab={setTab} />}
       {tab === 'clients'      && <TouchClientsScreen />}
@@ -150,7 +166,20 @@ export default function TouchShell() {
 
           {/* Tab buttons */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 6px' }}>
-            {TABS.map(t => {
+            {/* "+" action button at top of rail */}
+            <button onClick={openNewReservation} className="nav-btn press"
+              title="Nova reserva"
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                padding: '8px 4px', border: 'none', borderRadius: 10,
+                background: 'var(--terracotta-600)', color: 'white',
+                cursor: 'pointer', fontFamily: 'inherit', marginBottom: 6,
+              }}>
+              <Icon d={I.plus} size={22} stroke={2.2} />
+              <span style={{ fontSize: 9.5, fontWeight: 700 }}>Nova</span>
+            </button>
+
+            {RAIL_TABS.map(t => {
               const active = tab === t.id;
               if (t.special) {
                 return (
@@ -262,6 +291,19 @@ export default function TouchShell() {
           <Icon d={I.chevD} size={13} />
         </button>
 
+        {/* Més button — moved from bottom nav to header */}
+        <button onClick={() => setTab('more')}
+          style={{
+            width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+            display: 'grid', placeItems: 'center',
+            border: '1px solid rgba(60,40,20,.12)',
+            background: tab === 'more' ? 'var(--terracotta-50)' : 'var(--cream)',
+            color: tab === 'more' ? 'var(--terracotta-600)' : 'var(--ink-500)',
+            cursor: 'pointer',
+          }}>
+          <Icon d={I.dotsH} size={18} stroke={1.8} />
+        </button>
+
         {/* User pill */}
         <button onClick={() => setShowUserPicker(true)}
           style={{
@@ -308,48 +350,82 @@ export default function TouchShell() {
         paddingLeft:   'env(safe-area-inset-left,   0px)',
         paddingRight:  'env(safe-area-inset-right,  0px)',
       }}>
-        {TABS.map(t => {
-          const active = tab === t.id;
-          if (t.special) {
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                  padding: '8px 4px 10px', border: 'none', background: 'transparent',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}>
-                <span style={{
-                  width: 42, height: 30, borderRadius: 10, display: 'grid', placeItems: 'center',
-                  background: active ? 'var(--terracotta-600)' : 'transparent',
-                  border: active ? 'none' : '1.5px solid var(--terracotta-500)',
-                  color: active ? 'white' : 'var(--terracotta-600)',
-                  transition: 'background .15s, border .15s', boxSizing: 'border-box',
-                }}>
-                  <Icon d={t.ico} size={20} stroke={active ? 2.2 : 1.8} />
-                </span>
-                <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, color: active ? 'var(--terracotta-600)' : 'var(--ink-500)' }}>
-                  {t.label}
-                </span>
-              </button>
-            );
-          }
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)} className="nav-btn press"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                padding: '10px 4px 10px', border: 'none', background: 'transparent',
-                cursor: 'pointer', fontFamily: 'inherit',
-                color: active ? 'var(--terracotta-600)' : 'var(--ink-500)',
-              }}>
-              <Icon d={t.ico} size={22} stroke={active ? 2.1 : 1.6} />
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{t.label}</span>
-            </button>
-          );
-        })}
+        {/* Reserves */}
+        <NavBtn id="reservations" tab={tab} setTab={setTab} label="Reserves" ico={I.calendar} />
+        {/* Walk-in */}
+        <NavBtn id="walkin" tab={tab} setTab={setTab} label="Walk-in" ico={I.walkin} special />
+        {/* Centre: "+" action button — not a nav tab */}
+        <button
+          onClick={openNewReservation}
+          className="press"
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+            padding: '6px 4px 10px',
+          }}>
+          <span style={{
+            width: 48, height: 48, borderRadius: '50%',
+            background: 'var(--terracotta-600)',
+            boxShadow: '0 3px 12px rgba(160,60,20,.38)',
+            display: 'grid', placeItems: 'center',
+            color: 'white',
+            marginTop: -10,
+            flexShrink: 0,
+          }}>
+            <Icon d={I.plus} size={24} stroke={2.2} />
+          </span>
+        </button>
+        {/* Taules */}
+        <NavBtn id="tables" tab={tab} setTab={setTab} label="Taules" ico={I.tableIco} />
+        {/* Clients */}
+        <NavBtn id="clients" tab={tab} setTab={setTab} label="Clients" ico={I.users} />
       </nav>
 
       {pickers}
     </div>
+  );
+}
+
+// ─── Nav button — reusable tab button for bottom nav ──────────────────────────
+function NavBtn({ id, tab, setTab, label, ico, special }: {
+  id: TouchTab; tab: TouchTab; setTab: (t: TouchTab) => void;
+  label: string; ico: React.ReactNode; special?: boolean;
+}) {
+  const active = tab === id;
+  if (special) {
+    return (
+      <button onClick={() => setTab(id)} className="nav-btn press"
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+          padding: '8px 4px 10px', border: 'none', background: 'transparent',
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>
+        <span style={{
+          width: 42, height: 30, borderRadius: 10, display: 'grid', placeItems: 'center',
+          background: active ? 'var(--terracotta-600)' : 'transparent',
+          border: active ? 'none' : '1.5px solid var(--terracotta-500)',
+          color: active ? 'white' : 'var(--terracotta-600)',
+          transition: 'background .15s, border .15s', boxSizing: 'border-box',
+        }}>
+          <Icon d={ico} size={20} stroke={active ? 2.2 : 1.8} />
+        </span>
+        <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, color: active ? 'var(--terracotta-600)' : 'var(--ink-500)' }}>
+          {label}
+        </span>
+      </button>
+    );
+  }
+  return (
+    <button onClick={() => setTab(id)} className="nav-btn press"
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+        padding: '10px 4px 10px', border: 'none', background: 'transparent',
+        cursor: 'pointer', fontFamily: 'inherit',
+        color: active ? 'var(--terracotta-600)' : 'var(--ink-500)',
+      }}>
+      <Icon d={ico} size={22} stroke={active ? 2.1 : 1.6} />
+      <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{label}</span>
+    </button>
   );
 }
 
