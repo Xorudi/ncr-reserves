@@ -399,17 +399,30 @@ body::before {
   }
 }
 
-/* ── Day-change content animation (directional) ─────────────────────────── */
-@keyframes day-next {
-  from { opacity: 0; transform: translateX(16px); }
-  to   { opacity: 1; transform: translateX(0);    }
+/* ── Day-change reveal — clip-path bridges old and new content as a single
+   transformation instead of two stacked translations crossfading. */
+@keyframes day-next-reveal {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0);    }
 }
-@keyframes day-prev {
-  from { opacity: 0; transform: translateX(-16px); }
-  to   { opacity: 1; transform: translateX(0);     }
+@keyframes day-prev-reveal {
+  from { opacity: 0; clip-path: inset(0 0 0 100%); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0);    }
 }
-.day-next { animation: day-next var(--dur-fast) var(--ease-ios) both; }
-.day-prev { animation: day-prev var(--dur-fast) var(--ease-ios) both; }
+.day-next { animation: day-next-reveal 340ms var(--ease-in-out) both; }
+.day-prev { animation: day-prev-reveal 340ms var(--ease-in-out) both; }
+
+/* ── FAB scroll-react — fades and shrinks on scroll-down, returns on
+   scroll-up or idle. The shell flips a class on the FAB based on scroll. */
+.fab-hidden {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+.fab-mobile { /* class marker for mobile FAB */
+  /* keep the existing translateX(-50%) anchor; only the scale changes */
+}
+.fab-mobile.fab-hidden  { transform: translateX(-50%) scale(0.55) !important; }
+.fab-tablet.fab-hidden  { transform: scale(0.55) !important; }
 
 /* ── Nav tab indicator slide ────────────────────────────────────────────── */
 .nav-btn {

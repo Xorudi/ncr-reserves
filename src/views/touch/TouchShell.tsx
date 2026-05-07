@@ -123,6 +123,33 @@ export default function TouchShell() {
   // Operator's shift label for rail footer
   const operatorShift: 'M' | 'N' | null = activeShift?.id ?? null;
 
+  // ── FAB scroll-react ────────────────────────────────────────────────────
+  // Listens (capture phase) to scroll on any descendant `.scroll` container,
+  // tracks scrollTop direction with hysteresis, and toggles `fabHidden` so
+  // the FAB shrinks/fades on scroll-down and returns on scroll-up or idle.
+  const [fabHidden, setFabHidden] = useState(false);
+  useEffect(() => {
+    let lastY = 0;
+    let idleTimer: number | null = null;
+    const onScroll = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      if (!t || !(t instanceof HTMLElement)) return;
+      if (!t.classList?.contains('scroll')) return;
+      const y = t.scrollTop;
+      const dy = y - lastY;
+      if (y > 60 && dy > 4)       setFabHidden(true);
+      else if (dy < -3 || y < 30) setFabHidden(false);
+      lastY = y;
+      if (idleTimer !== null) window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => setFabHidden(false), 1400);
+    };
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener('scroll', onScroll, { capture: true } as EventListenerOptions);
+      if (idleTimer !== null) window.clearTimeout(idleTimer);
+    };
+  }, []);
+
   // ── Track the true VISUAL viewport height ────────────────────────────────
   // The visual viewport is the area actually visible to the user — it shrinks
   // when iOS Safari's toolbar slides in and grows when it slides out. This
@@ -430,7 +457,7 @@ export default function TouchShell() {
           {/* FAB bottom-right — opens new reservation */}
           <button
             onClick={openNewReservation}
-            className="press"
+            className={`press fab-tablet ${fabHidden ? 'fab-hidden' : ''}`}
             aria-label="Nova reserva"
             style={{
               position: 'absolute',
@@ -445,6 +472,7 @@ export default function TouchShell() {
               cursor: 'pointer',
               boxShadow: '0 8px 24px rgba(168,74,42,.38), 0 2px 6px rgba(168,74,42,.18)',
               WebkitTapHighlightColor: 'transparent',
+              transition: 'transform 280ms var(--ease-out), opacity 220ms var(--ease-out), box-shadow 220ms var(--ease-out)',
             }}>
             <Icon d={I.plus} size={28} stroke={2.4} />
           </button>
@@ -574,7 +602,7 @@ export default function TouchShell() {
       {/* ── FAB — absolute, overlaps the center of the tab bar ─────── */}
       <button
         onClick={openNewReservation}
-        className="press"
+        className={`press fab-mobile ${fabHidden ? 'fab-hidden' : ''}`}
         aria-label="Nova reserva"
         style={{
           position: 'absolute',
@@ -594,6 +622,7 @@ export default function TouchShell() {
             ' 0 6px 18px rgba(168,74,42,.42),' +
             ' 0 2px 4px rgba(168,74,42,.22)',
           WebkitTapHighlightColor: 'transparent',
+          transition: 'transform 280ms var(--ease-out), opacity 220ms var(--ease-out), box-shadow 220ms var(--ease-out)',
         }}>
         <Icon d={I.plus} size={26} stroke={2.4} />
       </button>
