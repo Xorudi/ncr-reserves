@@ -346,6 +346,8 @@ export default function TouchShell() {
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
         borderTop: 'var(--hair)', background: 'var(--paper)',
         display: 'grid', gridTemplateColumns: 'repeat(5,1fr)',
+        alignItems: 'center',
+        overflow: 'visible',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         paddingLeft:   'env(safe-area-inset-left,   0px)',
         paddingRight:  'env(safe-area-inset-right,  0px)',
@@ -361,15 +363,15 @@ export default function TouchShell() {
           style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-            padding: '6px 4px 10px',
+            padding: '8px 4px',
           }}>
           <span style={{
-            width: 48, height: 48, borderRadius: '50%',
+            width: 50, height: 50, borderRadius: '50%',
             background: 'var(--terracotta-600)',
             boxShadow: '0 3px 12px rgba(160,60,20,.38)',
             display: 'grid', placeItems: 'center',
             color: 'white',
-            marginTop: -10,
+            transform: 'translateY(-8px)',
             flexShrink: 0,
           }}>
             <Icon d={I.plus} size={24} stroke={2.2} />
