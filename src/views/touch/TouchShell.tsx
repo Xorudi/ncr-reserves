@@ -527,8 +527,11 @@ function TabletTopBar({
   setSelectedDate: (d: Date) => void;
 }) {
   const d = selectedDate;
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const selIso   = d.toISOString().slice(0, 10);
+  // Local-date ISO (avoids UTC off-by-one in CET/CEST)
+  const localIso = (x: Date) =>
+    `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  const todayIso = localIso(new Date());
+  const selIso   = localIso(d);
   const isToday  = todayIso === selIso;
   const dayLabel = `${DAYS_CA[d.getDay()]}, ${d.getDate()} de ${MONTHS_CA[d.getMonth()]}`;
 
@@ -560,10 +563,16 @@ function TabletTopBar({
         <Icon d={I.chevL} size={18} stroke={2} />
       </button>
 
-      {/* Date label — centered */}
-      <div style={{
+      {/* Date label — clicable, opens native date picker */}
+      <label style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-      }}>
+        cursor: 'pointer', position: 'relative',
+        padding: '6px 14px', borderRadius: 10,
+        transition: 'background 160ms var(--ease-ios)',
+      }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
         <span style={{
           fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
           color: 'var(--ink-900)', letterSpacing: -.005, textTransform: 'capitalize',
@@ -573,7 +582,22 @@ function TabletTopBar({
         <span style={{ color: 'var(--ink-500)', display: 'flex' }}>
           <Icon d={I.calendar} size={16} stroke={1.7} />
         </span>
-      </div>
+        {/* Hidden native date input — tapping the label opens the picker */}
+        <input type="date"
+          value={selIso}
+          onChange={e => {
+            if (!e.target.value) return;
+            const [y, m, dd] = e.target.value.split('-').map(Number);
+            setSelectedDate(new Date(y, (m || 1) - 1, dd || 1));
+          }}
+          style={{
+            position: 'absolute', inset: 0,
+            opacity: 0, cursor: 'pointer',
+            border: 'none', background: 'transparent',
+            color: 'transparent', fontFamily: 'inherit',
+          }}
+        />
+      </label>
 
       {/* Next day */}
       <button onClick={() => shiftDay(1)} className="day-btn press"
