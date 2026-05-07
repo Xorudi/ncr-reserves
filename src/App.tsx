@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDevice } from '@/hooks/useDevice';
 import DesktopShell from '@/views/desktop/DesktopShell';
-import TabletShell  from '@/views/tablet/TabletShell';
-import MobileShell  from '@/views/mobile/MobileShell';
+import TouchShell   from '@/views/touch/TouchShell';
 import { startBackupScheduler } from '@/backup/backupScheduler';
 import { useBackupStore } from '@/backup/useBackupStore';
 import {
@@ -14,8 +13,8 @@ import {
 /**
  * Root router — picks the correct shell based on device context.
  *
- *  mobile  (<768 px / touch)                  → MobileShell  (bottom-nav PWA)
- *  tablet  (768–1099 px  OR touch < 1100)     → TabletShell  (left side-nav)
+ *  mobile  (<768 px)                           → TouchShell   (bottom-nav)
+ *  tablet  (768–1099 px OR touch ≥ 768)       → TouchShell   (left side-nav)
  *  desktop (≥1100 px, non-touch)              → DesktopShell (full sidebar)
  *
  * On mount:
@@ -44,7 +43,6 @@ export default function App() {
     };
   }, []);
 
-  if (isMobile) return <MobileShell />;
-  if (isTablet)  return <TabletShell />;
+  if (isMobile || isTablet) return <TouchShell />;
   return <DesktopShell />;
 }
