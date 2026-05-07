@@ -77,7 +77,12 @@ function SwipeableRow({
   const opacity = Math.min(Math.max(dx / THRESH_PX, 0), 1);
 
   return (
-    <div style={{ position:'relative', overflow:'hidden' }}>
+    // data-swipeable signals to the shell-level day-swipe handler that this
+    // surface owns its horizontal gesture and the shell must not also fire.
+    // Always set: even disabled rows must absorb horizontal motion so the
+    // user never accidentally jumps days while interacting with a reservation.
+    <div data-swipeable="true"
+      style={{ position:'relative', overflow:'hidden' }}>
       {/* Forward-action overlay revealed under the row */}
       <div aria-hidden style={{
         position:'absolute', inset:0,

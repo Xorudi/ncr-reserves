@@ -201,12 +201,27 @@ export default function TouchShell() {
   // ── Swipe L/R to change date on date-aware tabs ───────────────────────────
   const touchStartX = useRef<number>(0);
   const touchStartY = useRef<number>(0);
+  // When a touch starts on an element marked [data-swipeable] (e.g. a
+  // SwipeableRow advancing reservation status, or any other gesture-owning
+  // surface), the shell-level day-change swipe must NOT also fire. We set
+  // this flag at touchstart and check it at touchend.
+  const ignoreShellSwipe = useRef(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest?.('[data-swipeable]')) {
+      ignoreShellSwipe.current = true;
+      return;
+    }
+    ignoreShellSwipe.current = false;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (ignoreShellSwipe.current) {
+      ignoreShellSwipe.current = false;
+      return;
+    }
     // Tables manages its own horizontal swipe (zone change), so only
     // the Reservations tab triggers date change at the shell level.
     if (tab !== 'reservations') return;
