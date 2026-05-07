@@ -81,11 +81,20 @@ export default function TouchShell() {
     employees, employeeRoles,
     activeEmployeeId, setActiveEmployee,
     selectedDate, setSelectedDate,
+    reservations,
   } = useAppStore();
 
   const { isTablet, isStandalone } = useDevice();
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
+
+  // Reserves pendents del dia → mostra un badge a la pestanya Reserves
+  const pendingResCount = (() => {
+    const iso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+    return reservations.filter(r =>
+      r.bizId === selectedBusiness && r.date === iso && r.status === 'pending',
+    ).length;
+  })();
 
   // ── Track the true VISUAL viewport height ────────────────────────────────
   // The visual viewport is the area actually visible to the user — it shrinks
@@ -187,73 +196,117 @@ export default function TouchShell() {
         paddingTop: isStandalone ? 'env(safe-area-inset-top)' : undefined,
       }}>
 
-        {/* ── Left side rail ──────────────────────────────────────────── */}
+        {/* ── Left side rail ───────────────────────────────────────────
+              Diseño integrado: mismo crema que el main, sin borde duro,
+              marca con identidad serif, tabs como tiles + badge en
+              Reserves cuando hi ha pendents de confirmar. */}
         <nav style={{
-          width: 72, flexShrink: 0,
+          width: 86, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
-          background: 'var(--paper)', borderRight: 'var(--hair)',
-          paddingTop: 8,
+          background: 'var(--cream)',
+          // Reemplaza el borde duro per una ombra subtil que dóna profunditat
+          boxShadow: 'inset -1px 0 0 rgba(60,40,20,.05)',
+          paddingTop: 14,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
-          {/* Biz monogram — tap to switch */}
-          <button onClick={() => setShowBizPicker(true)} title={biz.name}
+          {/* ── Brand block — tile gros + nom curt en mono ─────────── */}
+          <button onClick={() => setShowBizPicker(true)} title={`${biz.name} — canviar negoci`}
             style={{
-              margin: '0 auto 12px', width: 44, height: 44, borderRadius: 11,
+              margin: '0 auto 4px', width: 52, height: 52, borderRadius: 14,
               background: biz.hueSoft, color: biz.hue,
-              fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-serif)',
+              fontWeight: 600, fontSize: 18, fontFamily: 'var(--font-serif)',
               display: 'grid', placeItems: 'center',
-              border: 'none', cursor: 'pointer',
+              border: `1px solid ${biz.hue}22`,
+              cursor: 'pointer', letterSpacing: -.005,
+              boxShadow: '0 1px 2px rgba(60,40,20,.04)',
             }}>
             {biz.monogram}
           </button>
+          <div style={{
+            textAlign: 'center', fontSize: 9, fontFamily: 'var(--font-mono)',
+            color: 'var(--ink-500)', fontWeight: 600, letterSpacing: .12,
+            textTransform: 'uppercase', marginBottom: 18,
+            padding: '0 4px',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {biz.name}
+          </div>
 
-          {/* Tab buttons */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, padding: '0 8px' }}>
+          {/* Hairline separator */}
+          <div style={{
+            margin: '0 14px 14px', height: 1,
+            background: 'rgba(60,40,20,.07)',
+          }} />
+
+          {/* ── Tab buttons ──────────────────────────────────────── */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, padding: '0 10px' }}>
             {RAIL_TABS.map(t => {
               const active = tab === t.id;
-              if (t.special) {
-                return (
-                  <button key={t.id} onClick={() => setTab(t.id)} className="nav-btn press"
-                    style={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                      padding: '8px 4px', border: 'none', borderRadius: 10,
-                      background: active ? 'var(--terracotta-600)' : 'var(--terracotta-50)',
-                      color: active ? 'white' : 'var(--terracotta-600)',
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}>
-                    <Icon d={t.ico} size={22} stroke={active ? 2.2 : 1.7} />
-                    <span style={{ fontSize: 9.5, fontWeight: 600 }}>{t.label}</span>
-                  </button>
-                );
-              }
+              const showBadge = t.id === 'reservations' && pendingResCount > 0;
               return (
                 <button key={t.id} onClick={() => setTab(t.id)} className="nav-btn press"
                   style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                    padding: '9px 4px', border: 'none', borderRadius: 10,
-                    background: active ? 'rgba(60,40,20,.07)' : 'transparent',
-                    color: active ? 'var(--terracotta-600)' : 'var(--ink-500)',
+                    position: 'relative',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                    padding: '10px 4px 9px', border: 'none', borderRadius: 12,
+                    background: active ? 'var(--paper)' : 'transparent',
+                    boxShadow: active ? '0 1px 3px rgba(60,40,20,.06), 0 0 0 1px rgba(60,40,20,.05)' : 'none',
+                    color: active ? 'var(--terracotta-700)' : 'var(--ink-500)',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                   <Icon d={t.ico} size={22} stroke={active ? 2.1 : 1.6} />
-                  <span style={{ fontSize: 9.5, fontWeight: active ? 700 : 500 }}>{t.label}</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: active ? 700 : 550,
+                    letterSpacing: .01,
+                    color: active ? 'var(--ink-900)' : 'var(--ink-500)',
+                  }}>{t.label}</span>
+                  {showBadge && (
+                    <span style={{
+                      position: 'absolute', top: 6, right: 14,
+                      minWidth: 16, height: 16, padding: '0 4px',
+                      borderRadius: 999,
+                      background: 'var(--terracotta-600)', color: '#fff',
+                      fontSize: 9.5, fontWeight: 700,
+                      display: 'grid', placeItems: 'center',
+                      boxShadow: '0 1px 2px rgba(168,74,42,.32)',
+                      border: '1.5px solid var(--cream)',
+                    }}>{pendingResCount}</span>
+                  )}
                 </button>
               );
             })}
           </div>
 
-          {/* Active user avatar at bottom */}
-          <button onClick={() => setShowUserPicker(true)} title={activeEmp?.fullName ?? 'Usuari'}
-            style={{
-              margin: '0 auto 10px', width: 38, height: 38, borderRadius: '50%',
-              display: 'grid', placeItems: 'center',
-              border: 'none', cursor: 'pointer',
-              background: activeEmp ? 'var(--terracotta-50)' : 'var(--ink-100)',
-              color: activeEmp ? 'var(--terracotta-700)' : 'var(--ink-500)',
-              fontWeight: 700, fontSize: 11,
-            }}>
-            {activeEmp ? activeEmp.initials : <Icon d={I.users} size={16} />}
-          </button>
+          {/* ── Active user avatar at bottom ───────────────────────── */}
+          <div style={{ padding: '14px 12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div style={{
+              width: '100%', height: 1,
+              background: 'rgba(60,40,20,.07)', marginBottom: 10,
+            }} />
+            <button onClick={() => setShowUserPicker(true)} title={activeEmp?.fullName ?? 'Canviar usuari'}
+              style={{
+                width: 42, height: 42, borderRadius: 12,
+                display: 'grid', placeItems: 'center',
+                border: '1px solid rgba(60,40,20,.08)', cursor: 'pointer',
+                background: activeEmp ? 'var(--paper)' : 'var(--ink-100)',
+                color: activeEmp ? 'var(--ink-900)' : 'var(--ink-500)',
+                fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-serif)',
+                letterSpacing: -.005,
+                boxShadow: '0 1px 2px rgba(60,40,20,.04)',
+              }}>
+              {activeEmp ? activeEmp.initials : <Icon d={I.users} size={16} />}
+            </button>
+            {activeEmp && (
+              <span style={{
+                fontSize: 8.5, color: 'var(--ink-500)', fontWeight: 700,
+                letterSpacing: .12, textTransform: 'uppercase',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                maxWidth: '100%', padding: '0 2px',
+              }}>
+                {activeEmp.fullName.split(' ')[0]}
+              </span>
+            )}
+          </div>
         </nav>
 
         {/* ── Main content ────────────────────────────────────────────── */}
