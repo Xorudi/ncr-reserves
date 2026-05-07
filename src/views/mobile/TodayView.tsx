@@ -666,13 +666,26 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   }
 
   const inp: React.CSSProperties = {
-    width:'100%', padding:'11px 12px', border:'1px solid rgba(60,40,20,.15)',
-    borderRadius:10, fontFamily:'inherit', fontSize:15, color:'var(--ink-900)',
-    background:'var(--cream)', boxSizing:'border-box', outline:'none',
+    width:'100%', padding:'12px 14px', border:'1px solid rgba(60,40,20,.12)',
+    borderRadius:12, fontFamily:'inherit', fontSize:15, color:'var(--ink-900)',
+    background:'var(--paper)', boxSizing:'border-box', outline:'none',
+    transition:'border-color 160ms var(--ease-ios), background 160ms var(--ease-ios)',
   };
   const lbl: React.CSSProperties = {
-    fontSize:11, fontWeight:700, color:'var(--ink-500)',
-    textTransform:'uppercase', letterSpacing:.07, marginBottom:5, display:'block',
+    fontSize:10.5, fontWeight:700, color:'var(--ink-500)',
+    textTransform:'uppercase', letterSpacing:.08, marginBottom:7, display:'block',
+  };
+  const sectionTitle: React.CSSProperties = {
+    fontFamily:'var(--font-serif)', fontSize:13, fontWeight:500,
+    color:'var(--ink-700)', letterSpacing:.01, marginBottom:10,
+    display:'flex', alignItems:'center', gap:8,
+  };
+  const sectionDot: React.CSSProperties = {
+    width:4, height:4, borderRadius:999, background:'var(--terracotta-600)', flexShrink:0,
+  };
+  const card: React.CSSProperties = {
+    background:'var(--cream)', borderRadius:14, padding:14,
+    border:'1px solid rgba(60,40,20,.06)',
   };
 
   return (
@@ -684,26 +697,38 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
        *   3. Sticky footer  — "Crear reserva" always visible
        */}
       <div style={{
-        background:'var(--paper)', borderRadius:'20px 20px 0 0',
-        boxShadow:'0 -4px 32px rgba(0,0,0,.2)',
+        background:'var(--ink-50)', borderRadius:'22px 22px 0 0',
+        boxShadow:'0 -4px 32px rgba(0,0,0,.22)',
         display:'flex', flexDirection:'column',
-        maxHeight:'calc(100dvh - env(safe-area-inset-top, 0px) - 20px)',
+        maxHeight:'calc(100dvh - env(safe-area-inset-top, 0px) - 16px)',
         overflow:'hidden',
         width:'100%',
       }}>
 
         {/* ── Sticky header ─────────────────────────────────────────── */}
-        <div style={{ flexShrink:0, padding:'12px 18px 10px', borderBottom:'var(--hair)' }}>
-          <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 12px' }} />
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ flexShrink:0, padding:'10px 18px 14px',
+                      borderBottom:'1px solid rgba(60,40,20,.06)',
+                      background:'var(--paper)' }}>
+          <div style={{ width:38, height:4, borderRadius:2, background:'var(--ink-200)',
+                        margin:'0 auto 14px' }} />
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:'var(--ink-900)', lineHeight:1.2 }}>Nova reserva</div>
-              <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:1 }}>{biz.name}</div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500,
+                            color:'var(--ink-900)', lineHeight:1.1, letterSpacing:-.005 }}>
+                Nova reserva
+              </div>
+              <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:3,
+                            textTransform:'uppercase', letterSpacing:.08, fontWeight:600 }}>
+                {biz.name}
+              </div>
             </div>
             <button onClick={onClose} className="press"
-              style={{ background:'var(--cream)', border:'none', cursor:'pointer', color:'var(--ink-500)',
-                       padding:8, borderRadius:8, display:'grid', placeItems:'center', flexShrink:0 }}>
-              <Icon d={I.x} size={18} />
+              aria-label="Tancar"
+              style={{ background:'var(--cream)', border:'1px solid rgba(60,40,20,.08)',
+                       cursor:'pointer', color:'var(--ink-600)',
+                       width:36, height:36, borderRadius:999,
+                       display:'grid', placeItems:'center', flexShrink:0 }}>
+              <Icon d={I.x} size={16} />
             </button>
           </div>
         </div>
@@ -711,245 +736,337 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
         {/* ── Scrollable content ────────────────────────────────────── */}
         <div className="scroll" style={{
           flex:1, overflowY:'auto', overflowX:'hidden',
-          padding:'16px 18px 8px',
-          display:'flex', flexDirection:'column', gap:14,
+          padding:'14px 16px 12px',
+          display:'flex', flexDirection:'column', gap:18,
           minHeight:0,
         }}>
 
-          {/* Data + Hora */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, minWidth:0 }}>
-            <div style={{ minWidth:0 }}>
-              <label style={lbl}>Data</label>
-              <input type="date" value={form.date} onChange={e => upd('date', e.target.value)}
-                style={{ ...inp, minWidth:0 }} />
+          {/* ───── Group 1: Quan i quants ───── */}
+          <section>
+            <div style={sectionTitle}><span style={sectionDot} />Quan</div>
+            <div style={{ ...card, display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, padding:12 }}>
+              <div style={{ minWidth:0 }}>
+                <label style={lbl}>Data</label>
+                <input type="date" value={form.date} onChange={e => upd('date', e.target.value)}
+                  style={{ ...inp, minWidth:0, padding:'10px 12px' }} />
+              </div>
+              <div style={{ minWidth:0 }}>
+                <label style={lbl}>Hora</label>
+                <input type="time" value={form.time} onChange={e => upd('time', e.target.value)}
+                  style={{ ...inp, minWidth:0, padding:'10px 12px' }} />
+              </div>
             </div>
-            <div style={{ minWidth:0 }}>
-              <label style={lbl}>Hora</label>
-              <input type="time" value={form.time} onChange={e => upd('time', e.target.value)}
-                style={{ ...inp, minWidth:0 }} />
-            </div>
-          </div>
+          </section>
 
-          {/* Persones — chips en scroll horitzontal intern + stepper */}
-          <div>
-            <label style={lbl}>Persones</label>
-            <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
-              <div style={{
-                display:'flex', gap:6, overflowX:'auto', flex:1, paddingBottom:3,
-                scrollbarWidth:'none', msOverflowStyle:'none', minWidth:0,
-              }}>
+          {/* ───── Group 2: Persones — pill grid amb wrap, sense overflow ───── */}
+          <section>
+            <div style={sectionTitle}>
+              <span style={sectionDot} />Persones
+              <span style={{
+                marginLeft:'auto', fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
+                color:'var(--terracotta-700)', lineHeight:1,
+              }}>{form.pax}</span>
+            </div>
+            <div style={card}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(8, 1fr)', gap:6 }}>
                 {[1,2,3,4,5,6,7,8].map(n => (
-                  <button key={n} onClick={() => upd('pax', n)} className="press"
+                  <button key={n} onClick={() => { upd('pax', n); setEditingPax(false); }} className="press"
                     style={{
-                      flexShrink:0, width:38, height:38, borderRadius:9,
-                      border: form.pax === n ? '2px solid var(--terracotta-600)' : '1.5px solid rgba(60,40,20,.15)',
-                      background: form.pax === n ? 'var(--terracotta-50)' : 'var(--cream)',
-                      color: form.pax === n ? 'var(--terracotta-700)' : 'var(--ink-700)',
-                      fontWeight: form.pax === n ? 700 : 500,
-                      fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                      aspectRatio:'1/1', minHeight:0, borderRadius:10,
+                      border: form.pax === n ? '1.5px solid var(--terracotta-600)' : '1px solid rgba(60,40,20,.10)',
+                      background: form.pax === n ? 'var(--terracotta-600)' : 'var(--paper)',
+                      color: form.pax === n ? '#fff' : 'var(--ink-800)',
+                      fontFamily:'var(--font-serif)', fontWeight:500,
+                      fontSize:15, cursor:'pointer',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      transition:'background 140ms var(--ease-ios), border-color 140ms var(--ease-ios), color 140ms var(--ease-ios)',
                     }}>
                     {n}
                   </button>
                 ))}
               </div>
-              <div style={{ display:'flex', alignItems:'center', flexShrink:0,
-                            border:'1.5px solid rgba(60,40,20,.15)', borderRadius:9, overflow:'hidden' }}>
-                <button onClick={() => upd('pax', Math.max(1, form.pax - 1))}
-                  style={{ width:32, height:38, border:'none', background:'var(--cream)', cursor:'pointer',
-                           fontFamily:'inherit', fontSize:17, fontWeight:600, color:'var(--ink-700)',
-                           display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  −
-                </button>
-                {editingPax ? (
-                  <input
-                    type="number" inputMode="numeric" pattern="[0-9]*"
-                    value={paxInput} autoFocus
-                    onChange={e => setPaxInput(e.target.value)}
-                    onBlur={() => {
-                      const n = parseInt(paxInput, 10);
-                      if (n >= 1 && n <= 99) upd('pax', n);
-                      setEditingPax(false);
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
+              {/* Stepper inline per 9+ */}
+              <div style={{
+                marginTop:10, display:'flex', alignItems:'center', justifyContent:'space-between',
+                gap:10, paddingTop:10, borderTop:'1px dashed rgba(60,40,20,.10)',
+              }}>
+                <span style={{ fontSize:11.5, color:'var(--ink-500)', fontWeight:550 }}>Més de 8</span>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <button onClick={() => upd('pax', Math.max(1, form.pax - 1))} className="press"
+                    style={{
+                      width:34, height:34, borderRadius:999, border:'1px solid rgba(60,40,20,.12)',
+                      background:'var(--paper)', cursor:'pointer', fontSize:17, fontWeight:500,
+                      color:'var(--ink-700)', display:'grid', placeItems:'center',
+                    }}>−</button>
+                  {editingPax ? (
+                    <input
+                      type="number" inputMode="numeric" pattern="[0-9]*"
+                      value={paxInput} autoFocus
+                      onChange={e => setPaxInput(e.target.value)}
+                      onBlur={() => {
                         const n = parseInt(paxInput, 10);
                         if (n >= 1 && n <= 99) upd('pax', n);
                         setEditingPax(false);
-                      }
-                    }}
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const n = parseInt(paxInput, 10);
+                          if (n >= 1 && n <= 99) upd('pax', n);
+                          setEditingPax(false);
+                        }
+                      }}
+                      style={{
+                        width:54, height:34, textAlign:'center',
+                        fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+                        color:'var(--ink-900)', background:'var(--paper)',
+                        border:'1.5px solid var(--terracotta-500)', borderRadius:8, outline:'none',
+                      }}
+                    />
+                  ) : (
+                    <button onClick={() => { setEditingPax(true); setPaxInput(String(form.pax)); }}
+                      style={{
+                        minWidth:54, height:34, padding:'0 10px',
+                        fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+                        color:'var(--ink-900)', background:'var(--paper)',
+                        border:'1px solid rgba(60,40,20,.12)', borderRadius:8,
+                        cursor:'text', display:'grid', placeItems:'center',
+                      }}>
+                      {form.pax}
+                    </button>
+                  )}
+                  <button onClick={() => upd('pax', form.pax + 1)} className="press"
                     style={{
-                      width:42, height:38, textAlign:'center', fontSize:14, fontWeight:700,
-                      color:'var(--terracotta-700)', background:'var(--terracotta-50)',
-                      border:'none', outline:'2px solid var(--terracotta-400)',
-                      borderLeft:'1px solid rgba(60,40,20,.1)', borderRight:'1px solid rgba(60,40,20,.1)',
-                      fontFamily:'inherit',
-                    }}
-                  />
-                ) : (
-                  <button
-                    onClick={() => { setEditingPax(true); setPaxInput(String(form.pax)); }}
-                    title="Toca per escriure"
-                    style={{
-                      minWidth:42, height:38, textAlign:'center', fontSize:13, fontWeight:700,
-                      color:'var(--terracotta-700)', background:'var(--terracotta-50)',
-                      borderLeft:'1px solid rgba(60,40,20,.1)', borderRight:'1px solid rgba(60,40,20,.1)',
-                      border:'none', cursor:'text', fontFamily:'inherit',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                    }}>
-                    {form.pax}
-                  </button>
-                )}
-                <button onClick={() => upd('pax', form.pax + 1)}
-                  style={{ width:32, height:38, border:'none', background:'var(--cream)', cursor:'pointer',
-                           fontFamily:'inherit', fontSize:17, fontWeight:600, color:'var(--ink-700)',
-                           display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  +
-                </button>
+                      width:34, height:34, borderRadius:999, border:'1px solid rgba(60,40,20,.12)',
+                      background:'var(--paper)', cursor:'pointer', fontSize:17, fontWeight:500,
+                      color:'var(--ink-700)', display:'grid', placeItems:'center',
+                    }}>+</button>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Client de la cartera */}
-          <div style={{ position:'relative' }}>
-            <label style={lbl}>Client de la cartera</label>
-            <div style={{ position:'relative' }}>
-              <input type="text" placeholder="Cerca per nom o telèfon…"
-                value={clientQuery}
-                onFocus={() => setShowDropdown(true)}
-                onChange={e => { setClientQuery(e.target.value); setShowDropdown(true); }}
-                style={{ ...inp, paddingLeft:36 }} />
-              <span style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)',
-                             color:'var(--ink-400)', pointerEvents:'none', display:'flex' }}>
-                <Icon d={I.search} size={15} />
-              </span>
+          {/* ───── Group 3: Client ───── */}
+          <section>
+            <div style={sectionTitle}><span style={sectionDot} />Client</div>
+            <div style={{ ...card, padding:12, display:'flex', flexDirection:'column', gap:10 }}>
+              {/* Cerca a la cartera */}
+              <div>
+                <label style={lbl}>Cerca a la cartera</label>
+                <div style={{ position:'relative' }}>
+                  <input type="text" placeholder="Nom o telèfon…"
+                    value={clientQuery}
+                    onFocus={() => setShowDropdown(true)}
+                    onChange={e => { setClientQuery(e.target.value); setShowDropdown(true); }}
+                    style={{ ...inp, paddingLeft:38, padding:'10px 12px 10px 38px' }} />
+                  <span style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)',
+                                 color:'var(--ink-400)', pointerEvents:'none', display:'flex' }}>
+                    <Icon d={I.search} size={15} />
+                  </span>
+                  {clientQuery && (
+                    <button onClick={() => { setClientQuery(''); setShowDropdown(false); }}
+                      style={{
+                        position:'absolute', right:8, top:'50%', transform:'translateY(-50%)',
+                        background:'rgba(60,40,20,.08)', border:'none', borderRadius:999,
+                        width:22, height:22, display:'grid', placeItems:'center', cursor:'pointer',
+                        color:'var(--ink-500)',
+                      }}>
+                      <Icon d={I.x} size={12} />
+                    </button>
+                  )}
+                </div>
+                {/* Inline results — empenyen el contingut, no el tapen */}
+                {showDropdown && clientMatches.length > 0 && (
+                  <div style={{
+                    marginTop:6, background:'var(--paper)', borderRadius:10,
+                    border:'1px solid rgba(60,40,20,.10)',
+                    boxShadow:'0 2px 8px rgba(60,40,20,.06)',
+                    maxHeight:200, overflowY:'auto', overflowX:'hidden',
+                  }}>
+                    {clientMatches.map((c, i) => (
+                      <button key={c.id}
+                        onMouseDown={e => { e.preventDefault(); selectClient(c); }}
+                        style={{
+                          width:'100%', padding:'10px 12px', border:'none', background:'transparent',
+                          cursor:'pointer', display:'flex', alignItems:'center', gap:10,
+                          borderBottom: i < clientMatches.length - 1 ? '1px solid rgba(60,40,20,.05)' : 'none',
+                          fontFamily:'inherit', textAlign:'left',
+                        }}>
+                        <span className={`avatar av-${avIdx(c.name)}`} style={{ flexShrink:0 }}>{initials(c.name)}</span>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)',
+                                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</div>
+                          {c.phone && <div style={{ fontSize:11.5, color:'var(--ink-500)',
+                                                    fontFamily:'var(--font-mono)', marginTop:1 }}>{c.phone}</div>}
+                        </div>
+                        {c.tags?.includes('vip') && (
+                          <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:.06,
+                                         color:'var(--terracotta-700)', background:'var(--terracotta-50)',
+                                         padding:'2px 6px', borderRadius:4, flexShrink:0 }}>VIP</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ height:1, background:'rgba(60,40,20,.06)', margin:'2px 0' }} />
+
+              {/* Nom + Telèfon */}
+              <div>
+                <label style={lbl}>Nom <span style={{ color:'var(--terracotta-600)' }}>*</span></label>
+                <input type="text" placeholder="Nom del client" value={form.name}
+                  onChange={e => upd('name', e.target.value)}
+                  onFocus={() => setShowDropdown(false)}
+                  style={{
+                    ...inp, padding:'10px 12px',
+                    borderColor: touched && !form.name.trim() ? 'var(--terracotta-500)' : 'rgba(60,40,20,.12)',
+                    background: touched && !form.name.trim() ? 'var(--terracotta-50)' : 'var(--paper)',
+                  }} />
+                {touched && !form.name.trim() && (
+                  <div style={{ fontSize:11, color:'var(--terracotta-700)', marginTop:5,
+                                display:'flex', alignItems:'center', gap:5 }}>
+                    El nom és obligatori
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={lbl}>Telèfon</label>
+                <input type="tel" placeholder="+34 600 000 000" value={form.phone}
+                  onChange={e => upd('phone', e.target.value)}
+                  onFocus={() => setShowDropdown(false)}
+                  style={{ ...inp, padding:'10px 12px', fontFamily:'var(--font-mono)', fontSize:14 }} />
+              </div>
             </div>
-            {showDropdown && clientMatches.length > 0 && (
-              <div style={{
-                position:'absolute', left:0, right:0, top:'100%', marginTop:4, zIndex:200,
-                background:'var(--paper)', borderRadius:12,
-                boxShadow:'0 4px 20px rgba(0,0,0,.15)',
-                border:'1px solid rgba(60,40,20,.1)', overflow:'hidden',
-              }}>
-                {clientMatches.map(c => (
-                  <button key={c.id}
-                    onMouseDown={e => { e.preventDefault(); selectClient(c); }}
+          </section>
+
+          {/* ───── Group 4: Detalls ───── */}
+          <section>
+            <div style={sectionTitle}><span style={sectionDot} />Detalls</div>
+            <div style={{ ...card, padding:12, display:'flex', flexDirection:'column', gap:12 }}>
+
+              {/* Estat — segmented pills */}
+              <div>
+                <label style={lbl}>Estat</label>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+                  {([
+                    { v:'pending',   label:'Pendent',   bg:'var(--clay-50)',       fg:'var(--clay-700)',       dot:'var(--clay-500)'      },
+                    { v:'confirmed', label:'Confirmat', bg:'var(--olive-50)',      fg:'var(--olive-700)',      dot:'var(--olive-600)'     },
+                    { v:'seated',    label:'A taula',   bg:'var(--terracotta-50)', fg:'var(--terracotta-700)', dot:'var(--terracotta-600)' },
+                  ] as const).map(o => {
+                    const active = form.status === o.v;
+                    return (
+                      <button key={o.v} onClick={() => upd('status', o.v as ReservationStatus)} className="press"
+                        style={{
+                          padding:'9px 6px', borderRadius:9,
+                          border: active ? `1.5px solid ${o.dot}` : '1px solid rgba(60,40,20,.10)',
+                          background: active ? o.bg : 'var(--paper)',
+                          color: active ? o.fg : 'var(--ink-600)',
+                          fontFamily:'inherit', fontSize:12.5, fontWeight: active ? 700 : 550,
+                          cursor:'pointer',
+                          display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+                        }}>
+                        <span style={{ width:6, height:6, borderRadius:999, background:o.dot, flexShrink:0 }} />
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Origen — segmented pills */}
+              <div>
+                <label style={lbl}>Origen</label>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:6 }}>
+                  {(['directe','telèfon','web','walk-in'] as const).map(o => {
+                    const active = form.source === o;
+                    return (
+                      <button key={o} onClick={() => upd('source', o)} className="press"
+                        style={{
+                          padding:'8px 4px', borderRadius:9,
+                          border: active ? '1.5px solid var(--ink-700)' : '1px solid rgba(60,40,20,.10)',
+                          background: active ? 'var(--ink-900)' : 'var(--paper)',
+                          color: active ? '#fff' : 'var(--ink-600)',
+                          fontFamily:'inherit', fontSize:11.5, fontWeight: active ? 700 : 550,
+                          cursor:'pointer', textTransform:'capitalize',
+                        }}>
+                        {o}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label style={lbl}>Notes</label>
+                <textarea rows={2} placeholder="Al·lèrgies, ocasió especial…" value={form.notes}
+                  onChange={e => upd('notes', e.target.value)}
+                  onFocus={() => setShowDropdown(false)}
+                  style={{ ...inp, padding:'10px 12px', resize:'none', lineHeight:1.5, fontSize:14 }} />
+              </div>
+
+              {/* Taula */}
+              {plan && (
+                <div>
+                  <label style={lbl}>Taula</label>
+                  <button onClick={() => setShowTableSel(true)} className="press"
                     style={{
-                      width:'100%', padding:'10px 14px', border:'none', background:'transparent',
-                      cursor:'pointer', display:'flex', alignItems:'center', gap:10,
-                      borderBottom:'1px solid rgba(60,40,20,.06)', fontFamily:'inherit',
+                      ...inp, padding:'10px 12px',
+                      display:'flex', alignItems:'center', gap:10, cursor:'pointer', textAlign:'left',
+                      borderStyle: assignedTableNames ? 'solid' : 'dashed',
+                      borderColor: assignedTableNames ? 'var(--olive-600)' : 'rgba(60,40,20,.18)',
+                      background: assignedTableNames ? 'var(--olive-50)' : 'var(--paper)',
+                      color: assignedTableNames ? 'var(--olive-700)' : 'var(--ink-500)',
                     }}>
-                    <span className={`avatar av-${avIdx(c.name)}`} style={{ flexShrink:0 }}>{initials(c.name)}</span>
-                    <div style={{ flex:1, textAlign:'left', minWidth:0 }}>
-                      <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{c.name}</div>
-                      {c.phone && <div style={{ fontSize:12, color:'var(--ink-500)', fontFamily:'monospace', marginTop:1 }}>{c.phone}</div>}
-                    </div>
-                    {c.tags?.includes('vip') && (
-                      <span style={{ fontSize:10, fontWeight:700, color:'var(--terracotta-600)',
-                                     background:'var(--terracotta-50)', padding:'2px 6px', borderRadius:4, flexShrink:0 }}>VIP</span>
+                    <Icon d={I.tableIco} size={16} />
+                    <span style={{ flex:1, fontSize:13.5, fontWeight: assignedTableNames ? 600 : 500 }}>
+                      {assignedTableNames ?? 'Assignar taula (opcional)'}
+                    </span>
+                    {assignedTableNames ? (
+                      <span onClick={e => { e.stopPropagation(); setSelectedTableIds([]); }}
+                        style={{ padding:'3px 7px', fontSize:11, borderRadius:6,
+                                 background:'rgba(60,40,20,.08)', color:'var(--ink-600)', cursor:'pointer' }}>
+                        Treure
+                      </span>
+                    ) : (
+                      <Icon d={I.chevR} size={14} />
                     )}
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Nom */}
-          <div>
-            <label style={lbl}>Nom *</label>
-            <input type="text" placeholder="Nom del client" value={form.name}
-              onChange={e => upd('name', e.target.value)}
-              onFocus={() => setShowDropdown(false)}
-              style={{ ...inp, borderColor: touched && !form.name.trim() ? 'var(--terracotta-500)' : undefined }} />
-            {touched && !form.name.trim() && (
-              <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>El nom és obligatori</div>
-            )}
-          </div>
-
-          {/* Telèfon */}
-          <div>
-            <label style={lbl}>Telèfon</label>
-            <input type="tel" placeholder="+34 600 000 000" value={form.phone}
-              onChange={e => upd('phone', e.target.value)}
-              onFocus={() => setShowDropdown(false)}
-              style={inp} />
-          </div>
-
-          {/* Estat + Origen */}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, minWidth:0 }}>
-            <div style={{ minWidth:0 }}>
-              <label style={lbl}>Estat</label>
-              <select value={form.status} onChange={e => upd('status', e.target.value as ReservationStatus)}
-                style={{ ...inp, paddingRight:6, minWidth:0 }}>
-                <option value="pending">Pendent</option>
-                <option value="confirmed">Confirmat</option>
-                <option value="seated">A taula</option>
-              </select>
+                </div>
+              )}
             </div>
-            <div style={{ minWidth:0 }}>
-              <label style={lbl}>Origen</label>
-              <select value={form.source} onChange={e => upd('source', e.target.value)}
-                style={{ ...inp, paddingRight:6, minWidth:0 }}>
-                <option value="directe">Directe</option>
-                <option value="telèfon">Telèfon</option>
-                <option value="web">Web</option>
-                <option value="walk-in">Walk-in</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label style={lbl}>Notes</label>
-            <textarea rows={2} placeholder="Al·lèrgies, ocasió especial…" value={form.notes}
-              onChange={e => upd('notes', e.target.value)}
-              onFocus={() => setShowDropdown(false)}
-              style={{ ...inp, resize:'none', lineHeight:1.5 }} />
-          </div>
-
-          {/* Taula */}
-          {plan && (
-            <div>
-              <label style={lbl}>Taula</label>
-              <button onClick={() => setShowTableSel(true)} className="press"
-                style={{
-                  ...inp, display:'flex', alignItems:'center', gap:8, cursor:'pointer',
-                  textAlign:'left', padding:'10px 12px',
-                  color: assignedTableNames ? 'var(--ink-900)' : 'var(--ink-400)',
-                }}>
-                <Icon d={I.tableIco} size={16} />
-                <span style={{ flex:1, fontSize:14, fontStyle: assignedTableNames ? 'normal' : 'italic',
-                               fontWeight: assignedTableNames ? 600 : 400 }}>
-                  {assignedTableNames ?? 'Sense taula assignada (opcional)'}
-                </span>
-                {assignedTableNames && (
-                  <span onClick={e => { e.stopPropagation(); setSelectedTableIds([]); }}
-                    style={{ padding:'2px 6px', fontSize:11, borderRadius:5,
-                             background:'rgba(60,40,20,.08)', color:'var(--ink-500)', cursor:'pointer' }}>
-                    ✕
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
+          </section>
 
         </div>
 
         {/* ── Sticky footer — "Crear reserva" always visible ────────── */}
         <div style={{
           flexShrink:0,
-          padding:'12px 18px',
-          paddingBottom:'max(env(safe-area-inset-bottom, 0px), 16px)',
-          borderTop:'var(--hair)',
+          padding:'12px 16px',
+          paddingBottom:'max(env(safe-area-inset-bottom, 0px), 14px)',
+          borderTop:'1px solid rgba(60,40,20,.08)',
           background:'var(--paper)',
         }}>
           <button onClick={handleSave} disabled={saved} className="press"
             style={{
-              width:'100%', padding:'14px', borderRadius:12, border:'none', cursor:'pointer',
-              fontFamily:'inherit', fontSize:15, fontWeight:700, color:'white',
-              background: saved ? 'var(--olive-600)' : 'var(--terracotta-600)',
-              transition:'background 300ms var(--ease-ios)',
+              width:'100%', padding:'15px', borderRadius:14, border:'none', cursor:'pointer',
+              fontFamily:'inherit', fontSize:15, fontWeight:650, letterSpacing:.005,
+              color:'white',
+              background: saved
+                ? 'var(--olive-600)'
+                : 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+              boxShadow: saved
+                ? '0 2px 8px rgba(116,133,74,.32)'
+                : '0 4px 14px rgba(168,74,42,.32), 0 1px 2px rgba(168,74,42,.18)',
+              transition:'background 300ms var(--ease-ios), box-shadow 300ms var(--ease-ios)',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             }}>
-            {saved ? '✓  Reserva creada!' : 'Crear reserva'}
+            {saved ? (
+              <>
+                <Icon d={I.check} size={17} stroke={2.4} />
+                Reserva creada
+              </>
+            ) : 'Crear reserva'}
           </button>
         </div>
       </div>
