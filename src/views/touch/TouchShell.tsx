@@ -51,6 +51,9 @@ export default function TouchShell() {
   const [showBizPicker,  setShowBizPicker]  = useState(false);
   const [showUserPicker, setShowUserPicker] = useState(false);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
+  // Read innerHeight synchronously so the container height is correct on
+  // the very first paint — avoids iOS Safari dvh/layout-viewport mismatch.
+  const [appH, setAppH] = useState(() => window.innerHeight);
 
   function openNewReservation() {
     setTab('reservations');
@@ -68,17 +71,14 @@ export default function TouchShell() {
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
 
-  // ── Fix iOS Safari viewport height (browser chrome steals space) ──────────
+  // ── Track true viewport height (iOS Safari dvh ≠ innerHeight on first paint)
   useEffect(() => {
-    const setVh = () => {
-      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
-    };
-    setVh();
-    window.addEventListener('resize', setVh);
-    window.addEventListener('orientationchange', setVh);
+    const update = () => setAppH(window.innerHeight);
+    window.addEventListener('resize', update, { passive: true });
+    window.addEventListener('orientationchange', update, { passive: true });
     return () => {
-      window.removeEventListener('resize', setVh);
-      window.removeEventListener('orientationchange', setVh);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
     };
   }, []);
 
@@ -250,7 +250,7 @@ export default function TouchShell() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      height: '100dvh',
+      height: appH,
       background: 'var(--cream)', overflow: 'hidden',
     }}>
 
