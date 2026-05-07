@@ -133,37 +133,100 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
       {/* ── Quick-seat form ────────────────────────────────────────────── */}
       <div className="scroll" style={{ flex: 1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}>
 
-        <div style={{ background:'var(--paper)', borderBottom:'var(--hair)', padding:'14px 18px 18px' }}>
+        <div style={{ background:'var(--paper)', borderBottom:'var(--hair)', padding:'14px 16px 16px' }}>
 
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--terracotta-700)', letterSpacing:.4, textTransform:'uppercase', marginBottom:14 }}>
-            Sentar ara
+          <div style={{
+            display:'flex', alignItems:'center', gap:8, marginBottom:14,
+          }}>
+            <span style={{
+              width:5, height:5, borderRadius:999, background:'var(--terracotta-600)',
+              boxShadow:'0 0 0 3px rgba(168,74,42,.15)',
+            }} />
+            <span style={{
+              fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
+              color:'var(--ink-900)', letterSpacing:-.005,
+            }}>
+              Sentar ara
+            </span>
+            <span style={{
+              fontSize:10.5, color:'var(--ink-500)', fontWeight:600,
+              letterSpacing:.06, textTransform:'uppercase', marginLeft:'auto',
+              fontFamily:'var(--font-mono)',
+            }}>
+              {nowTime}
+            </span>
           </div>
 
-          {/* Pax selector */}
+          {/* Pax selector — compact 8-cell grid + collapsed stepper for >8 */}
           <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'var(--ink-500)', letterSpacing:.05, marginBottom:10 }}>COMENSALS</div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
-              {PAX_OPTIONS.map(n => (
-                <button key={n} onClick={() => { setPax(n); setNoTableWarn(false); }}
-                  style={{
-                    aspectRatio:'1/1', borderRadius:14, fontFamily:'var(--font-serif)',
-                    border: pax === n ? 'none' : '1px solid rgba(60,40,20,.14)',
-                    background: pax === n ? 'var(--ink-900)' : 'var(--paper)',
-                    color: pax === n ? 'var(--cream)' : 'var(--ink-900)',
-                    fontSize:26, fontWeight:500, cursor:'pointer',
-                  }}>
-                  {n}
-                </button>
-              ))}
+            <div style={{
+              display:'flex', alignItems:'baseline', justifyContent:'space-between',
+              marginBottom:8,
+            }}>
+              <div style={{
+                fontSize:10.5, fontWeight:700, color:'var(--ink-500)',
+                letterSpacing:.08, textTransform:'uppercase',
+              }}>Comensals</div>
+              <span style={{
+                fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
+                color:'var(--terracotta-700)', letterSpacing:-.005, lineHeight:1,
+              }}>{pax}</span>
             </div>
-            <div style={{ marginTop:10, display:'flex', gap:8, alignItems:'center' }}>
-              <button onClick={() => { setPax(Math.max(1, pax - 1)); setNoTableWarn(false); }}
-                style={{ width:44, height:44, borderRadius:999, border:'1px solid rgba(60,40,20,.14)', background:'var(--paper)', fontSize:22, color:'var(--ink-600)', cursor:'pointer', fontFamily:'inherit' }}>−</button>
-              <div style={{ flex:1, textAlign:'center', fontFamily:'var(--font-serif)', fontSize:17, color:'var(--ink-900)' }}>
-                {pax} comensal{pax !== 1 ? 's' : ''}
+            <div style={{
+              background:'var(--cream)', borderRadius:12, padding:10,
+              border:'1px solid rgba(60,40,20,.06)',
+            }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(8, 1fr)', gap:5 }}>
+                {PAX_OPTIONS.map(n => {
+                  const active = pax === n;
+                  return (
+                    <button key={n} className="press"
+                      onClick={() => { setPax(n); setNoTableWarn(false); }}
+                      style={{
+                        aspectRatio:'1/1', minHeight:0, borderRadius:9,
+                        border: active ? '1.5px solid var(--terracotta-600)' : '1px solid rgba(60,40,20,.10)',
+                        background: active ? 'var(--terracotta-600)' : 'var(--paper)',
+                        color: active ? '#fff' : 'var(--ink-800)',
+                        fontFamily:'var(--font-serif)', fontWeight:500,
+                        fontSize:14, cursor:'pointer',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        transition:'background 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out)',
+                      }}>
+                      {n}
+                    </button>
+                  );
+                })}
               </div>
-              <button onClick={() => { setPax(p => p + 1); setNoTableWarn(false); }}
-                style={{ width:44, height:44, borderRadius:999, border:'1px solid rgba(60,40,20,.14)', background:'var(--paper)', fontSize:22, color:'var(--ink-600)', cursor:'pointer', fontFamily:'inherit' }}>+</button>
+              <div style={{
+                marginTop:9, paddingTop:8, borderTop:'1px dashed rgba(60,40,20,.10)',
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
+              }}>
+                <span style={{ fontSize:11.5, color:'var(--ink-500)', fontWeight:550 }}>Més de 8</span>
+                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                  <button className="press"
+                    onClick={() => { setPax(Math.max(1, pax - 1)); setNoTableWarn(false); }}
+                    style={{
+                      width:32, height:32, borderRadius:999,
+                      border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)',
+                      cursor:'pointer', fontSize:16, color:'var(--ink-700)',
+                      display:'grid', placeItems:'center',
+                    }}>−</button>
+                  <span key={pax} className="number-tween"
+                    style={{
+                      minWidth:42, textAlign:'center',
+                      fontFamily:'var(--font-serif)', fontSize:15, fontWeight:500,
+                      color:'var(--ink-900)',
+                    }}>{pax}</span>
+                  <button className="press"
+                    onClick={() => { setPax(p => p + 1); setNoTableWarn(false); }}
+                    style={{
+                      width:32, height:32, borderRadius:999,
+                      border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)',
+                      cursor:'pointer', fontSize:16, color:'var(--ink-700)',
+                      display:'grid', placeItems:'center',
+                    }}>+</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -304,14 +367,21 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
           )}
 
           {/* CTA */}
-          <button onClick={done ? undefined : handleSeat}
+          <button onClick={done ? undefined : handleSeat} className="press"
             style={{
               marginTop:16, width:'100%', padding:'15px', borderRadius:14,
               border:'none', cursor: done ? 'default' : 'pointer',
-              background: done ? 'var(--olive-700)' : (noTableWarn ? 'var(--clay-600)' : 'var(--terracotta-600)'),
+              background: done
+                ? 'linear-gradient(180deg, var(--olive-600) 0%, var(--olive-700) 100%)'
+                : noTableWarn
+                  ? 'linear-gradient(180deg, var(--clay-600) 0%, var(--clay-700) 100%)'
+                  : 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
               color:'white', fontFamily:'inherit', fontSize:15, fontWeight:650,
-              boxShadow: done ? 'none' : '0 4px 12px rgba(168,74,42,.3)',
-              transition:'background .2s',
+              boxShadow: done
+                ? '0 4px 14px rgba(116,133,74,.32)'
+                : '0 4px 14px rgba(168,74,42,.32), 0 1px 2px rgba(168,74,42,.18)',
+              transition:'background 320ms var(--ease-in-out), box-shadow 320ms var(--ease-in-out)',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             }}>
             {done
               ? '✓ Registrat!'
@@ -330,51 +400,128 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
         </div>
 
         {/* ── Pending reservations list ─────────────────────────────────── */}
-        <div style={{ padding:'14px 0 0' }}>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--ink-500)', letterSpacing:.4, textTransform:'uppercase', marginBottom:6, paddingLeft:18 }}>
-            Reserves pendents avui
+        <div style={{ padding:'16px 0 0' }}>
+          <div style={{
+            display:'flex', alignItems:'center', gap:8,
+            padding:'0 18px', marginBottom:8,
+          }}>
+            <span style={{
+              fontFamily:'var(--font-serif)', fontSize:14, fontWeight:500,
+              color:'var(--ink-700)', letterSpacing:-.005,
+            }}>Reserves pendents avui</span>
+            {pending.length > 0 && (
+              <span key={pending.length} className="number-tween"
+                style={{
+                  fontSize:10.5, fontWeight:700, letterSpacing:.06,
+                  color:'var(--terracotta-700)', background:'var(--terracotta-50)',
+                  padding:'2px 7px', borderRadius:999,
+                }}>
+                {pending.length}
+              </span>
+            )}
           </div>
 
           {pending.length === 0 ? (
-            <div style={{ textAlign:'center', padding:'24px 0', color:'var(--ink-400)', fontSize:14, fontFamily:'var(--font-serif)' }}>
+            <div style={{
+              textAlign:'center', padding:'28px 18px',
+              color:'var(--ink-400)', fontSize:13.5, fontFamily:'var(--font-serif)',
+              fontStyle:'italic',
+            }}>
               Cap reserva pendent avui
             </div>
           ) : (
-            pending.map(r => {
+            pending.map((r, i) => {
+              const tint =
+                r.status === 'seated'    ? { bg:'var(--terracotta-50)', fg:'var(--terracotta-700)', ring:'var(--terracotta-600)', tint:'rgba(200,97,58,.05)' } :
+                r.status === 'confirmed' ? { bg:'var(--olive-50)',      fg:'var(--olive-700)',      ring:'var(--olive-600)',      tint:'rgba(116,133,74,.04)' } :
+                                           { bg:'var(--clay-50)',       fg:'var(--clay-700)',       ring:'var(--clay-500)',       tint:'rgba(204,144,73,.04)' };
+              const stateLabel = r.status === 'seated' ? 'A taula'
+                               : r.status === 'confirmed' ? 'Confirmada' : 'Pendent';
               const isSeated = r.status === 'seated';
-              const stateBg  = isSeated ? 'var(--terracotta-50)' : r.status === 'confirmed' ? 'var(--olive-50)' : 'var(--clay-50)';
-              const stateFg  = isSeated ? 'var(--terracotta-700)' : r.status === 'confirmed' ? 'var(--olive-700)' : 'var(--clay-700)';
-              const stateLabel = isSeated ? 'A taula' : r.status === 'confirmed' ? 'Confirmada' : 'Pendent';
               return (
-                <button key={r.id} style={{
-                  width:'100%', textAlign:'left', background:'var(--paper)', border:'none',
-                  borderTop:'var(--hair)', padding:'12px 18px',
-                  display:'flex', gap:12, alignItems:'center', cursor:'pointer', fontFamily:'inherit',
-                }}>
-                  {/* Pax circle */}
-                  <div style={{ width:42, height:42, borderRadius:12, flexShrink:0, background:'var(--cream)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:'var(--ink-800)' }}>
-                    {r.pax}
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14.5, fontWeight:600, color:'var(--ink-900)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                      {r.name}
+                <div key={r.id}
+                  className="row-stagger"
+                  style={{ ['--row-i' as string]: Math.min(i, 7) }}>
+                  <button className="press"
+                    style={{
+                      width:'100%', textAlign:'left', background:tint.tint,
+                      border:'none', borderTop:'var(--hair)',
+                      padding:'12px 18px',
+                      display:'flex', gap:12, alignItems:'center',
+                      cursor:'pointer', fontFamily:'inherit',
+                      transition:'background 160ms var(--ease-out)',
+                    }}>
+                    {/* Pax tile — status-tinted with ring */}
+                    <div style={{
+                      width:48, height:48, borderRadius:12, flexShrink:0,
+                      background: tint.bg,
+                      boxShadow: `inset 0 0 0 1.5px ${tint.ring}`,
+                      display:'flex', flexDirection:'column',
+                      alignItems:'center', justifyContent:'center',
+                    }}>
+                      <span style={{
+                        fontFamily:'var(--font-serif)', fontSize:19, fontWeight:500,
+                        color: tint.fg, lineHeight:1,
+                      }}>{r.pax}</span>
+                      <span style={{
+                        fontSize:8, fontWeight:700, color: tint.fg, opacity:.7,
+                        letterSpacing:.08, marginTop:2,
+                      }}>PAX</span>
                     </div>
-                    <div style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'var(--ink-500)', marginTop:2 }}>
-                      {r.time}{r.notes ? ` · ${r.notes}` : ''}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{
+                        fontSize:15, fontWeight:650, color:'var(--ink-900)',
+                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                      }}>
+                        {r.name}
+                      </div>
+                      <div style={{
+                        fontSize:12, color:'var(--ink-500)', marginTop:3,
+                        display:'flex', alignItems:'center', gap:7,
+                      }}>
+                        <span style={{
+                          fontFamily:'var(--font-mono)', fontWeight:650, color:'var(--ink-700)',
+                        }}>{r.time}</span>
+                        {r.notes && (
+                          <>
+                            <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+                            <span style={{
+                              fontStyle:'italic', overflow:'hidden',
+                              textOverflow:'ellipsis', whiteSpace:'nowrap',
+                            }}>{r.notes}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                    <span style={{ padding:'3px 9px', borderRadius:999, background:stateBg, color:stateFg, fontSize:11.5, fontWeight:600 }}>
-                      {stateLabel}
-                    </span>
-                    {!isSeated && (
-                      <button onClick={e => { e.stopPropagation(); handleConfirm(r.id); }}
-                        style={{ padding:'4px 10px', borderRadius:7, border:'none', background:'var(--terracotta-600)', color:'white', fontFamily:'inherit', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                        A taula
-                      </button>
-                    )}
-                  </div>
-                </button>
+                    <div style={{
+                      display:'flex', flexDirection:'column',
+                      alignItems:'flex-end', gap:6, flexShrink:0,
+                    }}>
+                      <span key={r.status}
+                        style={{
+                          padding:'3px 9px', borderRadius:999,
+                          background:tint.bg, color:tint.fg,
+                          fontSize:11.5, fontWeight:650,
+                          transition:'background 220ms var(--ease-in-out), color 220ms var(--ease-in-out)',
+                        }}>
+                        {stateLabel}
+                      </span>
+                      {!isSeated && (
+                        <button className="press"
+                          onClick={e => { e.stopPropagation(); handleConfirm(r.id); }}
+                          style={{
+                            padding:'5px 10px', borderRadius:8, border:'none',
+                            background:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+                            color:'white', fontFamily:'inherit',
+                            fontSize:11, fontWeight:700, cursor:'pointer',
+                            boxShadow:'0 1px 3px rgba(168,74,42,.25)',
+                          }}>
+                          A taula
+                        </button>
+                      )}
+                    </div>
+                  </button>
+                </div>
               );
             })
           )}

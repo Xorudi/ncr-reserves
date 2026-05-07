@@ -71,8 +71,12 @@ export default function MobileClientsView() {
 
       {/* ── List ───────────────────────────────────────────────────────── */}
       <div className="scroll" style={{ flex:1, overflowY:'auto', paddingBottom:'var(--scroll-pad-bottom)' }}>
-        {filtered.map(c => (
-          <ClientRow key={c.id} client={c} onTap={() => setDetailId(c.id)} />
+        {filtered.map((c, i) => (
+          <div key={c.id}
+            className="row-stagger"
+            style={{ ['--row-i' as string]: Math.min(i, 7) }}>
+            <ClientRow client={c} onTap={() => setDetailId(c.id)} />
+          </div>
         ))}
         {filtered.length === 0 && (
           <div style={{ textAlign:'center', padding:'60px 16px', color:'var(--ink-500)' }}>
@@ -119,8 +123,13 @@ export default function MobileClientsView() {
 // ─── Client row ───────────────────────────────────────────────────────────────
 function ClientRow({ client: c, onTap }: { client: Customer; onTap: () => void }) {
   return (
-    <button onClick={onTap}
-      style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 18px', borderBottom:'var(--hair)', background:'var(--paper)', border:'none', width:'100%', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+    <button onClick={onTap} className="press"
+      style={{
+        display:'flex', alignItems:'center', gap:12, padding:'13px 18px',
+        borderBottom:'var(--hair)', background:'var(--paper)', border:'none',
+        width:'100%', cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+        transition:'background 160ms var(--ease-out)',
+      }}>
       {/* Avatar — Fraunces serif initials circle */}
       <div style={{
         width:42, height:42, borderRadius:999, flexShrink:0,
