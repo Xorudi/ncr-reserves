@@ -344,6 +344,28 @@ body::before {
   display: inline-block; /* needed so transform takes effect on inline text */
 }
 
+/* ── Save success morph — the new label rises into place with a subtle blur,
+   bridging the colour swap on the CTA. Used in the new-reservation form. */
+@keyframes save-success-in {
+  from { opacity: 0; transform: scale(0.86) translateY(8px); filter: blur(3px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+}
+@keyframes save-success-out {
+  from { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
+  to   { opacity: 0; transform: scale(0.94) translateY(-8px); filter: blur(2px); }
+}
+.save-success-in  { animation: save-success-in  280ms var(--ease-out) both; }
+.save-success-out { animation: save-success-out 220ms var(--ease-out) both; }
+
+/* ── Chip tick — fires once when a toggle chip becomes active.
+   A subtle scale pop without harsh overshoot. */
+@keyframes chip-tick {
+  0%   { transform: scale(1);    }
+  45%  { transform: scale(1.07); }
+  100% { transform: scale(1);    }
+}
+.chip-tick { animation: chip-tick 240ms var(--ease-out) both; }
+
 @media (prefers-reduced-motion: reduce) {
   .row-stagger, .status-morph, .number-tween {
     animation: none !important;

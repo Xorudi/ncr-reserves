@@ -7,6 +7,116 @@ import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
 
+/**
+ * Allergen chip — multi-select toggle that gives a satisfying scale-pop
+ * the moment it becomes active (chip-tick keyframes), then settles. Going
+ * from active to inactive uses the standard .press feedback only — the
+ * "tick" is reserved for the positive selection.
+ */
+function AllergenChip({ label, emoji, active, onToggle }: {
+  label: string; emoji: string; active: boolean; onToggle: () => void;
+}) {
+  const prev = useRef(active);
+  const [pop, setPop] = useState(false);
+  useEffect(() => {
+    if (!prev.current && active) {
+      setPop(true);
+      const t = setTimeout(() => setPop(false), 260);
+      prev.current = active;
+      return () => clearTimeout(t);
+    }
+    prev.current = active;
+  }, [active]);
+
+  return (
+    <button type="button" onClick={onToggle}
+      className={`press ${pop ? 'chip-tick' : ''}`}
+      style={{
+        padding:'6px 11px', borderRadius:999,
+        border: active ? '1.5px solid var(--rose-600)' : '1px solid rgba(60,40,20,.12)',
+        background: active ? 'var(--rose-50)' : 'var(--paper)',
+        color: active ? 'var(--rose-700)' : 'var(--ink-600)',
+        fontFamily:'inherit', fontSize:12, fontWeight: active ? 700 : 550,
+        cursor:'pointer',
+        display:'flex', alignItems:'center', gap:4,
+        transition: 'background 200ms var(--ease-in-out), border-color 200ms var(--ease-in-out), color 200ms var(--ease-in-out)',
+      }}>
+      <span style={{ fontSize:13, lineHeight:1 }}>{emoji}</span>
+      {label}
+    </button>
+  );
+}
+
+/**
+ * Hold-to-delete primitive — replaces tap+confirm-modal flows with a
+ * deliberate 1.6s press. The clip-path overlay fills left→right while held;
+ * release before completion snaps back in 200ms. On completion onConfirm
+ * fires once. Press is slow (deliberate), release is fast (responsive).
+ */
+function HoldToDelete({ onConfirm }: { onConfirm: () => void }) {
+  const [holding, setHolding]   = useState(false);
+  const [done,    setDone]      = useState(false);
+  const timer                   = useRef<number | null>(null);
+  const HOLD_MS = 1600;
+
+  const start = (e: React.PointerEvent) => {
+    if (done) return;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    setHolding(true);
+    timer.current = window.setTimeout(() => {
+      setHolding(false);
+      setDone(true);
+      onConfirm();
+    }, HOLD_MS);
+  };
+  const cancel = () => {
+    if (timer.current !== null) { clearTimeout(timer.current); timer.current = null; }
+    setHolding(false);
+  };
+
+  return (
+    <button
+      type="button"
+      onPointerDown={start}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      style={{
+        position:'relative', overflow:'hidden',
+        width:'100%', padding:'11px',
+        background: done ? 'rgba(192,57,43,.85)' : 'transparent',
+        border:'1px solid rgba(192,57,43,.30)',
+        borderRadius:11, cursor:'pointer',
+        fontFamily:'inherit', fontSize:13, fontWeight:600,
+        display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+        transition:'transform 160ms var(--ease-out), background 220ms var(--ease-in-out)',
+        transform: holding ? 'scale(0.985)' : 'scale(1)',
+        WebkitTapHighlightColor: 'transparent',
+        userSelect:'none', touchAction:'none',
+      }}>
+      {/* Filling overlay — clip from left, expands during hold */}
+      <span aria-hidden style={{
+        position:'absolute', inset:0,
+        background: 'linear-gradient(180deg, #c0392b 0%, #a93020 100%)',
+        clipPath: holding || done ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
+        transition: holding
+          ? `clip-path ${HOLD_MS}ms linear`
+          : 'clip-path 200ms var(--ease-out)',
+      }} />
+      <span style={{
+        position:'relative', display:'inline-flex', alignItems:'center', gap:7,
+        color: holding || done ? '#fff' : '#c0392b',
+        transition:'color 220ms var(--ease-in-out)',
+      }}>
+        <Icon d={I.trash} size={14} />
+        {done     ? 'Reserva eliminada'
+         : holding ? 'Mantingues premut…'
+         :           'Mantén premut per eliminar'}
+      </span>
+    </button>
+  );
+}
+
 /** Empty-state illustration: a minimal restaurant chair in line art. */
 function EmptyChair() {
   return (
@@ -696,10 +806,7 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
           </button>
         </div>
 
-        <button onClick={() => setConfirmDelete(true)}
-          style={{ width:'100%', padding:'10px', background:'transparent', border:'1px solid rgba(200,50,50,0.25)', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'#c0392b', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-          <Icon d={I.trash} size={14} /> Eliminar reserva
-        </button>
+        <HoldToDelete onConfirm={handleDelete} />
       </div>
 
       {/* ── Confirm delete ───────────────────────────────────────── */}
@@ -1237,27 +1344,18 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
                   )}
                 </label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                  {ALLERGENS.map(a => {
-                    const active = form.allergens.includes(a.id);
-                    return (
-                      <button key={a.id} className="press"
-                        onClick={() => upd('allergens',
-                          active ? form.allergens.filter(x => x !== a.id)
-                                 : [...form.allergens, a.id])}
-                        style={{
-                          padding:'6px 11px', borderRadius:999,
-                          border: active ? '1.5px solid var(--rose-600)' : '1px solid rgba(60,40,20,.12)',
-                          background: active ? 'var(--rose-50)' : 'var(--paper)',
-                          color: active ? 'var(--rose-700)' : 'var(--ink-600)',
-                          fontFamily:'inherit', fontSize:12, fontWeight: active ? 700 : 550,
-                          cursor:'pointer',
-                          display:'flex', alignItems:'center', gap:4,
-                        }}>
-                        <span style={{ fontSize:13, lineHeight:1 }}>{a.emoji}</span>
-                        {a.label}
-                      </button>
-                    );
-                  })}
+                  {ALLERGENS.map(a => (
+                    <AllergenChip
+                      key={a.id}
+                      label={a.label}
+                      emoji={a.emoji}
+                      active={form.allergens.includes(a.id)}
+                      onToggle={() => upd('allergens',
+                        form.allergens.includes(a.id)
+                          ? form.allergens.filter(x => x !== a.id)
+                          : [...form.allergens, a.id])}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -1314,24 +1412,36 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
         }}>
           <button onClick={handleSave} disabled={saved} className="press"
             style={{
+              position:'relative',
               width:'100%', padding:'15px', borderRadius:14, border:'none', cursor:'pointer',
               fontFamily:'inherit', fontSize:15, fontWeight:650, letterSpacing:.005,
-              color:'white',
+              color:'white', overflow:'hidden',
               background: saved
-                ? 'var(--olive-600)'
+                ? 'linear-gradient(180deg, var(--olive-600) 0%, var(--olive-700) 100%)'
                 : 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
               boxShadow: saved
-                ? '0 2px 8px rgba(116,133,74,.32)'
+                ? '0 4px 14px rgba(116,133,74,.30), 0 1px 2px rgba(116,133,74,.18)'
                 : '0 4px 14px rgba(168,74,42,.32), 0 1px 2px rgba(168,74,42,.18)',
-              transition:'background 300ms var(--ease-ios), box-shadow 300ms var(--ease-ios)',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              transition:'background 320ms var(--ease-in-out), box-shadow 320ms var(--ease-in-out)',
+              minHeight:50,
             }}>
-            {saved ? (
-              <>
-                <Icon d={I.check} size={17} stroke={2.4} />
-                Reserva creada
-              </>
-            ) : 'Crear reserva'}
+            {/* Two stacked labels — the inactive one fades + blurs out, the
+                active one rises into place. key={saved} forces remount so
+                the keyframes always run from the start. */}
+            <span
+              key={saved ? 'saved' : 'idle'}
+              className={saved ? 'save-success-in' : undefined}
+              style={{
+                position:'absolute', inset:0,
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              }}>
+              {saved ? (
+                <>
+                  <Icon d={I.check} size={18} stroke={2.5} />
+                  Reserva creada
+                </>
+              ) : 'Crear reserva'}
+            </span>
           </button>
         </div>
       </div>
