@@ -8,6 +8,116 @@ import { ALLERGENS, allergenById } from '@/utils/allergens';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
 
 /**
+ * SwipeableRow — drag horizontally to advance a reservation's status.
+ * Sonner-style: distance threshold OR velocity > 0.11 fires the action.
+ * Forward only; left drag is resisted with damping but does nothing.
+ *
+ * The action label is shown in an overlay that grows in opacity as the
+ * row is dragged. On release: trigger or snap-back (200ms ease-out).
+ */
+function SwipeableRow({
+  children, onForward, forwardLabel, forwardColor, disabled,
+}: {
+  children: React.ReactNode;
+  onForward?: () => void;
+  forwardLabel: string;
+  forwardColor: { bg: string; fg: string; ring: string };
+  disabled?: boolean;
+}) {
+  const [dx, setDx]               = useState(0);
+  const [animatingBack, setAnimB] = useState(false);
+  const startX     = useRef(0);
+  const startTime  = useRef(0);
+  const dragging   = useRef(false);
+  const fired      = useRef(false);
+  const THRESH_PX  = 96;
+
+  function onDown(e: React.PointerEvent) {
+    if (disabled) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    startX.current    = e.clientX;
+    startTime.current = Date.now();
+    dragging.current  = false;
+    fired.current     = false;
+    setAnimB(false);
+  }
+
+  function onMove(e: React.PointerEvent) {
+    if (disabled) return;
+    if (e.buttons === 0) return;
+    const delta = e.clientX - startX.current;
+    if (!dragging.current && Math.abs(delta) > 6) {
+      dragging.current = true;
+      try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); } catch {}
+    }
+    if (dragging.current) {
+      let d = delta;
+      // Damp past threshold
+      if (d > THRESH_PX) d = THRESH_PX + (d - THRESH_PX) * 0.4;
+      // Resist left drag (no action there)
+      if (d < 0) d = d * 0.25;
+      setDx(d);
+    }
+  }
+
+  function onUp() {
+    if (!dragging.current) { setDx(0); return; }
+    const elapsed  = Math.max(Date.now() - startTime.current, 1);
+    const velocity = dx / elapsed;
+    const should   = !fired.current && (dx >= THRESH_PX || velocity > 0.11);
+    setAnimB(true);
+    if (should && onForward) {
+      fired.current = true;
+      onForward();
+    }
+    setDx(0);
+    dragging.current = false;
+  }
+
+  const opacity = Math.min(Math.max(dx / THRESH_PX, 0), 1);
+
+  return (
+    <div style={{ position:'relative', overflow:'hidden' }}>
+      {/* Forward-action overlay revealed under the row */}
+      <div aria-hidden style={{
+        position:'absolute', inset:0,
+        background: `linear-gradient(90deg, transparent 25%, ${forwardColor.bg} 65%)`,
+        display:'flex', alignItems:'center', justifyContent:'flex-end',
+        padding:'0 22px',
+        opacity,
+        pointerEvents:'none',
+        transition: animatingBack ? 'opacity 200ms var(--ease-out)' : 'none',
+      }}>
+        <span style={{
+          display:'inline-flex', alignItems:'center', gap:6,
+          color: forwardColor.fg, fontWeight:700, fontSize:13,
+          padding:'4px 10px', borderRadius:999,
+          background:'rgba(255,255,255,.6)',
+          border:`1px solid ${forwardColor.ring}`,
+        }}>
+          <Icon d={I.check} size={13} stroke={2.4} />
+          {forwardLabel}
+        </span>
+      </div>
+      {/* Draggable row content */}
+      <div
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onUp}
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: animatingBack ? 'transform 220ms var(--ease-out)' : 'none',
+          touchAction: 'pan-y',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Allergen chip — multi-select toggle that gives a satisfying scale-pop
  * the moment it becomes active (chip-tick keyframes), then settles. Going
  * from active to inactive uses the standard .press feedback only — the
@@ -117,25 +227,29 @@ function HoldToDelete({ onConfirm }: { onConfirm: () => void }) {
   );
 }
 
-/** Empty-state illustration: a minimal restaurant chair in line art. */
+/** Empty-state illustration: a minimal restaurant chair in line art with a
+ *  barely-perceptible idle sway. The shadow expands in sync. */
 function EmptyChair() {
   return (
     <svg width="76" height="92" viewBox="0 0 76 92" fill="none"
       xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      {/* Chair back */}
-      <path d="M22 8 Q22 4 26 4 H50 Q54 4 54 8 V40 H22 Z"
-        stroke="var(--ink-400)" strokeWidth="1.6" fill="var(--cream)" />
-      {/* Vertical slats */}
-      <path d="M30 12 V36 M38 12 V36 M46 12 V36"
-        stroke="var(--ink-300)" strokeWidth="1.2" strokeLinecap="round" />
-      {/* Seat */}
-      <path d="M16 44 H60 Q62 44 62 46 V52 Q62 54 60 54 H16 Q14 54 14 52 V46 Q14 44 16 44 Z"
-        stroke="var(--ink-400)" strokeWidth="1.6" fill="var(--ink-50)" />
-      {/* Legs */}
-      <path d="M20 54 V84 M56 54 V84 M28 54 V72 M48 54 V72"
-        stroke="var(--ink-400)" strokeWidth="1.6" strokeLinecap="round" />
-      {/* Floor shadow */}
-      <ellipse cx="38" cy="86" rx="22" ry="2" fill="var(--ink-200)" opacity=".5" />
+      <g className="chair-body">
+        {/* Chair back */}
+        <path d="M22 8 Q22 4 26 4 H50 Q54 4 54 8 V40 H22 Z"
+          stroke="var(--ink-400)" strokeWidth="1.6" fill="var(--cream)" />
+        {/* Vertical slats */}
+        <path d="M30 12 V36 M38 12 V36 M46 12 V36"
+          stroke="var(--ink-300)" strokeWidth="1.2" strokeLinecap="round" />
+        {/* Seat */}
+        <path d="M16 44 H60 Q62 44 62 46 V52 Q62 54 60 54 H16 Q14 54 14 52 V46 Q14 44 16 44 Z"
+          stroke="var(--ink-400)" strokeWidth="1.6" fill="var(--ink-50)" />
+        {/* Legs */}
+        <path d="M20 54 V84 M56 54 V84 M28 54 V72 M48 54 V72"
+          stroke="var(--ink-400)" strokeWidth="1.6" strokeLinecap="round" />
+      </g>
+      {/* Floor shadow — sways out of phase to feel grounded */}
+      <ellipse className="chair-shadow"
+        cx="38" cy="86" rx="22" ry="2" fill="var(--ink-200)" />
     </svg>
   );
 }
@@ -166,8 +280,27 @@ interface TodayViewProps { newResTrigger?: number; hideDateNav?: boolean; }
 export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false }: TodayViewProps) {
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
-    addReservation, floorPlans,
+    addReservation, floorPlans, updateReservationStatus,
   } = useAppStore();
+
+  // Forward status progression for swipe-to-advance
+  function advanceStatus(r: Reservation) {
+    const next: Partial<Record<ReservationStatus, ReservationStatus>> = {
+      pending:   'confirmed',
+      confirmed: 'seated',
+      seated:    'completed',
+    };
+    const ns = next[r.status];
+    if (ns) updateReservationStatus(r.id, ns);
+  }
+  function swipeMetaFor(r: Reservation): {
+    label: string; bg: string; fg: string; ring: string; disabled: boolean;
+  } {
+    if (r.status === 'pending')   return { label:'Confirmar',  bg:'var(--olive-50)',      fg:'var(--olive-700)',      ring:'rgba(116,133,74,.30)',  disabled:false };
+    if (r.status === 'confirmed') return { label:'A taula',    bg:'var(--terracotta-50)', fg:'var(--terracotta-700)', ring:'rgba(168,74,42,.28)',   disabled:false };
+    if (r.status === 'seated')    return { label:'Acabar',     bg:'var(--ink-100)',       fg:'var(--ink-700)',        ring:'rgba(60,40,20,.18)',    disabled:false };
+    return { label:'', bg:'transparent', fg:'transparent', ring:'transparent', disabled:true };
+  }
   const plan = floorPlans[selectedBusiness];
 
   const [sel, setSel]         = useState<Reservation | null>(null);
@@ -365,12 +498,24 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
                 className="row-stagger"
                 style={{ ['--row-i' as string]: staggerIdx }}
               >
-                <ResRow
-                  res={r}
-                  selected={sel?.id === r.id}
-                  onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
-                  plan={plan}
-                />
+                {(() => {
+                  const meta = swipeMetaFor(r);
+                  return (
+                    <SwipeableRow
+                      forwardLabel={meta.label}
+                      forwardColor={{ bg: meta.bg, fg: meta.fg, ring: meta.ring }}
+                      disabled={meta.disabled}
+                      onForward={() => advanceStatus(r)}
+                    >
+                      <ResRow
+                        res={r}
+                        selected={sel?.id === r.id}
+                        onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
+                        plan={plan}
+                      />
+                    </SwipeableRow>
+                  );
+                })()}
               </div>
             </React.Fragment>
           );

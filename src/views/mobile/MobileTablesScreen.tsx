@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
@@ -25,6 +25,8 @@ export default function MobileTablesScreen() {
 
   const [zoneId, setZoneId] = useState<string>('__all__');
   const [selTable, setSelTable] = useState<FloorTable | null>(null);
+  // Coordinates of the tap that opened the sheet, so it can scale-from-tap
+  const [tapPt, setTapPt] = useState<{ x: number; y: number } | null>(null);
 
   // ── Swipe L/R inside the table grid → cycle through zones ────────────────
   const touchStartX = useRef(0);
@@ -157,7 +159,13 @@ export default function MobileTablesScreen() {
             const st = STATUS_STYLE[t.status];
             const isSeated = t.status === 'seated';
             return (
-              <button key={t.id} onClick={() => setSelTable(t)} className="press"
+              <button key={t.id}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setTapPt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+                  setSelTable(t);
+                }}
+                className="press"
                 style={{
                   aspectRatio:'1/1.05',
                   background:st.bg, borderRadius:12, padding:'9px 8px 7px',
@@ -245,6 +253,7 @@ export default function MobileTablesScreen() {
             table={liveTable}
             zoneLabel={zoneLabel}
             linkedRes={linkedRes}
+            tapPt={tapPt}
             onBlock={() => {
               updateFloorTable(selectedBusiness, selTable.id, { status: 'blocked' });
               setSelTable(null);
@@ -360,13 +369,16 @@ export default function MobileTablesScreen() {
 
 // ─── Table action sheet ───────────────────────────────────────────────────────
 function TableActionSheet({
-  table: t, zoneLabel, linkedRes,
+  table: t, zoneLabel, linkedRes, tapPt,
   onBlock, onUnblock, onRelease, onCreateWalkIn, onSeatReservation, onConfirmReservation,
   onClose,
 }: {
   table: FloorTable;
   zoneLabel: string;
   linkedRes?: Reservation;
+  /** Viewport-relative center of the cell that opened this sheet — used to
+   *  scale-from-tap so the sheet feels born from the tapped table. */
+  tapPt: { x: number; y: number } | null;
   onBlock: () => void;
   onUnblock: () => void;
   onRelease: () => void;
@@ -375,6 +387,15 @@ function TableActionSheet({
   onConfirmReservation: () => void;
   onClose: () => void;
 }) {
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [origin, setOrigin] = useState<string>('center bottom');
+  // Compute transform-origin in the sheet's coordinate space the moment it
+  // mounts so the sheet appears to grow out of the tapped cell.
+  useEffect(() => {
+    if (!tapPt || !sheetRef.current) return;
+    const r = sheetRef.current.getBoundingClientRect();
+    setOrigin(`${tapPt.x - r.left}px ${tapPt.y - r.top}px`);
+  }, [tapPt]);
   const st = STATUS_STYLE[t.status];
   const isFree    = t.status === 'free';
   const isBlocked = t.status === 'blocked';
@@ -438,12 +459,13 @@ function TableActionSheet({
     <>
       <div onClick={onClose}
         style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.42)' }} />
-      <div style={{
+      <div ref={sheetRef} className="sheet-from-tap" style={{
         position:'fixed', bottom:0, left:0, right:0, zIndex:100,
         background:'var(--paper)', borderRadius:'22px 22px 0 0',
         boxShadow:'0 -8px 32px rgba(0,0,0,.18)',
         paddingBottom:'max(env(safe-area-inset-bottom, 0px), 14px)',
         maxHeight:'82dvh', overflowY:'auto',
+        transformOrigin: origin,
       }}>
         <div style={{ width:38, height:4, borderRadius:2, background:'var(--ink-200)',
                       margin:'10px auto 6px' }} />

@@ -366,6 +366,33 @@ body::before {
 }
 .chip-tick { animation: chip-tick 240ms var(--ease-out) both; }
 
+/* ── Empty-state chair sway — barely perceptible idle motion that hints
+   the empty interface is alive. Stays still under prefers-reduced-motion. */
+@keyframes chair-sway {
+  0%, 100% { transform: translateX(0)    rotate(0)        ; }
+  50%      { transform: translateX(0.6px) rotate(0.18deg) ; }
+}
+@keyframes shadow-sway {
+  0%, 100% { transform: scaleX(1)    ; opacity: .50; }
+  50%      { transform: scaleX(1.04) ; opacity: .42; }
+}
+.chair-body   { animation: chair-sway  4.2s ease-in-out infinite; transform-origin: 50% 88px; }
+.chair-shadow { animation: shadow-sway 4.2s ease-in-out infinite; transform-origin: 50% 50%; }
+
+/* ── Sheet scale-from-tap — used by table action sheet so it appears to
+   grow from the cell that was tapped, not generically from the bottom. */
+@keyframes sheet-from-tap-in {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); filter: blur(2px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    filter: blur(0);   }
+}
+.sheet-from-tap { animation: sheet-from-tap-in 320ms var(--ease-drawer) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chair-body, .chair-shadow, .sheet-from-tap {
+    animation: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .row-stagger, .status-morph, .number-tween {
     animation: none !important;
