@@ -412,9 +412,15 @@ export default function TouchShell() {
                 fontSize: 11.5, color: activeShift.tintFg, fontWeight: 600,
                 letterSpacing: .02,
               }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500 }}>{totalRes}</span> reserves
+                <span key={`r-${totalRes}`} className="number-tween"
+                      style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500 }}>
+                  {totalRes}
+                </span> reserves
                 {' · '}
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500 }}>{totalPax}</span> pax
+                <span key={`p-${totalPax}`} className="number-tween"
+                      style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500 }}>
+                  {totalPax}
+                </span> pax
               </span>
             </div>
           )}
@@ -669,6 +675,9 @@ function NavBtn({ id, tab, setTab, label, ico, special }: {
 }
 
 // ─── Rail KPI — vertical mini stat shown under the brand block ──────────────
+// The number itself is keyed so it re-mounts on each value change, replaying
+// the .number-tween keyframes (drop-in from above with a short blur). The
+// label stays static.
 function RailKpi({ value, label, accent }: {
   value: number; label: string; accent?: boolean;
 }) {
@@ -677,15 +686,21 @@ function RailKpi({ value, label, accent }: {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
       lineHeight: 1,
     }}>
-      <span style={{
-        fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
-        color: accent && value > 0 ? 'var(--terracotta-700)' : 'var(--ink-900)',
-        letterSpacing: -.005,
-      }}>{value}</span>
+      <span
+        key={value}
+        className="number-tween"
+        style={{
+          fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
+          color: accent && value > 0 ? 'var(--terracotta-700)' : 'var(--ink-900)',
+          letterSpacing: -.005,
+          transition: 'color 220ms var(--ease-in-out)',
+        }}
+      >{value}</span>
       <span style={{
         fontSize: 8.5, fontWeight: 700, letterSpacing: .08,
         color: accent && value > 0 ? 'var(--terracotta-600)' : 'var(--ink-500)',
         textTransform: 'uppercase',
+        transition: 'color 220ms var(--ease-in-out)',
       }}>{label}</span>
     </div>
   );

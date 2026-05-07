@@ -311,6 +311,45 @@ body::before {
    Keep the class as a no-op for any caller still using it. */
 .tab-enter { /* intentionally empty — see Emil rule on keyboard-frequency UI */ }
 
+/* ── Row stagger — cascades the first ~8 list rows when the parent remounts
+   (via key on day/shift change). Subsequent rows snap in to keep things fast. */
+@keyframes row-stagger-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.row-stagger {
+  animation: row-stagger-in 280ms var(--ease-out) both;
+  animation-delay: calc(var(--row-i, 0) * 35ms);
+}
+
+/* ── Status morph — brief blur+scale dip when a status pill's value changes.
+   Bridges the colour swap so the eye reads it as one element transforming. */
+@keyframes status-morph {
+  0%   { filter: blur(0)   ; transform: scale(1);    opacity: 1;   }
+  45%  { filter: blur(2px) ; transform: scale(0.94); opacity: 0.55;}
+  100% { filter: blur(0)   ; transform: scale(1);    opacity: 1;   }
+}
+.status-morph {
+  animation: status-morph 220ms var(--ease-in-out) both;
+}
+
+/* ── Number tween — used on KPI digits when their value changes.
+   Re-mounted via key={value} so the keyframes always run from the top. */
+@keyframes number-drop {
+  from { opacity: 0; transform: translateY(-6px); filter: blur(1.5px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0);     }
+}
+.number-tween {
+  animation: number-drop 260ms var(--ease-out) both;
+  display: inline-block; /* needed so transform takes effect on inline text */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-stagger, .status-morph, .number-tween {
+    animation: none !important;
+  }
+}
+
 /* ── Day-change content animation (directional) ─────────────────────────── */
 @keyframes day-next {
   from { opacity: 0; transform: translateX(16px); }

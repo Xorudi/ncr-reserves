@@ -224,11 +224,15 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
           </div>
         )}
 
+        {/* listKey re-mounts every row when day or shift changes,
+            so the row-stagger animation replays from the top. */}
         {activeList.map((r, i) => {
           const prev = i > 0 ? activeList[i - 1] : null;
           const showTimeHeader = !prev || prev.time !== r.time;
+          const listKey = `${dateStr}-${effectiveShift}-${r.id}`;
+          const staggerIdx = Math.min(i, 7);
           return (
-            <React.Fragment key={r.id}>
+            <React.Fragment key={listKey}>
               {showTimeHeader && (() => {
                 const isLunch = parseH(r.time) < 18;
                 const dotColor = isLunch ? 'var(--clay-500)' : 'var(--plum-600)';
@@ -247,12 +251,17 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
                   </div>
                 );
               })()}
-              <ResRow
-                res={r}
-                selected={sel?.id === r.id}
-                onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
-                plan={plan}
-              />
+              <div
+                className="row-stagger"
+                style={{ ['--row-i' as string]: staggerIdx }}
+              >
+                <ResRow
+                  res={r}
+                  selected={sel?.id === r.id}
+                  onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
+                  plan={plan}
+                />
+              </div>
             </React.Fragment>
           );
         })}
@@ -294,14 +303,34 @@ function ResStatePill({ state }: { state: ReservationStatus }) {
     noshow:    { bg:'var(--rose-50)',        fg:'var(--rose-700)',        label:'No-show'    },
   };
   const s = map[state] ?? map.pending;
+
+  // Detect status changes and trigger a brief blur+scale morph so the colour
+  // swap reads as a single transformation rather than a hard snap.
+  const prev = useRef(state);
+  const [morphing, setMorphing] = useState(false);
+  useEffect(() => {
+    if (prev.current === state) return;
+    prev.current = state;
+    setMorphing(true);
+    const t = setTimeout(() => setMorphing(false), 240);
+    return () => clearTimeout(t);
+  }, [state]);
+
   return (
-    <span style={{
-      display:'inline-flex', alignItems:'center',
-      padding:'3px 9px', borderRadius:999,
-      background:s.bg, color:s.fg,
-      fontSize:11.5, fontWeight:600, whiteSpace:'nowrap',
-      ...(state === 'cancelled' ? { textDecoration:'line-through' } : {}),
-    }}>{s.label}</span>
+    <span
+      // key={state} is intentional: when the value changes, React re-mounts
+      // the span so the .status-morph keyframes always fire from the top.
+      key={state}
+      className={morphing ? 'status-morph' : undefined}
+      style={{
+        display:'inline-flex', alignItems:'center',
+        padding:'3px 9px', borderRadius:999,
+        background:s.bg, color:s.fg,
+        fontSize:11.5, fontWeight:600, whiteSpace:'nowrap',
+        transition:'background 220ms var(--ease-in-out), color 220ms var(--ease-in-out)',
+        ...(state === 'cancelled' ? { textDecoration:'line-through' } : {}),
+      }}
+    >{s.label}</span>
   );
 }
 
