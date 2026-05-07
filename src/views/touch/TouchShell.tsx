@@ -255,17 +255,25 @@ export default function TouchShell() {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // MOBILE LAYOUT — top header + bottom navigation bar (new design)
+  // MOBILE LAYOUT — fixed bottom nav (works on all iPhone + Android models)
+  //
+  // Why position:fixed instead of in-flow:
+  //  - In-flow nav height varies by device; flex column may miscalculate
+  //    available height in Safari/Chrome causing a visible gap below the bar.
+  //  - position:fixed + bottom:0 always anchors to the viewport edge.
+  //  - paddingBottom:env(safe-area-inset-bottom) fills the iOS home-indicator
+  //    zone and Android gesture bar with the nav background color.
+  //  - Content scroll containers use --scroll-pad-bottom which already
+  //    accounts for --mobile-nav-h (56px) + safe-area, so nothing clips.
   // ══════════════════════════════════════════════════════════════════════════
   return (
     <div style={{
-      position: 'relative',           // FAB anchor
       display: 'flex', flexDirection: 'column',
       height: appH,
       background: 'var(--cream)', overflow: 'hidden',
     }}>
 
-      {/* ── Top header — Fraunces serif title + avatar ───────────────── */}
+      {/* ── Top header ──────────────────────────────────────────────── */}
       <header style={{
         paddingTop:    isStandalone ? 'calc(env(safe-area-inset-top) + 14px)' : '54px',
         paddingBottom: '14px',
@@ -278,7 +286,6 @@ export default function TouchShell() {
         alignItems:    'flex-end',
         gap:           12,
       }}>
-        {/* Employee avatar — taps to switch user */}
         <button onClick={() => setShowUserPicker(true)}
           style={{
             width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
@@ -291,7 +298,6 @@ export default function TouchShell() {
           {activeEmp ? activeEmp.initials : <Icon d={I.users} size={16} />}
         </button>
 
-        {/* Title block */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <button onClick={() => setShowBizPicker(true)} style={{
             fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
@@ -309,7 +315,6 @@ export default function TouchShell() {
           </div>
         </div>
 
-        {/* Més button */}
         <button onClick={() => setTab('more')}
           style={{
             width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
@@ -332,47 +337,53 @@ export default function TouchShell() {
         {screenContent}
       </main>
 
-      {/* ── Bottom nav — in-flow, blur glass, split 2+2 around FAB spacer ── */}
+      {/* ── FIXED bottom nav ────────────────────────────────────────── */}
+      {/*   position:fixed guarantees it sticks to the viewport bottom  */}
+      {/*   on every iPhone (SE, 14, 15 Pro Max) and every Android.     */}
+      {/*   paddingBottom fills the home-indicator / gesture-bar zone.  */}
       <nav style={{
-        flexShrink: 0, zIndex: 50,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        zIndex: 100,
+        /* Opaque white — prevents cream bleed-through in safe-area zone */
+        background: '#ffffff',
+        borderTop: '1px solid rgba(60,40,20,.08)',
+        display: 'flex',
+        alignItems: 'flex-start',
         paddingTop: 6,
-        paddingLeft:  'max(4px, env(safe-area-inset-left,  0px))',
-        paddingRight: 'max(4px, env(safe-area-inset-right, 0px))',
-        background: 'rgba(255,255,255,0.96)',
-        backdropFilter: 'blur(20px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-        borderTop: 'var(--hair)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.8)',
-        display: 'flex', alignItems: 'stretch',
+        /* This extends the white background into the home-indicator area */
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingLeft:  'env(safe-area-inset-left,  0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
       }}>
         {MOB_LEFT_TABS.map(t => (
           <MobNavBtn key={t.id} id={t.id} tab={tab} setTab={setTab} label={t.label} ico={t.ico} />
         ))}
-        {/* Center spacer for floating FAB */}
         <div style={{ width: 68, flexShrink: 0 }} aria-hidden />
         {MOB_RIGHT_TABS.map(t => (
           <MobNavBtn key={t.id} id={t.id} tab={tab} setTab={setTab} label={t.label} ico={t.ico} />
         ))}
       </nav>
 
-      {/* ── Floating "+" FAB — absolutely positioned above nav center ── */}
+      {/* ── FIXED FAB ───────────────────────────────────────────────── */}
+      {/*   bottom = nav tab area (56px) + safe-area + gap above tabs   */}
       <button
         onClick={openNewReservation}
         className="press"
         aria-label="Nova reserva"
         style={{
-          position: 'absolute',
+          position: 'fixed',
+          bottom: 'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 10px)',
           left: '50%',
-          bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
           transform: 'translateX(-50%)',
           width: 60, height: 60, borderRadius: 999,
+          zIndex: 110,
           background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
           color: '#fff',
-          border: '2.5px solid #fff',
+          border: '3px solid #fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', zIndex: 60, flexShrink: 0,
-          boxShadow: '0 -4px 18px rgba(168,74,42,.38), 0 4px 12px rgba(168,74,42,.3), 0 0 0 1px rgba(168,74,42,.12)',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(168,74,42,.45), 0 0 0 1px rgba(168,74,42,.15)',
           WebkitTapHighlightColor: 'transparent',
         }}>
         <Icon d={I.plus} size={26} stroke={2.4} />
