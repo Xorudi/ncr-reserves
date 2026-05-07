@@ -125,6 +125,21 @@ body {
   overscroll-behavior: none;
 }
 
+/* ─── Paper grain — gives the cream surface a hand-printed feel ─────────────
+   SVG fractal noise inlined as data URI; opacity ~3.5%, fixed in viewport so
+   it doesn't scroll with content. Adds warmth without becoming a design tell.
+*/
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.30  0 0 0 0 0.20  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+  opacity: .035;
+  mix-blend-mode: multiply;
+}
+#root { position: relative; z-index: 1; }
+
 #root {
   height: 100dvh;
   overflow: hidden; /* each shell handles its own overflow */

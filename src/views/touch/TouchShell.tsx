@@ -88,13 +88,40 @@ export default function TouchShell() {
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
 
-  // Reserves pendents del dia → mostra un badge a la pestanya Reserves
-  const pendingResCount = (() => {
-    const iso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
-    return reservations.filter(r =>
-      r.bizId === selectedBusiness && r.date === iso && r.status === 'pending',
-    ).length;
-  })();
+  // ── Day-aware metrics + shift detection ─────────────────────────────────
+  const dayIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+  const dayResAll = reservations.filter(r =>
+    r.bizId === selectedBusiness && r.date === dayIso,
+  );
+  const pendingResCount = dayResAll.filter(r => r.status === 'pending').length;
+  const totalRes = dayResAll.length;
+  const totalPax = dayResAll.reduce((s, r) => s + r.pax, 0);
+
+  // Shift detection — Migdia (13–16) / Nit (19–23:30) / fora-servei
+  const now = new Date();
+  const isToday =
+    now.getFullYear() === selectedDate.getFullYear() &&
+    now.getMonth()    === selectedDate.getMonth() &&
+    now.getDate()     === selectedDate.getDate();
+  const hourNow = now.getHours() + now.getMinutes() / 60;
+  const inMigdia = isToday && hourNow >= 13   && hourNow < 16;
+  const inNit    = isToday && hourNow >= 19   && hourNow < 23.5;
+  const activeShift: { id:'M'|'N'; label:string; range:string; emoji:string; tint:string; tintFg:string } | null =
+    inMigdia ? { id:'M', label:'Servei de migdia', range:'13:00 – 16:00', emoji:'☀️',
+                 tint:'var(--clay-50)', tintFg:'var(--clay-700)' } :
+    inNit    ? { id:'N', label:'Servei de nit',    range:'19:00 – 23:30', emoji:'🌙',
+                 tint:'var(--plum-100)', tintFg:'var(--plum-700)' } :
+    null;
+
+  // Time-of-day shell tint — extremely subtle, just a tonal hint
+  const todTint =
+    hourNow >= 5  && hourNow < 11 ? 'rgba(90,163,192,.025)'   /* matí: sky    */ :
+    hourNow >= 18 && hourNow < 22 ? 'rgba(200,97,58,.030)'    /* vespre: terr.*/ :
+    hourNow >= 22 || hourNow < 5  ? 'rgba(138,79,118,.025)'   /* nit: plum    */ :
+    'transparent';
+
+  // Operator's shift label for rail footer
+  const operatorShift: 'M' | 'N' | null = activeShift?.id ?? null;
 
   // ── Track the true VISUAL viewport height ────────────────────────────────
   // The visual viewport is the area actually visible to the user — it shrinks
@@ -192,7 +219,8 @@ export default function TouchShell() {
     return (
       <div style={{
         display: 'flex', height: '100dvh',
-        background: 'var(--cream)', overflow: 'hidden',
+        background: `linear-gradient(180deg, ${todTint} 0%, transparent 60%), var(--cream)`,
+        overflow: 'hidden',
         paddingTop: isStandalone ? 'env(safe-area-inset-top)' : undefined,
       }}>
 
@@ -230,6 +258,19 @@ export default function TouchShell() {
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {biz.name}
+          </div>
+
+          {/* ── Mini KPIs del dia (sempre visibles al rail) ─────── */}
+          <div style={{
+            margin: '0 10px 12px', padding: '8px 6px',
+            background: 'rgba(60,40,20,.025)', borderRadius: 10,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          }}>
+            <RailKpi value={totalRes} label="res" />
+            <div style={{ width: 22, height: 1, background: 'rgba(60,40,20,.07)' }} />
+            <RailKpi value={totalPax} label="pax" />
+            <div style={{ width: 22, height: 1, background: 'rgba(60,40,20,.07)' }} />
+            <RailKpi value={pendingResCount} label="pend." accent={pendingResCount > 0} />
           </div>
 
           {/* Hairline separator */}
@@ -306,6 +347,24 @@ export default function TouchShell() {
                 {activeEmp.fullName.split(' ')[0]}
               </span>
             )}
+            {/* Operator shift indicator (only when an active shift is on) */}
+            {operatorShift && (
+              <span style={{
+                marginTop: 4,
+                fontSize: 8.5, fontWeight: 700,
+                letterSpacing: .1,
+                color: operatorShift === 'M' ? 'var(--clay-700)' : 'var(--plum-700)',
+                background: operatorShift === 'M' ? 'var(--clay-50)' : 'var(--plum-100)',
+                padding: '2px 7px', borderRadius: 999,
+                display: 'inline-flex', alignItems: 'center', gap: 3,
+              }}>
+                <span style={{
+                  width: 5, height: 5, borderRadius: 999,
+                  background: operatorShift === 'M' ? 'var(--clay-500)' : 'var(--plum-600)',
+                }} />
+                {operatorShift === 'M' ? 'Migdia' : 'Nit'}
+              </span>
+            )}
           </div>
         </nav>
 
@@ -324,6 +383,42 @@ export default function TouchShell() {
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
           />
+
+          {/* Banner de servei en marxa — només quan toca, discret però visible */}
+          {activeShift && (
+            <div style={{
+              flexShrink: 0,
+              margin: '8px 22px 0',
+              padding: '8px 14px',
+              borderRadius: 10,
+              background: activeShift.tint,
+              border: `1px solid ${activeShift.id === 'M' ? 'rgba(204,144,73,.22)' : 'rgba(138,79,118,.22)'}`,
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontSize: 12.5,
+            }}>
+              <span style={{ fontSize: 15, lineHeight: 1 }}>{activeShift.emoji}</span>
+              <span style={{
+                fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500,
+                color: activeShift.tintFg, letterSpacing: -.005,
+              }}>
+                {activeShift.label}
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 11.5, color: activeShift.tintFg,
+                opacity: .75, fontWeight: 600,
+              }}>· {activeShift.range}</span>
+              <span style={{ flex: 1 }} />
+              <span style={{
+                fontSize: 11.5, color: activeShift.tintFg, fontWeight: 600,
+                letterSpacing: .02,
+              }}>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500 }}>{totalRes}</span> reserves
+                {' · '}
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500 }}>{totalPax}</span> pax
+              </span>
+            </div>
+          )}
+
           {screenContent}
 
           {/* FAB bottom-right — opens new reservation */}
@@ -566,6 +661,29 @@ function NavBtn({ id, tab, setTab, label, ico, special }: {
       <Icon d={ico} size={22} stroke={active ? 2.1 : 1.6} />
       <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{label}</span>
     </button>
+  );
+}
+
+// ─── Rail KPI — vertical mini stat shown under the brand block ──────────────
+function RailKpi({ value, label, accent }: {
+  value: number; label: string; accent?: boolean;
+}) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+      lineHeight: 1,
+    }}>
+      <span style={{
+        fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
+        color: accent && value > 0 ? 'var(--terracotta-700)' : 'var(--ink-900)',
+        letterSpacing: -.005,
+      }}>{value}</span>
+      <span style={{
+        fontSize: 8.5, fontWeight: 700, letterSpacing: .08,
+        color: accent && value > 0 ? 'var(--terracotta-600)' : 'var(--ink-500)',
+        textTransform: 'uppercase',
+      }}>{label}</span>
+    </div>
   );
 }
 

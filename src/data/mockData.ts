@@ -766,15 +766,23 @@ export const NOTIF_DEFAULTS: NotifConfig = {
 };
 
 // ─── Zone helpers ──────────────────────────────────────────────────────────────
+/**
+ * Cohesive single-glyph zone markers. Uses minimal Unicode geometric/symbol
+ * characters (instead of multi-colour emojis) so every zone chip looks like
+ * part of the same drawn-by-hand set rather than an emoji sticker collage.
+ *   ▣  inside (menjador / sala)        ◓  bar / barra (drink dot)
+ *   ◈  terrassa / jardí (open air)     ★  vip
+ *   ◉  joc / pàdel                     •  default
+ */
 export function getZoneIcon(label: string): string {
   const l = label.toLowerCase();
-  if (l.includes('barra'))                    return '🍺';
-  if (l.includes('bar'))                      return '🍷';
-  if (l.includes('menjador') || l.includes('sala')) return '🍽️';
-  if (l.includes('terrassa') || l.includes('jardí') || l.includes('jardin')) return '🌿';
-  if (l.includes('vip'))                      return '⭐';
-  if (l.includes('joc') || l.includes('pàdel')) return '🎾';
-  return '📍';
+  if (l.includes('barra'))                                      return '◓';
+  if (l.includes('bar'))                                        return '◓';
+  if (l.includes('menjador') || l.includes('sala'))             return '▣';
+  if (l.includes('terrassa') || l.includes('jardí') || l.includes('jardin')) return '◈';
+  if (l.includes('vip'))                                        return '★';
+  if (l.includes('joc') || l.includes('pàdel'))                 return '◉';
+  return '•';
 }
 
 export function getZoneColor(label: string): { bg: string; color: string } {

@@ -7,6 +7,29 @@ import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
 
+/** Empty-state illustration: a minimal restaurant chair in line art. */
+function EmptyChair() {
+  return (
+    <svg width="76" height="92" viewBox="0 0 76 92" fill="none"
+      xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {/* Chair back */}
+      <path d="M22 8 Q22 4 26 4 H50 Q54 4 54 8 V40 H22 Z"
+        stroke="var(--ink-400)" strokeWidth="1.6" fill="var(--cream)" />
+      {/* Vertical slats */}
+      <path d="M30 12 V36 M38 12 V36 M46 12 V36"
+        stroke="var(--ink-300)" strokeWidth="1.2" strokeLinecap="round" />
+      {/* Seat */}
+      <path d="M16 44 H60 Q62 44 62 46 V52 Q62 54 60 54 H16 Q14 54 14 52 V46 Q14 44 16 44 Z"
+        stroke="var(--ink-400)" strokeWidth="1.6" fill="var(--ink-50)" />
+      {/* Legs */}
+      <path d="M20 54 V84 M56 54 V84 M28 54 V72 M48 54 V72"
+        stroke="var(--ink-400)" strokeWidth="1.6" strokeLinecap="round" />
+      {/* Floor shadow */}
+      <ellipse cx="38" cy="86" rx="22" ry="2" fill="var(--ink-200)" opacity=".5" />
+    </svg>
+  );
+}
+
 function buildTableLine(res: Reservation, plan: FloorPlan | undefined): { icon: string; zone: string; tableStr: string; bg: string; color: string } | null {
   if (!plan || !res.tableIds || res.tableIds.length === 0) return null;
   const tables = res.tableIds
@@ -183,9 +206,13 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
       >
         {dayRes.length === 0 && (
           <div style={{ textAlign:'center', padding:'64px 20px', color:'var(--ink-500)' }}>
-            <div style={{ fontSize:32, marginBottom:10 }}>🔭</div>
-            <div style={{ fontFamily:'var(--font-serif)', fontSize:17, color:'var(--ink-700)' }}>Cap reserva per a aquest dia</div>
-            <div style={{ fontSize:13, marginTop:6 }}>Prem "+" per afegir-ne una</div>
+            <EmptyChair />
+            <div style={{ fontFamily:'var(--font-serif)', fontSize:18, color:'var(--ink-700)', marginTop:14, letterSpacing:-.005 }}>
+              Sala buida, taules a punt
+            </div>
+            <div style={{ fontSize:13, marginTop:6, color:'var(--ink-500)' }}>
+              Prem <span style={{ fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--terracotta-700)' }}>+</span> per afegir la primera reserva
+            </div>
           </div>
         )}
 
