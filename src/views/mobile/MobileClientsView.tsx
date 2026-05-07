@@ -37,12 +37,12 @@ export default function MobileClientsView() {
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div style={{ padding:'10px 14px', borderBottom:'var(--hair)', background:'var(--paper)', flexShrink:0 }}>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <div style={{ flex:1, display:'flex', alignItems:'center', gap:8, padding:'8px 12px', borderRadius:10, background:'var(--cream)', border:'var(--hair)' }}>
-            <Icon d={I.search} size={15} />
+      <div style={{ padding:'10px 14px 8px', borderBottom:'var(--hair)', background:'var(--paper)', flexShrink:0 }}>
+        <div style={{ position:'relative', display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ flex:1, display:'flex', alignItems:'center', gap:8, padding:'11px 12px 11px 38px', borderRadius:12, background:'rgba(60,40,20,.06)' }}>
+            <div style={{ position:'absolute', left:14, pointerEvents:'none', display:'flex', color:'var(--ink-400)' }}><Icon d={I.search} size={16} /></div>
             <input value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Cerca clients…"
+              placeholder="Cercar per nom o telèfon"
               style={{ flex:1, border:'none', outline:'none', background:'transparent', fontFamily:'inherit', fontSize:14, color:'var(--ink-900)' }} />
             {query && (
               <button onClick={() => setQuery('')} style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, color:'var(--ink-400)', display:'grid', placeItems:'center' }}>
@@ -51,12 +51,21 @@ export default function MobileClientsView() {
             )}
           </div>
           <button onClick={() => setShowNew(true)}
-            style={{ width:38, height:38, borderRadius:10, border:'none', background:'var(--terracotta-600)', color:'white', cursor:'pointer', display:'grid', placeItems:'center', flexShrink:0 }}>
+            style={{ width:40, height:40, borderRadius:12, border:'none', background:'var(--terracotta-600)', color:'white', cursor:'pointer', display:'grid', placeItems:'center', flexShrink:0 }}>
             <Icon d={I.plus} size={18} stroke={2.2} />
           </button>
         </div>
-        <div style={{ fontSize:11, color:'var(--ink-400)', marginTop:5, paddingLeft:2 }}>
-          {filtered.length} client{filtered.length !== 1 ? 's' : ''}
+        {/* Filter chips */}
+        <div style={{ display:'flex', gap:6, marginTop:8, overflowX:'auto', paddingBottom:2 }}>
+          {['Tots','VIP','Habituals','Al·lèrgies','Aniversaris'].map((f, i) => (
+            <button key={f} style={{
+              padding:'5px 12px', borderRadius:999, whiteSpace:'nowrap', fontFamily:'inherit',
+              border: i === 0 ? 'none' : '1px solid rgba(60,40,20,.14)',
+              background: i === 0 ? 'var(--ink-900)' : 'var(--paper)',
+              color: i === 0 ? 'var(--cream)' : 'var(--ink-500)',
+              fontSize:12, fontWeight:600, cursor:'pointer',
+            }}>{f}</button>
+          ))}
         </div>
       </div>
 
@@ -111,29 +120,29 @@ export default function MobileClientsView() {
 function ClientRow({ client: c, onTap }: { client: Customer; onTap: () => void }) {
   return (
     <button onClick={onTap}
-      style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 16px', borderBottom:'var(--hair)', background:'transparent', border:'none', width:'100%', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
-      <span className={`avatar av-${avIdx(c.name)}`} style={{ width:38, height:38, fontSize:13, flexShrink:0 }}>
+      style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 18px', borderBottom:'var(--hair)', background:'var(--paper)', border:'none', width:'100%', cursor:'pointer', fontFamily:'inherit', textAlign:'left' }}>
+      {/* Avatar — Fraunces serif initials circle */}
+      <div style={{
+        width:42, height:42, borderRadius:999, flexShrink:0,
+        background:'var(--cream)', display:'flex', alignItems:'center', justifyContent:'center',
+        fontFamily:'var(--font-serif)', fontSize:15, fontWeight:500, color:'var(--ink-800)',
+      }}>
         {initials(c.name)}
-      </span>
+      </div>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)' }}>{c.name}</span>
-          {c.tags.includes('allergy') && <span style={{ fontSize:12 }}>⚠️</span>}
+        <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+          <span style={{ fontSize:14.5, fontWeight:600, color:'var(--ink-900)' }}>{c.name}</span>
           {c.tags.includes('vip') && (
-            <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:4, background:'#c9a227', color:'white' }}>VIP</span>
+            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'#2a2119', color:'#f3dca6', fontWeight:700, letterSpacing:.3 }}>VIP</span>
+          )}
+          {c.tags.includes('allergy') && (
+            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'var(--rose-100)', color:'var(--rose-700)', fontWeight:700, letterSpacing:.3 }}>AL·LÈRGIA</span>
           )}
         </div>
-        <div style={{ fontSize:12, color:'var(--ink-500)', marginTop:1, fontFamily:'var(--font-mono)' }}>{c.phone}</div>
-        {c.tags.length > 0 && (
-          <div style={{ display:'flex', gap:4, marginTop:4, flexWrap:'wrap' }}>
-            {c.tags.map(t => <Tag key={t} kind={t} />)}
-          </div>
-        )}
+        <div style={{ fontSize:12, color:'var(--ink-400)', marginTop:2, fontFamily:'var(--font-mono)' }}>{c.phone}</div>
+        <div style={{ fontSize:11, color:'var(--ink-500)', marginTop:1 }}>{c.visits} visites{c.spend ? ` · ${c.spend}€` : ''}</div>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
-        <span style={{ fontSize:11, color:'var(--ink-600)' }}>{c.visits} visites</span>
-        <Icon d={I.chevR} size={14} />
-      </div>
+      <Icon d={I.chevR} size={14} />
     </button>
   );
 }

@@ -36,13 +36,13 @@ function effectiveTable(
 }
 
 const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: string }> = {
-  free:      { bg:'rgba(70,130,60,.12)',   color:'#2e7040', label:'Lliure'    },
-  confirmed: { bg:'rgba(30,80,160,.12)',   color:'#1a4ea0', label:'Confirmada'},
-  reserved:  { bg:'rgba(100,40,140,.12)',  color:'#6a1b9a', label:'Reservada' },
-  pending:   { bg:'rgba(190,100,20,.12)',  color:'#b05a00', label:'Pendent'   },
-  seated:    { bg:'rgba(190,50,40,.12)',   color:'#b52b22', label:'Ocupada'   },
-  blocked:   { bg:'rgba(60,50,40,.08)',    color:'#666',    label:'Bloquejada'},
-  playing:   { bg:'rgba(0,120,160,.12)',   color:'#007799', label:'En joc'    },
+  free:      { bg:'var(--olive-50)',       color:'var(--olive-700)',      label:'Lliure'    },
+  confirmed: { bg:'var(--clay-50)',        color:'var(--clay-700)',       label:'Confirmada'},
+  reserved:  { bg:'var(--clay-50)',        color:'var(--clay-700)',       label:'Reservada' },
+  pending:   { bg:'var(--clay-50)',        color:'var(--clay-700)',       label:'Pendent'   },
+  seated:    { bg:'var(--terracotta-50)', color:'var(--terracotta-700)', label:'Ocupada'   },
+  blocked:   { bg:'var(--ink-100)',        color:'var(--ink-500)',        label:'Bloquejada'},
+  playing:   { bg:'var(--terracotta-50)', color:'var(--terracotta-700)', label:'En joc'    },
 };
 
 export default function MobileTablesScreen() {
@@ -114,67 +114,72 @@ export default function MobileTablesScreen() {
         <span style={{ fontSize:11.5, color:'var(--ink-400)' }}>· taules del dia</span>
       </div>
 
-      {/* Status summary strip */}
+      {/* Stat boxes — 4-col Fraunces grid */}
       <div style={{ padding:'8px 14px 6px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0 }}>
-        <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:2 }}>
-          {(['free','seated','confirmed','reserved','pending','blocked'] as TableStatus[]).map(s => {
-            const n = counts[s] ?? 0;
-            if (!n) return null;
-            const st = STATUS_STYLE[s];
-            return (
-              <span key={s} style={{ flexShrink:0, fontSize:11.5, fontWeight:600, padding:'3px 9px', borderRadius:8, background:st.bg, color:st.color, whiteSpace:'nowrap' }}>
-                {n} {st.label.toLowerCase()}{n > 1 && s !== 'playing' ? 'es' : ''}
-              </span>
-            );
-          })}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:6 }}>
+          {([
+            ['Lliures',  counts['free']     ?? 0, 'var(--olive-700)'],
+            ['Ocupades', counts['seated']   ?? 0, 'var(--terracotta-700)'],
+            ['Reserva',  (counts['confirmed'] ?? 0) + (counts['reserved'] ?? 0) + (counts['pending'] ?? 0), 'var(--clay-700)'],
+            ['Bloq.',    counts['blocked']  ?? 0, 'var(--ink-500)'],
+          ] as [string, number, string][]).map(([l, n, c]) => (
+            <div key={l} style={{ background:'var(--cream)', borderRadius:10, padding:'8px 10px', border:'var(--hair)' }}>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:c, lineHeight:1 }}>{n}</div>
+              <div style={{ fontSize:10, color:'var(--ink-500)', fontWeight:600, marginTop:3 }}>{l}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Zone tabs */}
-      <div style={{ background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0, overflowX:'auto', display:'flex', padding:'6px 10px' }}>
-        {[{ id:'__all__', label:`Totes (${liveTables.length})` }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => (
+      {/* Zone tabs — pill style */}
+      <div style={{ background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0, overflowX:'auto', display:'flex', padding:'8px 14px', gap:6 }}>
+        {[{ id:'__all__', label:`Totes` }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => (
           <button key={z.id} onClick={() => setZoneId(z.id)}
             style={{
-              flexShrink:0, padding:'5px 12px', borderRadius:8, border:'none',
-              background: zoneId === z.id ? 'var(--ink-900)' : 'transparent',
-              color: zoneId === z.id ? 'var(--cream)' : 'var(--ink-600)',
+              flexShrink:0, padding:'7px 14px', borderRadius:999, whiteSpace:'nowrap',
+              border: zoneId === z.id ? 'none' : '1px solid rgba(60,40,20,.14)',
+              background: zoneId === z.id ? 'var(--ink-900)' : 'var(--paper)',
+              color: zoneId === z.id ? 'var(--cream)' : 'var(--ink-500)',
               fontWeight: zoneId === z.id ? 600 : 500,
               fontSize:13, cursor:'pointer', fontFamily:'inherit',
-              marginRight:4,
             }}>
             {z.label}
           </button>
         ))}
       </div>
 
-      {/* Table grid */}
-      <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'12px 14px var(--scroll-pad-bottom)' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(100px, 1fr))', gap:10 }}>
+      {/* Table grid — 3-col aspect-ratio cards */}
+      <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'10px 14px var(--scroll-pad-bottom)' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
           {tables.map(t => {
             const st = STATUS_STYLE[t.status];
             return (
               <button key={t.id} onClick={() => setSelTable(t)} className="press"
                 style={{
-                  padding:'12px 10px', borderRadius:12, border:`1.5px solid ${st.bg}`,
-                  background:st.bg, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-                  display:'flex', flexDirection:'column', gap:4,
+                  aspectRatio:'1/1', background:st.bg, borderRadius:12, padding:'12px 8px',
+                  border:'1px solid var(--hair)', textAlign:'left', cursor:'pointer',
+                  fontFamily:'inherit', display:'flex', flexDirection:'column',
+                  justifyContent:'space-between', gap:4,
                 }}>
-                <div style={{ fontSize:16, fontWeight:700, color:'var(--ink-900)', lineHeight:1 }}>
-                  {t.name ?? t.id}
-                </div>
-                <div style={{ fontSize:10.5, color:'var(--ink-500)' }}>{t.cap} pax</div>
-                <span style={{ fontSize:10, fontWeight:700, color:st.color, marginTop:2 }}>
-                  {st.label}
-                </span>
-                {t.time && (
-                  <span className="mono" style={{ fontSize:10.5, color:'var(--ink-700)' }}>{t.time}</span>
-                )}
-                {t.res && (
-                  <span style={{ fontSize:10, color:'var(--ink-600)', lineHeight:1.2, marginTop:1 }}
-                    title={t.res}>
-                    {t.res.length > 12 ? t.res.slice(0, 11) + '…' : t.res}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                  <span style={{ fontFamily:'var(--font-serif)', fontSize:20, fontWeight:500, color:st.color, lineHeight:1 }}>
+                    {t.name ?? t.id}
                   </span>
-                )}
+                  <span style={{ fontSize:9.5, color:st.color, fontWeight:700, opacity:.85 }}>{t.cap}p</span>
+                </div>
+                <div style={{ minHeight:14 }}>
+                  {t.res && (
+                    <div style={{ fontSize:10.5, color:st.color, fontWeight:600, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {t.res.split(' ')[0]}
+                    </div>
+                  )}
+                  {t.time && (
+                    <div style={{ fontSize:9.5, color:st.color, opacity:.75, fontFamily:'var(--font-mono)', marginTop:1 }}>{t.time}</div>
+                  )}
+                </div>
+                <div style={{ fontSize:9, color:st.color, fontWeight:700, textTransform:'uppercase', letterSpacing:.3, opacity:.7 }}>
+                  {st.label}
+                </div>
               </button>
             );
           })}
