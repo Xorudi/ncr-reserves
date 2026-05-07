@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { useDraggableFAB } from '@/hooks/useDraggableFAB';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from '@/data/mockData';
@@ -41,6 +42,11 @@ export default function MobileTodayView() {
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
   const [fabFaded, setFabFaded] = useState(false);
   const fabTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { fabBaseStyle, dragging: fabDragging, handlers: fabHandlers } = useDraggableFAB({
+    storageKey: 'ncr-fab-pos-v2',
+    onTap: () => { setSel(null); setShowNew(true); },
+  });
 
   const dateStr  = isoDate(selectedDate);
   const d        = selectedDate;
@@ -158,18 +164,33 @@ export default function MobileTodayView() {
         )}
       </div>
 
-      {/* ── FAB ───────────────────────────────────────────────────────── */}
-      <button onClick={() => { setSel(null); setShowNew(true); }} className="fab"
+      {/* ── FAB — draggable, snaps to nearest edge ────────────────────── */}
+      <button
+        {...fabHandlers}
         style={{
-          position:'fixed',
-          bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px) + 12px)',
-          right:18, width:50, height:50, borderRadius:'50%',
-          background:'var(--terracotta-600)', color:'white', border:'none',
-          boxShadow: fabFaded ? '0 2px 8px rgba(160,60,20,.15)' : '0 4px 14px rgba(160,60,20,.38)',
-          cursor:'pointer', display:'grid', placeItems:'center', zIndex:40,
-          opacity: fabFaded ? 0.32 : 1,
-          transform: fabFaded ? 'scale(0.80)' : 'scale(1)',
-          transition:'opacity 280ms var(--ease-ios), transform 280ms var(--ease-ios), box-shadow 280ms var(--ease-ios)',
+          // Base: position, size, drag transform/shadow/transition from hook
+          ...fabBaseStyle,
+          borderRadius: '50%',
+          background:   'var(--terracotta-600)',
+          color:        'white',
+          border:       'none',
+          display:      'grid',
+          placeItems:   'center',
+          // Overlay scroll-fade (only when not dragging)
+          opacity:   fabDragging ? 1 : (fabFaded ? 0.32 : 1),
+          // Dragging scale wins over fade scale; resting state merges fade
+          transform: fabDragging
+            ? 'scale(1.12)'
+            : fabFaded ? 'scale(0.80)' : 'scale(1)',
+          boxShadow: fabDragging
+            ? '0 8px 28px rgba(160,60,20,.55), 0 3px 10px rgba(0,0,0,.22)'
+            : fabFaded
+            ? '0 2px 8px rgba(160,60,20,.15)'
+            : '0 4px 14px rgba(160,60,20,.38)',
+          // During snap/rest: animate opacity + transform alongside left/top
+          transition: fabDragging
+            ? fabBaseStyle.transition as string
+            : 'opacity 280ms var(--ease-ios), transform 280ms var(--ease-ios), box-shadow 280ms ease, left 320ms cubic-bezier(0.25,1,0.5,1), top 320ms cubic-bezier(0.25,1,0.5,1)',
         }}>
         <Icon d={I.plus} size={22} stroke={2.2} />
       </button>
