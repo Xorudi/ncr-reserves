@@ -578,6 +578,19 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   const [touched,       setTouched]       = useState(false);
   const [clientQuery,   setClientQuery]   = useState('');
   const [showDropdown,  setShowDropdown]  = useState(false);
+  const [editingPax,    setEditingPax]    = useState(false);
+  const [paxInput,      setPaxInput]      = useState('');
+
+  // ── Reset form every time the sheet opens ────────────────────────────────
+  useEffect(() => {
+    if (!open) return;
+    setForm({ date: defaultDate, time: '13:00', name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe' });
+    setSaved(false);
+    setTouched(false);
+    setClientQuery('');
+    setShowDropdown(false);
+    setEditingPax(false);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function upd<K extends keyof typeof form>(k: K, v: typeof form[K]) {
     setForm(f => ({ ...f, [k]: v }));
@@ -716,12 +729,45 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
                            display:'flex', alignItems:'center', justifyContent:'center' }}>
                   −
                 </button>
-                <div style={{ minWidth:26, textAlign:'center', fontSize:13, fontWeight:700,
-                              color:'var(--terracotta-700)', background:'var(--terracotta-50)',
-                              height:38, display:'flex', alignItems:'center', justifyContent:'center',
-                              borderLeft:'1px solid rgba(60,40,20,.1)', borderRight:'1px solid rgba(60,40,20,.1)' }}>
-                  {form.pax}
-                </div>
+                {editingPax ? (
+                  <input
+                    type="number" inputMode="numeric" pattern="[0-9]*"
+                    value={paxInput} autoFocus
+                    onChange={e => setPaxInput(e.target.value)}
+                    onBlur={() => {
+                      const n = parseInt(paxInput, 10);
+                      if (n >= 1 && n <= 99) upd('pax', n);
+                      setEditingPax(false);
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const n = parseInt(paxInput, 10);
+                        if (n >= 1 && n <= 99) upd('pax', n);
+                        setEditingPax(false);
+                      }
+                    }}
+                    style={{
+                      width:42, height:38, textAlign:'center', fontSize:14, fontWeight:700,
+                      color:'var(--terracotta-700)', background:'var(--terracotta-50)',
+                      border:'none', outline:'2px solid var(--terracotta-400)',
+                      borderLeft:'1px solid rgba(60,40,20,.1)', borderRight:'1px solid rgba(60,40,20,.1)',
+                      fontFamily:'inherit',
+                    }}
+                  />
+                ) : (
+                  <button
+                    onClick={() => { setEditingPax(true); setPaxInput(String(form.pax)); }}
+                    title="Toca per escriure"
+                    style={{
+                      minWidth:42, height:38, textAlign:'center', fontSize:13, fontWeight:700,
+                      color:'var(--terracotta-700)', background:'var(--terracotta-50)',
+                      borderLeft:'1px solid rgba(60,40,20,.1)', borderRight:'1px solid rgba(60,40,20,.1)',
+                      border:'none', cursor:'text', fontFamily:'inherit',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}>
+                    {form.pax}
+                  </button>
+                )}
                 <button onClick={() => upd('pax', form.pax + 1)}
                   style={{ width:32, height:38, border:'none', background:'var(--cream)', cursor:'pointer',
                            fontFamily:'inherit', fontSize:17, fontWeight:600, color:'var(--ink-700)',
