@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
@@ -55,6 +55,30 @@ export default function MobileTablesScreen() {
 
   const [zoneId, setZoneId] = useState<string>('__all__');
   const [selTable, setSelTable] = useState<FloorTable | null>(null);
+
+  // ── Swipe L/R inside the table grid → cycle through zones ────────────────
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    cycleZone(dx < 0 ? 1 : -1);
+  };
+  // Defined later; declared first so it's in closure for handleTouchEnd
+  function cycleZone(delta: number) {
+    if (!plan) return;
+    const ordered = [...plan.zones].sort((a, b) => a.order - b.order);
+    const ids = ['__all__', ...ordered.map(z => z.id)];
+    const idx = ids.indexOf(zoneId);
+    if (idx === -1) return;
+    const nextIdx = (idx + delta + ids.length) % ids.length;
+    setZoneId(ids[nextIdx]);
+  }
 
   // Reservations for the selected date and business
   const dayRes = useMemo(
@@ -148,37 +172,66 @@ export default function MobileTablesScreen() {
         ))}
       </div>
 
-      {/* Table grid — 3-col aspect-ratio cards */}
-      <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'10px 14px var(--scroll-pad-bottom)' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
+      {/* Table grid — auto-fit so all tables of the zone fit on screen.
+          Swipe L/R cycles through zones (instead of changing the date). */}
+      <div className="scroll"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{ flex:1, overflowY:'auto', padding:'10px 14px var(--scroll-pad-bottom)' }}>
+        <div style={{
+          display:'grid',
+          gridTemplateColumns:'repeat(auto-fill, minmax(96px, 1fr))',
+          gap:8,
+        }}>
           {tables.map(t => {
             const st = STATUS_STYLE[t.status];
+            const isSeated = t.status === 'seated';
             return (
               <button key={t.id} onClick={() => setSelTable(t)} className="press"
                 style={{
-                  aspectRatio:'1/1', background:st.bg, borderRadius:12, padding:'12px 8px',
-                  border:'1px solid var(--hair)', textAlign:'left', cursor:'pointer',
+                  aspectRatio:'1/1.05',
+                  background:st.bg, borderRadius:12, padding:'9px 8px 7px',
+                  border: isSeated
+                    ? '1px solid var(--terracotta-500)'
+                    : '1px solid rgba(60,40,20,.08)',
+                  textAlign:'left', cursor:'pointer',
                   fontFamily:'inherit', display:'flex', flexDirection:'column',
-                  justifyContent:'space-between', gap:4,
+                  justifyContent:'space-between', gap:2,
+                  boxShadow: isSeated ? '0 1px 3px rgba(168,74,42,.12)' : 'none',
                 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                  <span style={{ fontFamily:'var(--font-serif)', fontSize:20, fontWeight:500, color:st.color, lineHeight:1 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:4 }}>
+                  <span style={{
+                    fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
+                    color:st.color, lineHeight:1, letterSpacing:-.005,
+                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                    flex:1, minWidth:0,
+                  }}>
                     {t.name ?? t.id}
                   </span>
-                  <span style={{ fontSize:9.5, color:st.color, fontWeight:700, opacity:.85 }}>{t.cap}p</span>
+                  <span style={{ fontSize:9, color:st.color, fontWeight:700, opacity:.7,
+                                 letterSpacing:.04, flexShrink:0, marginTop:1 }}>{t.cap}p</span>
                 </div>
-                <div style={{ minHeight:14 }}>
+                <div style={{ minHeight:0 }}>
                   {t.res && (
-                    <div style={{ fontSize:10.5, color:st.color, fontWeight:600, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    <div style={{ fontSize:10, color:st.color, fontWeight:650, lineHeight:1.15,
+                                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                       {t.res.split(' ')[0]}
                     </div>
                   )}
                   {t.time && (
-                    <div style={{ fontSize:9.5, color:st.color, opacity:.75, fontFamily:'var(--font-mono)', marginTop:1 }}>{t.time}</div>
+                    <div style={{ fontSize:9, color:st.color, opacity:.7,
+                                  fontFamily:'var(--font-mono)', marginTop:1 }}>{t.time}</div>
                   )}
                 </div>
-                <div style={{ fontSize:9, color:st.color, fontWeight:700, textTransform:'uppercase', letterSpacing:.3, opacity:.7 }}>
-                  {st.label}
+                <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                  <span style={{
+                    width:5, height:5, borderRadius:999, background:st.color, opacity:.7, flexShrink:0,
+                  }} />
+                  <span style={{ fontSize:8.5, color:st.color, fontWeight:700,
+                                 textTransform:'uppercase', letterSpacing:.25, opacity:.75,
+                                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {st.label}
+                  </span>
                 </div>
               </button>
             );
@@ -208,21 +261,29 @@ export default function MobileTablesScreen() {
       </div>
 
       {/* Table action sheet */}
-      {selTable && (
-        <TableActionSheet
-          table={selTable}
-          bizId={selectedBusiness}
-          onAction={(status) => {
-            updateFloorTable(selectedBusiness, selTable.id, { status });
-            setSelTable(null);
-          }}
-          onRelease={() => {
-            releaseTable(selectedBusiness, selTable.id);
-            setSelTable(null);
-          }}
-          onClose={() => setSelTable(null)}
-        />
-      )}
+      {selTable && (() => {
+        const linkedRes = selTable.res
+          ? dayRes.find(r => r.tableIds?.includes(selTable.id) &&
+                              !['cancelled','noshow','completed'].includes(r.status))
+          : undefined;
+        const zoneLabel = plan?.zones.find(z => z.id === selTable.zone)?.label ?? selTable.zone;
+        return (
+          <TableActionSheet
+            table={selTable}
+            zoneLabel={zoneLabel}
+            linkedRes={linkedRes}
+            onAction={(status) => {
+              updateFloorTable(selectedBusiness, selTable.id, { status });
+              setSelTable(null);
+            }}
+            onRelease={() => {
+              releaseTable(selectedBusiness, selTable.id);
+              setSelTable(null);
+            }}
+            onClose={() => setSelTable(null)}
+          />
+        );
+      })()}
 
       {/* ── Release all — step 1 ──────────────────────────────────── */}
       {showRelease1 && (
@@ -293,79 +354,215 @@ export default function MobileTablesScreen() {
 }
 
 // ─── Table action sheet ───────────────────────────────────────────────────────
-function TableActionSheet({ table: t, onAction, onRelease, onClose }: {
-  table: FloorTable; bizId: string;
+function TableActionSheet({
+  table: t, zoneLabel, linkedRes, onAction, onRelease, onClose,
+}: {
+  table: FloorTable;
+  zoneLabel: string;
+  linkedRes?: Reservation;
   onAction: (status: TableStatus) => void;
   onRelease: () => void;
   onClose: () => void;
 }) {
   const st = STATUS_STYLE[t.status];
+  const isFree     = t.status === 'free';
+  const isBlocked  = t.status === 'blocked';
   const isOccupied = ['seated','confirmed','reserved','pending'].includes(t.status);
 
-  const allActions: Array<{ label: string; status: TableStatus; color?: string }> = [
-    { label: '✅ Marcar lliure',     status: 'free'      as TableStatus },
-    { label: '🍽️ Marcar ocupada',   status: 'seated'    as TableStatus, color: 'var(--terracotta-600)' },
-    { label: '📋 Confirmar reserva', status: 'confirmed' as TableStatus, color: '#1a4ea0' },
-    { label: '🔒 Bloquejar',         status: 'blocked'   as TableStatus, color: '#888' },
+  // Primary CTA: changes meaning depending on current state
+  const primary = isFree
+    ? { label:'Marcar com a ocupada', status:'seated' as TableStatus,
+        bg:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+        icon:I.users }
+    : isBlocked
+      ? { label:'Desbloquejar taula', status:'free' as TableStatus,
+          bg:'linear-gradient(180deg, var(--olive-600) 0%, var(--olive-700) 100%)',
+          icon:I.check }
+      : t.status === 'seated'
+        ? null  // handled by Alliberar separately
+        : { label:'Marcar com a ocupada', status:'seated' as TableStatus,
+            bg:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+            icon:I.users };
+
+  // Secondary actions list — exclude the current status and the primary one
+  const allSecondary: Array<{ label: string; status: TableStatus; emoji: string }> = [
+    { emoji:'✅', label:'Marcar lliure',     status:'free'      },
+    { emoji:'🍽️', label:'Marcar ocupada',    status:'seated'    },
+    { emoji:'📋', label:'Marcar reservada',  status:'reserved'  },
+    { emoji:'🔒', label:'Bloquejar',         status:'blocked'   },
   ];
-  const actions = allActions.filter(a => a.status !== t.status);
+  const secondary = allSecondary.filter(a =>
+    a.status !== t.status && a.status !== primary?.status,
+  );
 
   return (
     <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.3)' }} />
+      <div onClick={onClose}
+        style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.42)' }} />
       <div style={{
-        position:'fixed', bottom:60, left:0, right:0, zIndex:100,
-        background:'var(--paper)', borderRadius:'18px 18px 0 0',
-        boxShadow:'0 -4px 24px rgba(0,0,0,.15)', padding:'14px 18px 24px',
+        position:'fixed', bottom:0, left:0, right:0, zIndex:100,
+        background:'var(--paper)', borderRadius:'22px 22px 0 0',
+        boxShadow:'0 -8px 32px rgba(0,0,0,.18)',
+        paddingBottom:'max(env(safe-area-inset-bottom, 0px), 14px)',
+        maxHeight:'82dvh', overflowY:'auto',
       }}>
-        <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
+        <div style={{ width:38, height:4, borderRadius:2, background:'var(--ink-200)',
+                      margin:'10px auto 6px' }} />
 
-        {/* Table info */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-          <span style={{ width:44, height:44, borderRadius:10, background:st.bg, display:'grid', placeItems:'center', fontSize:18, fontWeight:700, color:'var(--ink-900)' }}>
-            {t.name ?? t.id}
+        {/* ── Header — big tile + label + close ──────────────────────────── */}
+        <div style={{ display:'flex', alignItems:'center', gap:14, padding:'10px 18px 14px' }}>
+          <span style={{
+            width:60, height:60, borderRadius:14,
+            background:st.bg, border:`1.5px solid ${st.color}`,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+            flexShrink:0,
+          }}>
+            <span style={{
+              fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500,
+              color:st.color, lineHeight:1,
+            }}>{t.name ?? t.id}</span>
+            <span style={{ fontSize:9.5, color:st.color, fontWeight:700, marginTop:2,
+                           letterSpacing:.04 }}>{t.cap} PAX</span>
           </span>
-          <div>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--ink-900)' }}>Taula {t.name ?? t.id}</div>
-            <div style={{ fontSize:12, color:'var(--ink-500)' }}>
-              {t.cap} pax · <span style={{ color:st.color, fontWeight:600 }}>{st.label}</span>
-              {t.time ? ` · ${t.time}` : ''}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{
+              fontFamily:'var(--font-serif)', fontSize:21, fontWeight:500,
+              color:'var(--ink-900)', lineHeight:1.1, letterSpacing:-.005,
+            }}>
+              Taula {t.name ?? t.id}
             </div>
-            {t.res && (
-              <div style={{ fontSize:12, color:'var(--ink-700)', fontWeight:600, marginTop:2 }}>
-                {t.res}
-              </div>
-            )}
+            <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:4,
+                          textTransform:'uppercase', letterSpacing:.08, fontWeight:600,
+                          display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                <Icon d={I.tableIco} size={11} stroke={2} />
+                {zoneLabel}
+              </span>
+              <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+              <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ width:6, height:6, borderRadius:999, background:st.color }} />
+                <span style={{ color:st.color }}>{st.label}</span>
+              </span>
+            </div>
           </div>
-          <button onClick={onClose} style={{ marginLeft:'auto', background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)' }}>
-            <Icon d={I.x} size={18} />
+          <button onClick={onClose} aria-label="Tancar"
+            style={{
+              width:34, height:34, borderRadius:999,
+              background:'var(--cream)', border:'1px solid rgba(60,40,20,.08)',
+              cursor:'pointer', color:'var(--ink-600)',
+              display:'grid', placeItems:'center', flexShrink:0,
+            }}>
+            <Icon d={I.x} size={15} />
           </button>
         </div>
 
-        {/* Actions */}
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {isOccupied && (
-            <button onClick={onRelease}
-              style={{
-                padding:'12px 16px', borderRadius:11, border:'1px solid rgba(200,50,50,.25)',
-                background:'rgba(200,50,50,.05)', cursor:'pointer', fontFamily:'inherit',
-                fontSize:14, fontWeight:600, textAlign:'left',
-                color: '#c0392b',
+        {/* ── Linked reservation card ──────────────────────────────────── */}
+        {linkedRes && (
+          <div style={{ padding:'0 18px 14px' }}>
+            <div style={{ fontSize:10.5, fontWeight:700, color:'var(--ink-500)',
+                          letterSpacing:.08, textTransform:'uppercase', marginBottom:7 }}>
+              Reserva vinculada
+            </div>
+            <div style={{
+              background:'var(--cream)', borderRadius:12,
+              border:'1px solid rgba(60,40,20,.08)',
+              padding:'12px 14px',
+              display:'flex', alignItems:'center', gap:12,
+            }}>
+              <div style={{
+                width:42, height:42, borderRadius:10, background:'var(--paper)',
+                border:'1px solid rgba(60,40,20,.08)',
+                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                flexShrink:0,
               }}>
-              🔓 Alliberar taula
+                <span style={{ fontFamily:'var(--font-mono)', fontSize:12, fontWeight:700,
+                               color:'var(--ink-900)', lineHeight:1 }}>{linkedRes.time}</span>
+                <span style={{ fontFamily:'var(--font-serif)', fontSize:11, color:'var(--ink-500)',
+                               marginTop:2, lineHeight:1 }}>{linkedRes.pax}p</span>
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:14.5, fontWeight:650, color:'var(--ink-900)',
+                              overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {linkedRes.name}
+                </div>
+                {linkedRes.phone && (
+                  <div style={{ fontSize:11.5, color:'var(--ink-500)',
+                                fontFamily:'var(--font-mono)', marginTop:2 }}>
+                    {linkedRes.phone}
+                  </div>
+                )}
+              </div>
+              <span className={`chip state-${linkedRes.status}`} style={{ flexShrink:0 }}>
+                <span className="dot" />
+                {linkedRes.status === 'pending'   ? 'Pendent'
+                : linkedRes.status === 'confirmed' ? 'Confirmada'
+                : linkedRes.status === 'seated'    ? 'A taula'
+                : linkedRes.status === 'completed' ? 'Acabada'
+                : linkedRes.status === 'cancelled' ? 'Cancel·lada'
+                : linkedRes.status === 'noshow'    ? 'No-show'
+                : linkedRes.status}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* ── Primary CTA ──────────────────────────────────────────────── */}
+        <div style={{ padding:'0 18px 10px', display:'flex', flexDirection:'column', gap:8 }}>
+          {isOccupied && (
+            <button onClick={onRelease} className="press"
+              style={{
+                width:'100%', padding:'15px', borderRadius:14, border:'none', cursor:'pointer',
+                fontFamily:'inherit', fontSize:15, fontWeight:650, color:'#fff',
+                background:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+                boxShadow:'0 4px 14px rgba(168,74,42,.32), 0 1px 2px rgba(168,74,42,.18)',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              }}>
+              <Icon d={I.check} size={17} stroke={2.4} />
+              Alliberar taula
             </button>
           )}
-          {actions.map(a => (
-            <button key={a.status} onClick={() => onAction(a.status)}
+          {primary && !isOccupied && (
+            <button onClick={() => onAction(primary.status)} className="press"
               style={{
-                padding:'12px 16px', borderRadius:11, border:'1px solid rgba(60,40,20,.1)',
-                background:'var(--cream)', cursor:'pointer', fontFamily:'inherit',
-                fontSize:14, fontWeight:600, textAlign:'left',
-                color: a.color ?? 'var(--ink-900)',
+                width:'100%', padding:'15px', borderRadius:14, border:'none', cursor:'pointer',
+                fontFamily:'inherit', fontSize:15, fontWeight:650, color:'#fff',
+                background: primary.bg,
+                boxShadow:'0 4px 14px rgba(168,74,42,.28), 0 1px 2px rgba(168,74,42,.14)',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
               }}>
-              {a.label}
+              <Icon d={primary.icon} size={17} stroke={2.2} />
+              {primary.label}
             </button>
-          ))}
+          )}
+        </div>
+
+        {/* ── Secondary actions ────────────────────────────────────────── */}
+        <div style={{ padding:'4px 18px 18px' }}>
+          <div style={{ fontSize:10.5, fontWeight:700, color:'var(--ink-500)',
+                        letterSpacing:.08, textTransform:'uppercase', margin:'10px 0 8px' }}>
+            Altres accions
+          </div>
+          <div style={{
+            background:'var(--cream)', borderRadius:12,
+            border:'1px solid rgba(60,40,20,.06)', overflow:'hidden',
+          }}>
+            {secondary.map((a, i) => (
+              <button key={a.status} onClick={() => onAction(a.status)}
+                style={{
+                  width:'100%', padding:'13px 14px',
+                  background:'transparent', border:'none',
+                  borderTop: i === 0 ? 'none' : '1px solid rgba(60,40,20,.05)',
+                  cursor:'pointer', fontFamily:'inherit',
+                  fontSize:14, fontWeight:550, textAlign:'left',
+                  color:'var(--ink-800)',
+                  display:'flex', alignItems:'center', gap:11,
+                }}>
+                <span style={{ fontSize:16, lineHeight:1 }}>{a.emoji}</span>
+                <span style={{ flex:1 }}>{a.label}</span>
+                <Icon d={I.chevR} size={14} stroke={1.8} />
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </>

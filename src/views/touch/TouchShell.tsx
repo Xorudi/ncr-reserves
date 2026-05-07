@@ -132,7 +132,9 @@ export default function TouchShell() {
     touchStartY.current = e.touches[0].clientY;
   };
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (tab !== 'reservations' && tab !== 'tables') return;
+    // Tables manages its own horizontal swipe (zone change), so only
+    // the Reservations tab triggers date change at the shell level.
+    if (tab !== 'reservations') return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
