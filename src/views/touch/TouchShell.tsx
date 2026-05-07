@@ -16,6 +16,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useDevice } from '@/hooks/useDevice';
+import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
 // ── Touch screens — shared between mobile and tablet ─────────────────────────
@@ -122,6 +123,17 @@ export default function TouchShell() {
 
   // Operator's shift label for rail footer
   const operatorShift: 'M' | 'N' | null = activeShift?.id ?? null;
+
+  // ── Pull-to-refresh ─────────────────────────────────────────────────────
+  // Triggers a custom 'app:refresh' event so any screen that wants to
+  // re-fetch can listen. The visual feedback is what the user perceives;
+  // when real network data is wired, the listeners can resolve a Promise
+  // and the indicator will spin until they finish.
+  const handleRefresh = async () => {
+    window.dispatchEvent(new CustomEvent('app:refresh'));
+    // The hook itself enforces a minimum visible refresh time
+  };
+  const pull = usePullToRefresh(handleRefresh);
 
   // ── FAB scroll-react ────────────────────────────────────────────────────
   // Listens (capture phase) to scroll on any descendant `.scroll` container,
@@ -405,6 +417,8 @@ export default function TouchShell() {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
+          <PullIndicator pullY={pull.pullY} refreshing={pull.refreshing} />
+
           {/* Top date-nav header — present on every tablet screen */}
           <TabletTopBar
             selectedDate={selectedDate}
@@ -569,10 +583,11 @@ export default function TouchShell() {
 
       {/* ── Main content ────────────────────────────────────────────── */}
       <main
-        style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+        style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+        <PullIndicator pullY={pull.pullY} refreshing={pull.refreshing} />
         {screenContent}
       </main>
 
@@ -700,6 +715,35 @@ function NavBtn({ id, tab, setTab, label, ico, special }: {
       <Icon d={ico} size={22} stroke={active ? 2.1 : 1.6} />
       <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{label}</span>
     </button>
+  );
+}
+
+// ─── Pull-to-refresh indicator — circular progress while pulling, spinning
+// while refreshing. Sized by current pullY so it grows with the gesture.
+function PullIndicator({ pullY, refreshing }: { pullY: number; refreshing: boolean }) {
+  if (pullY <= 0 && !refreshing) return null;
+  const progress = Math.min(pullY / PULL_THRESHOLD_PX, 1);
+  // Stroke-dasharray progress on a 26px circle (radius 11)
+  const C = 2 * Math.PI * 11; // ≈ 69.115
+  const dashOffset = C * (1 - progress);
+  return (
+    <div className="ptr-indicator" style={{ height: pullY, opacity: Math.min(progress + 0.15, 1) }}>
+      <svg className={`ptr-indicator__circle ${refreshing ? 'ptr-indicator__circle--spinning' : ''}`}
+           viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="11" stroke="rgba(168,74,42,.15)" strokeWidth="2.5" />
+        <circle cx="13" cy="13" r="11" stroke="currentColor" strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={C}
+                strokeDashoffset={refreshing ? C * 0.65 : dashOffset}
+                transform="rotate(-90 13 13)" />
+      </svg>
+      <span className="ptr-indicator__label">
+        {refreshing
+          ? 'Actualitzant…'
+          : progress >= 1 ? 'Allibera per actualitzar'
+          : 'Estira per actualitzar'}
+      </span>
+    </div>
   );
 }
 

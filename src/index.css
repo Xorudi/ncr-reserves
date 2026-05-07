@@ -126,19 +126,55 @@ body {
 }
 
 /* ─── Paper grain — gives the cream surface a hand-printed feel ─────────────
-   SVG fractal noise inlined as data URI; opacity ~3.5%, fixed in viewport so
-   it doesn't scroll with content. Adds warmth without becoming a design tell.
-*/
+   SVG fractal noise inlined as data URI; default opacity ~3.5%, fixed in
+   viewport so it doesn't scroll with content. The opacity is exposed as a
+   CSS variable so JS can boost it during pull-to-refresh (paper "absorbs"). */
+:root { --grain-opacity: 0.035; }
 body::before {
   content: "";
   position: fixed; inset: 0;
   pointer-events: none; z-index: 0;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.30  0 0 0 0 0.20  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   background-size: 180px 180px;
-  opacity: .035;
+  opacity: var(--grain-opacity);
   mix-blend-mode: multiply;
+  transition: opacity 240ms var(--ease-out);
 }
 #root { position: relative; z-index: 1; }
+
+/* ─── Pull-to-refresh indicator — appears at the top of the viewport while
+   the user is pulling down on a `.scroll` container at scrollTop = 0. */
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+.ptr-indicator {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  pointer-events: none;
+  z-index: 5;
+  padding-bottom: 6px;
+  font-family: var(--font-serif);
+  color: var(--ink-700);
+  letter-spacing: -.005;
+  font-size: 13px;
+  /* Filling, sized by inline height = current pull distance */
+  overflow: hidden;
+}
+.ptr-indicator__circle {
+  width: 26px; height: 26px;
+  margin-bottom: 4px;
+  color: var(--terracotta-600);
+}
+.ptr-indicator__circle--spinning {
+  animation: ptr-spin 900ms linear infinite;
+}
+.ptr-indicator__label {
+  font-size: 11.5px;
+  color: var(--ink-500);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: .02em;
+}
 
 #root {
   height: 100dvh;
