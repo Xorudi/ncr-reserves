@@ -61,9 +61,15 @@ export default function TouchShell() {
   const [showBizPicker,  setShowBizPicker]  = useState(false);
   const [showUserPicker, setShowUserPicker] = useState(false);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
-  // Read innerHeight synchronously so the container height is correct on
-  // the very first paint — avoids iOS Safari dvh/layout-viewport mismatch.
-  const [appH, setAppH] = useState(() => window.innerHeight);
+  // Read the Visual Viewport height synchronously so the container height
+  // is correct on the very first paint. visualViewport.height tracks the
+  // ACTUAL visible area (under the Safari toolbar / above the home bar) —
+  // unlike innerHeight or 100dvh which on first load often report the
+  // larger layout viewport and cause a cream gap below the nav.
+  const [appH, setAppH] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    return window.visualViewport?.height ?? window.innerHeight;
+  });
 
   function openNewReservation() {
     setTab('reservations');
@@ -81,12 +87,37 @@ export default function TouchShell() {
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
 
-  // ── Track true viewport height (iOS Safari dvh ≠ innerHeight on first paint)
+  // ── Track the true VISUAL viewport height ────────────────────────────────
+  // The visual viewport is the area actually visible to the user — it shrinks
+  // when iOS Safari's toolbar slides in and grows when it slides out. This
+  // is the ONLY value that stays correct across page-load + toolbar state.
+  // `100dvh` and `window.innerHeight` both report the LAYOUT viewport on
+  // initial load on iOS, which is taller than what the user actually sees,
+  // producing the cream gap below the bottom nav.
   useEffect(() => {
-    const update = () => setAppH(window.innerHeight);
+    const vv = window.visualViewport;
+    const update = () => {
+      const h = vv?.height ?? window.innerHeight;
+      setAppH(h);
+      // Mirror to a CSS custom property for child elements that need it
+      document.documentElement.style.setProperty('--app-h', `${h}px`);
+    };
+    update();
+    if (vv) {
+      vv.addEventListener('resize', update);
+      vv.addEventListener('scroll', update);
+    }
     window.addEventListener('resize', update, { passive: true });
     window.addEventListener('orientationchange', update, { passive: true });
+    // Run once more after first paint — iOS sometimes reports a stale value
+    // synchronously on mount before the toolbar has settled.
+    const t = window.setTimeout(update, 50);
     return () => {
+      window.clearTimeout(t);
+      if (vv) {
+        vv.removeEventListener('resize', update);
+        vv.removeEventListener('scroll', update);
+      }
       window.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
     };
@@ -258,20 +289,16 @@ export default function TouchShell() {
   // MOBILE LAYOUT
   //
   // Height strategy:
-  //   100dvh  = Dynamic Viewport Height — shrinks/grows as the Safari
-  //             address bar shows/hides. Correct on iOS 15.4+ and modern
-  //             Android Chrome. Keeps the in-flow nav flush with the screen
-  //             bottom without needing position:fixed (which uses the layout
-  //             viewport and ends up behind the toolbar on first load).
-  //
-  //   The appH JS value is kept as a synchronous first-paint initialiser
-  //   for older iOS that doesn't support dvh, but CSS dvh overrides it
-  //   via the style shorthand (last value wins when browser supports dvh).
+  //   `appH` comes from window.visualViewport.height (see useEffect above).
+  //   This is the ACTUAL visible area at every moment — when the iOS Safari
+  //   toolbar is visible appH is the smaller value, when it's hidden appH
+  //   grows. We do NOT use 100dvh or innerHeight because both report the
+  //   layout viewport on first paint, leaving a cream gap below the nav.
   //
   // Nav strategy: IN-FLOW (flexShrink:0)
-  //   Sits at the bottom of the flex column. When the wrapper is exactly
-  //   100dvh tall, the nav always aligns with the visual viewport edge.
-  //   paddingBottom:env(safe-area-inset-bottom) fills the home-indicator.
+  //   Sits at the bottom of the flex column. Because the wrapper is exactly
+  //   visualViewport.height tall, the nav always aligns with the visible edge.
+  //   paddingBottom:env(safe-area-inset-bottom) fills the home-indicator zone.
   //
   // FAB strategy: position:absolute inside position:relative wrapper
   //   bottom:calc(env(safe-area-inset-bottom)+14px) overlaps the tab bar
@@ -281,16 +308,11 @@ export default function TouchShell() {
     <div style={{
       position: 'relative',                 // FAB anchor
       display: 'flex', flexDirection: 'column',
-      // JS fallback for very old iOS that doesn't support dvh:
-      height: appH,
-      // dvh overrides the JS value on every browser that supports it:
-      // @ts-ignore — dvh is valid CSS but TS doesn't know it yet
-      ['--dvh-override' as string]: '1px',  // no-op, just forces the style object to be re-evaluated
+      height: `${appH}px`,                  // tracks visualViewport.height live
+      width: '100%',
       background: 'var(--cream)', overflow: 'hidden',
-    }}
-      // Apply 100dvh via a class-less inline trick: we use a ref + useEffect below
-      ref={(el) => { if (el) el.style.height = '100dvh'; }}
-    >
+    }}>
+
 
       {/* ── Top header ──────────────────────────────────────────────── */}
       <header style={{
