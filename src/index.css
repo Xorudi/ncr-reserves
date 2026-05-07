@@ -236,15 +236,24 @@ body::before {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
+  /* Legacy iOS curves — kept for backwards-compat in places that read them. */
   --ease-ios:       cubic-bezier(0.25, 1, 0.5, 1);
   --ease-ios-in:    cubic-bezier(0.5, 0, 0.75, 0);
   --ease-ios-fast:  cubic-bezier(0.4,  1, 0.6, 1);
+
+  /* Stronger custom curves — based on Emil Kowalski's recommendations.
+     Built-in CSS easings (ease, ease-in, ease-out) lack the punch that
+     makes UI feel intentional. Use these for new code. */
+  --ease-out:       cubic-bezier(0.23, 1, 0.32, 1);   /* enter / press release */
+  --ease-in-out:    cubic-bezier(0.77, 0, 0.175, 1);  /* on-screen morphs */
+  --ease-drawer:    cubic-bezier(0.32, 0.72, 0, 1);   /* iOS-like sheets */
+
   --dur-press:      110ms;
   --dur-micro:      160ms;
   --dur-fast:       210ms;
   --dur-base:       270ms;
-  --dur-sheet:      390ms;
-  --dur-sheet-exit: 270ms;
+  --dur-sheet:      420ms;
+  --dur-sheet-exit: 280ms;
 }
 
 /* ── Sheet backdrop ─────────────────────────────────────────────────────── */
@@ -253,18 +262,18 @@ body::before {
   inset: 0;
   background: rgba(0, 0, 0, .38);
   opacity: 0;
-  transition: opacity var(--dur-base) var(--ease-ios);
+  transition: opacity var(--dur-base) var(--ease-out);
 }
 .sheet-backdrop.vis { opacity: 1; }
 
-/* ── Sheet panel ────────────────────────────────────────────────────────── */
+/* ── Sheet panel — iOS-like drawer easing (Vaul / Sonner reference) ───── */
 .sheet-panel {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   transform: translateY(100%);
   opacity: 0;
   transition:
-    transform var(--dur-sheet)      var(--ease-ios),
+    transform var(--dur-sheet)      var(--ease-drawer),
     opacity   var(--dur-fast)       linear;
   will-change: transform;
 }
@@ -273,39 +282,34 @@ body::before {
   opacity: 1;
 }
 
-/* ── Touch / press feedback — iOS scale ─────────────────────────────────── */
+/* ── Touch / press feedback — subtle scale, no harsh opacity drop ────── */
 .press {
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform var(--dur-press) var(--ease-ios-fast),
+    transform var(--dur-press) var(--ease-out),
     opacity   var(--dur-press) linear;
   cursor: pointer;
 }
 .press:active {
-  transform: scale(0.965);
-  opacity: 0.82;
+  transform: scale(0.97);
+  opacity: 0.95;
 }
 
-/* ── FAB button — scale down on press, bouncy pop on mount ─────────────── */
+/* ── FAB button — subtle mount, no overshoot bounce ───────────────────── */
 @keyframes fab-pop {
-  0%   { transform: scale(0.65); opacity: 0; }
-  70%  { transform: scale(1.06); opacity: 1; }
+  0%   { transform: scale(0.92); opacity: 0; }
   100% { transform: scale(1);    opacity: 1; }
 }
 .fab {
-  transition: transform var(--dur-press) var(--ease-ios-fast),
-              box-shadow var(--dur-micro) var(--ease-ios);
+  transition: transform var(--dur-press) var(--ease-out),
+              box-shadow var(--dur-micro) var(--ease-out);
 }
-.fab:active { transform: scale(0.90); }
+.fab:active { transform: scale(0.96); }
 
-/* ── Tab content entrance ───────────────────────────────────────────────── */
-@keyframes tab-enter {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
-.tab-enter {
-  animation: tab-enter var(--dur-fast) var(--ease-ios) both;
-}
+/* ── Tab content entrance — REMOVED.
+   Tab switches happen 100+ times per service. Animation = perceived lag.
+   Keep the class as a no-op for any caller still using it. */
+.tab-enter { /* intentionally empty — see Emil rule on keyboard-frequency UI */ }
 
 /* ── Day-change content animation (directional) ─────────────────────────── */
 @keyframes day-next {

@@ -579,10 +579,14 @@ export default function TouchShell() {
           zIndex: 60,
           background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
           color: '#fff',
-          border: '3px solid #fff',
+          border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(168,74,42,.45), 0 0 0 1px rgba(168,74,42,.15)',
+          // Layered shadow gives lift without the dated white-ring outline
+          boxShadow:
+            '0 0 0 4px var(--cream),' +              /* "halo" cut from bg (no hard ring) */
+            ' 0 6px 18px rgba(168,74,42,.42),' +
+            ' 0 2px 4px rgba(168,74,42,.22)',
           WebkitTapHighlightColor: 'transparent',
         }}>
         <Icon d={I.plus} size={26} stroke={2.4} />
