@@ -12,24 +12,40 @@
 import React, { useState, useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
+import { effectiveTable } from '@/utils/tableStatus';
 
 interface Props {
   bizId: string;
   pax: number;
   currentIds: string[];
+  /** ISO date (YYYY-MM-DD) of the reservation being edited — used to compute
+   *  live table status (free/seated/blocked) for that day. Required so the
+   *  picker matches what the Taules screen shows for the same date. */
+  date?: string;
   onSave: (tableIds: string[]) => void;
   onClose: () => void;
 }
 
 const OCCUPIED_STATUSES = new Set(['seated', 'confirmed', 'reserved', 'pending', 'blocked']);
 
-export default function TableSelectorModal({ bizId, pax, currentIds, onSave, onClose }: Props) {
-  const { floorPlans } = useAppStore();
+export default function TableSelectorModal({ bizId, pax, currentIds, date, onSave, onClose }: Props) {
+  const { floorPlans, reservations } = useAppStore();
   const plan  = floorPlans[bizId];
   const zones = useMemo(
     () => plan ? [...plan.zones].sort((a, b) => a.order - b.order) : [],
     [plan],
   );
+
+  // Tables with their LIVE status for this reservation's date (matches what
+  // the Taules screen renders for that same date — single source of truth).
+  const liveTables = useMemo(() => {
+    if (!plan) return [];
+    if (!date) return plan.tables;
+    const dayRes = reservations.filter(r =>
+      r.bizId === bizId && r.date === date,
+    );
+    return plan.tables.map(t => effectiveTable(t, dayRes));
+  }, [plan, reservations, bizId, date]);
 
   const [search,     setSearch]     = useState('');
   const [zoneFilter, setZoneFilter] = useState<string>('__all__');
@@ -38,14 +54,14 @@ export default function TableSelectorModal({ bizId, pax, currentIds, onSave, onC
   const filtered = useMemo(() => {
     if (!plan) return [];
     const q = search.trim().toLowerCase();
-    return plan.tables.filter(t => {
+    return liveTables.filter(t => {
       if (zoneFilter !== '__all__' && t.zone !== zoneFilter) return false;
       if (!q) return true;
       const name = (t.name ?? t.id).toLowerCase();
       const zone = plan.zones.find(z => z.id === t.zone)?.label.toLowerCase() ?? '';
       return name.includes(q) || zone.includes(q) || String(t.cap).includes(q);
     }).sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id, undefined, { numeric: true }));
-  }, [plan, search, zoneFilter]);
+  }, [plan, liveTables, search, zoneFilter]);
 
   const totalCap = useMemo(() =>
     selected.reduce((sum, id) => {

@@ -462,6 +462,7 @@ function ResDetailPanel({ biz: _biz, res, onClose }: { biz: Business; res: Reser
         bizId={res.bizId}
         pax={res.pax}
         currentIds={res.tableIds ?? []}
+        date={res.date}
         onSave={ids => assignTablesToReservation(res.id, ids)}
         onClose={() => setShowTableSel(false)}
       />

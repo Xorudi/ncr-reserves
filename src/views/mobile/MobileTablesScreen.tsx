@@ -2,38 +2,8 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
+import { effectiveTable } from '@/utils/tableStatus';
 import type { FloorTable, TableStatus, Reservation } from '@/types';
-
-/** Derives the effective table status from that day's reservations.
- *  'blocked' and 'playing' are manual overrides — kept as-is.
- *  Everything else is computed from which reservations reference this table. */
-function effectiveTable(
-  t: FloorTable,
-  dayRes: Reservation[],
-): FloorTable {
-  // Manual overrides survive date changes
-  if (t.status === 'blocked' || t.status === 'playing') return t;
-
-  const active = dayRes.filter(r =>
-    r.tableIds?.includes(t.id) &&
-    !['cancelled', 'noshow', 'completed'].includes(r.status),
-  );
-
-  if (active.length === 0) return { ...t, status: 'free', res: undefined, time: undefined };
-
-  // Priority: seated > confirmed > pending
-  const best =
-    active.find(r => r.status === 'seated') ??
-    active.find(r => r.status === 'confirmed') ??
-    active[0];
-
-  const tableStatus: TableStatus =
-    best.status === 'seated'    ? 'seated'    :
-    best.status === 'confirmed' ? 'confirmed' :
-    'reserved';
-
-  return { ...t, status: tableStatus, res: best.name, time: best.time };
-}
 
 const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: string }> = {
   free:      { bg:'var(--olive-50)',       color:'var(--olive-700)',      label:'Lliure'    },
@@ -48,7 +18,7 @@ const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: stri
 export default function MobileTablesScreen() {
   const {
     selectedBusiness, floorPlans, updateFloorTable, releaseTable, releaseAllTables,
-    reservations, selectedDate,
+    reservations, selectedDate, addReservation, updateReservation,
   } = useAppStore();
   const plan    = floorPlans[selectedBusiness];
   const dateStr = isoDate(selectedDate);
@@ -262,22 +232,57 @@ export default function MobileTablesScreen() {
 
       {/* Table action sheet */}
       {selTable && (() => {
-        const linkedRes = selTable.res
-          ? dayRes.find(r => r.tableIds?.includes(selTable.id) &&
-                              !['cancelled','noshow','completed'].includes(r.status))
-          : undefined;
+        // Use the LIVE status (from effectiveTable) so the sheet matches what
+        // the user just tapped and stale persisted statuses don't leak in.
+        const liveTable = liveTables.find(t => t.id === selTable.id) ?? selTable;
+        const linkedRes = dayRes.find(r =>
+          r.tableIds?.includes(selTable.id) &&
+          !['cancelled','noshow','completed'].includes(r.status),
+        );
         const zoneLabel = plan?.zones.find(z => z.id === selTable.zone)?.label ?? selTable.zone;
         return (
           <TableActionSheet
-            table={selTable}
+            table={liveTable}
             zoneLabel={zoneLabel}
             linkedRes={linkedRes}
-            onAction={(status) => {
-              updateFloorTable(selectedBusiness, selTable.id, { status });
+            onBlock={() => {
+              updateFloorTable(selectedBusiness, selTable.id, { status: 'blocked' });
+              setSelTable(null);
+            }}
+            onUnblock={() => {
+              updateFloorTable(selectedBusiness, selTable.id, {
+                status: 'free', res: undefined, time: undefined,
+              });
               setSelTable(null);
             }}
             onRelease={() => {
               releaseTable(selectedBusiness, selTable.id);
+              setSelTable(null);
+            }}
+            onCreateWalkIn={() => {
+              const now = new Date();
+              const hh = String(now.getHours()).padStart(2,'0');
+              const mm = String(now.getMinutes()).padStart(2,'0');
+              addReservation({
+                bizId:    selectedBusiness,
+                date:     dateStr,
+                time:     `${hh}:${mm}`,
+                name:     `Walk-in ${selTable.name ?? selTable.id}`,
+                pax:      selTable.cap,
+                status:   'seated',
+                source:   'walk-in',
+                tableIds: [selTable.id],
+              });
+              setSelTable(null);
+            }}
+            onSeatReservation={() => {
+              if (!linkedRes) return;
+              updateReservation(linkedRes.id, { status: 'seated' });
+              setSelTable(null);
+            }}
+            onConfirmReservation={() => {
+              if (!linkedRes) return;
+              updateReservation(linkedRes.id, { status: 'confirmed' });
               setSelTable(null);
             }}
             onClose={() => setSelTable(null)}
@@ -355,45 +360,79 @@ export default function MobileTablesScreen() {
 
 // ─── Table action sheet ───────────────────────────────────────────────────────
 function TableActionSheet({
-  table: t, zoneLabel, linkedRes, onAction, onRelease, onClose,
+  table: t, zoneLabel, linkedRes,
+  onBlock, onUnblock, onRelease, onCreateWalkIn, onSeatReservation, onConfirmReservation,
+  onClose,
 }: {
   table: FloorTable;
   zoneLabel: string;
   linkedRes?: Reservation;
-  onAction: (status: TableStatus) => void;
+  onBlock: () => void;
+  onUnblock: () => void;
   onRelease: () => void;
+  onCreateWalkIn: () => void;
+  onSeatReservation: () => void;
+  onConfirmReservation: () => void;
   onClose: () => void;
 }) {
   const st = STATUS_STYLE[t.status];
-  const isFree     = t.status === 'free';
-  const isBlocked  = t.status === 'blocked';
-  const isOccupied = ['seated','confirmed','reserved','pending'].includes(t.status);
+  const isFree    = t.status === 'free';
+  const isBlocked = t.status === 'blocked';
+  const isSeated  = t.status === 'seated';
+  // Has a linked reservation but it's not yet seated
+  const isPendingReservation = !!linkedRes && linkedRes.status !== 'seated';
 
-  // Primary CTA: changes meaning depending on current state
-  const primary = isFree
-    ? { label:'Marcar com a ocupada', status:'seated' as TableStatus,
-        bg:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
-        icon:I.users }
-    : isBlocked
-      ? { label:'Desbloquejar taula', status:'free' as TableStatus,
-          bg:'linear-gradient(180deg, var(--olive-600) 0%, var(--olive-700) 100%)',
-          icon:I.check }
-      : t.status === 'seated'
-        ? null  // handled by Alliberar separately
-        : { label:'Marcar com a ocupada', status:'seated' as TableStatus,
-            bg:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
-            icon:I.users };
+  // Build the action list based on the live state — only actions that
+  // actually do something on the current table status.
+  type Action = {
+    key: string;
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void;
+    primary?: boolean;
+    danger?: boolean;
+  };
+  const actions: Action[] = [];
 
-  // Secondary actions list — exclude the current status and the primary one
-  const allSecondary: Array<{ label: string; status: TableStatus; emoji: string }> = [
-    { emoji:'✅', label:'Marcar lliure',     status:'free'      },
-    { emoji:'🍽️', label:'Marcar ocupada',    status:'seated'    },
-    { emoji:'📋', label:'Marcar reservada',  status:'reserved'  },
-    { emoji:'🔒', label:'Bloquejar',         status:'blocked'   },
-  ];
-  const secondary = allSecondary.filter(a =>
-    a.status !== t.status && a.status !== primary?.status,
-  );
+  if (isFree) {
+    // Free table → can create a walk-in or block
+    actions.push({
+      key:'walkin', label:'Sentar walk-in', icon:I.users,
+      onClick:onCreateWalkIn, primary:true,
+    });
+    actions.push({
+      key:'block', label:'Bloquejar taula', icon:I.x,
+      onClick:onBlock,
+    });
+  } else if (isBlocked) {
+    // Blocked → only unblock makes sense
+    actions.push({
+      key:'unblock', label:'Desbloquejar taula', icon:I.check,
+      onClick:onUnblock, primary:true,
+    });
+  } else if (isSeated) {
+    // Currently seated → release it (ends the seating)
+    actions.push({
+      key:'release', label:'Alliberar taula', icon:I.check,
+      onClick:onRelease, primary:true,
+    });
+  } else if (isPendingReservation) {
+    // Has confirmed/pending reservation → seat them, or just release the slot
+    actions.push({
+      key:'seat', label:'Sentar la reserva', icon:I.users,
+      onClick:onSeatReservation, primary:true,
+    });
+    if (linkedRes && linkedRes.status === 'pending') {
+      actions.push({
+        key:'confirm', label:'Confirmar reserva', icon:I.check,
+        onClick:onConfirmReservation,
+      });
+    }
+    actions.push({
+      key:'release', label:'Treure de la taula', icon:I.x,
+      onClick:onRelease, danger:true,
+    });
+  }
 
   return (
     <>
@@ -506,63 +545,53 @@ function TableActionSheet({
           </div>
         )}
 
-        {/* ── Primary CTA ──────────────────────────────────────────────── */}
-        <div style={{ padding:'0 18px 10px', display:'flex', flexDirection:'column', gap:8 }}>
-          {isOccupied && (
-            <button onClick={onRelease} className="press"
-              style={{
-                width:'100%', padding:'15px', borderRadius:14, border:'none', cursor:'pointer',
-                fontFamily:'inherit', fontSize:15, fontWeight:650, color:'#fff',
-                background:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
-                boxShadow:'0 4px 14px rgba(168,74,42,.32), 0 1px 2px rgba(168,74,42,.18)',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-              }}>
-              <Icon d={I.check} size={17} stroke={2.4} />
-              Alliberar taula
-            </button>
-          )}
-          {primary && !isOccupied && (
-            <button onClick={() => onAction(primary.status)} className="press"
-              style={{
-                width:'100%', padding:'15px', borderRadius:14, border:'none', cursor:'pointer',
-                fontFamily:'inherit', fontSize:15, fontWeight:650, color:'#fff',
-                background: primary.bg,
-                boxShadow:'0 4px 14px rgba(168,74,42,.28), 0 1px 2px rgba(168,74,42,.14)',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-              }}>
-              <Icon d={primary.icon} size={17} stroke={2.2} />
-              {primary.label}
-            </button>
-          )}
-        </div>
-
-        {/* ── Secondary actions ────────────────────────────────────────── */}
-        <div style={{ padding:'4px 18px 18px' }}>
-          <div style={{ fontSize:10.5, fontWeight:700, color:'var(--ink-500)',
-                        letterSpacing:.08, textTransform:'uppercase', margin:'10px 0 8px' }}>
-            Altres accions
-          </div>
-          <div style={{
-            background:'var(--cream)', borderRadius:12,
-            border:'1px solid rgba(60,40,20,.06)', overflow:'hidden',
-          }}>
-            {secondary.map((a, i) => (
-              <button key={a.status} onClick={() => onAction(a.status)}
+        {/* ── Action list — only meaningful actions for current state ── */}
+        <div style={{ padding:'2px 18px 18px', display:'flex', flexDirection:'column', gap:8 }}>
+          {actions.map(a => {
+            if (a.primary) {
+              const bg = a.danger
+                ? 'linear-gradient(180deg, #c0392b 0%, #a93020 100%)'
+                : a.key === 'unblock'
+                  ? 'linear-gradient(180deg, var(--olive-600) 0%, var(--olive-700) 100%)'
+                  : 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)';
+              const shadow = a.danger
+                ? '0 4px 14px rgba(192,57,43,.30)'
+                : a.key === 'unblock'
+                  ? '0 4px 14px rgba(116,133,74,.32)'
+                  : '0 4px 14px rgba(168,74,42,.32), 0 1px 2px rgba(168,74,42,.18)';
+              return (
+                <button key={a.key} onClick={a.onClick} className="press"
+                  style={{
+                    width:'100%', padding:'15px', borderRadius:14,
+                    border:'none', cursor:'pointer',
+                    fontFamily:'inherit', fontSize:15, fontWeight:650, color:'#fff',
+                    background: bg, boxShadow: shadow,
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  }}>
+                  <Icon d={a.icon} size={17} stroke={2.2} />
+                  {a.label}
+                </button>
+              );
+            }
+            return (
+              <button key={a.key} onClick={a.onClick} className="press"
                 style={{
-                  width:'100%', padding:'13px 14px',
-                  background:'transparent', border:'none',
-                  borderTop: i === 0 ? 'none' : '1px solid rgba(60,40,20,.05)',
+                  width:'100%', padding:'13px 16px', borderRadius:12,
+                  background:'var(--cream)',
+                  border: a.danger
+                    ? '1px solid rgba(192,57,43,.25)'
+                    : '1px solid rgba(60,40,20,.08)',
                   cursor:'pointer', fontFamily:'inherit',
-                  fontSize:14, fontWeight:550, textAlign:'left',
-                  color:'var(--ink-800)',
+                  fontSize:14, fontWeight:600, textAlign:'left',
+                  color: a.danger ? '#c0392b' : 'var(--ink-800)',
                   display:'flex', alignItems:'center', gap:11,
                 }}>
-                <span style={{ fontSize:16, lineHeight:1 }}>{a.emoji}</span>
+                <Icon d={a.icon} size={16} stroke={1.9} />
                 <span style={{ flex:1 }}>{a.label}</span>
                 <Icon d={I.chevR} size={14} stroke={1.8} />
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
     </>
