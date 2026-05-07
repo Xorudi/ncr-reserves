@@ -27,9 +27,9 @@ const MONTHS_SHORT = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct
 function parseH(t: string) { return parseInt(t.split(':')[0], 10); }
 
 // ─── Main view ────────────────────────────────────────────────────────────────
-interface TodayViewProps { newResTrigger?: number; }
+interface TodayViewProps { newResTrigger?: number; hideDateNav?: boolean; }
 
-export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
+export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false }: TodayViewProps) {
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
     addReservation, floorPlans,
@@ -97,7 +97,8 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
       {/* ── Date nav + segment control ──────────────────────────────────── */}
       <div style={{ flexShrink:0, background:'var(--cream)', padding:'10px 14px 0' }}>
 
-        {/* Date navigation row */}
+        {/* Date navigation row — hidden on tablet (shell renders one) */}
+        {!hideDateNav && (
         <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10 }}>
           <button onClick={() => changeDay(-1)} className="day-btn"
             style={{ width:32, height:32, borderRadius:8, border:'none', background:'var(--paper)', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-600)', boxShadow:'var(--sh-1)' }}>
@@ -122,6 +123,7 @@ export default function MobileTodayView({ newResTrigger = 0 }: TodayViewProps) {
             </button>
           )}
         </div>
+        )}
 
         {/* Segmented control + count */}
         {(migdia.length > 0 || nit.length > 0) && (

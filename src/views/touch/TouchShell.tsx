@@ -145,7 +145,7 @@ export default function TouchShell() {
   const screenContent = (
     <div key={tab} className="tab-enter"
       style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {tab === 'reservations' && <TouchReservationsScreen newResTrigger={newResTrigger} />}
+      {tab === 'reservations' && <TouchReservationsScreen newResTrigger={newResTrigger} hideDateNav={isTablet} />}
       {tab === 'tables'       && <TouchTablesScreen />}
       {tab === 'walkin'       && <TouchWalkInScreen onSwitchTab={setTab} />}
       {tab === 'clients'      && <TouchClientsScreen />}
@@ -206,20 +206,7 @@ export default function TouchShell() {
           </button>
 
           {/* Tab buttons */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 6px' }}>
-            {/* "+" action button at top of rail */}
-            <button onClick={openNewReservation} className="nav-btn press"
-              title="Nova reserva"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                padding: '8px 4px', border: 'none', borderRadius: 10,
-                background: 'var(--terracotta-600)', color: 'white',
-                cursor: 'pointer', fontFamily: 'inherit', marginBottom: 6,
-              }}>
-              <Icon d={I.plus} size={22} stroke={2.2} />
-              <span style={{ fontSize: 9.5, fontWeight: 700 }}>Nova</span>
-            </button>
-
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, padding: '0 8px' }}>
             {RAIL_TABS.map(t => {
               const active = tab === t.id;
               if (t.special) {
@@ -271,13 +258,40 @@ export default function TouchShell() {
         <main
           style={{
             flex: 1, display: 'flex', flexDirection: 'column',
-            overflow: 'hidden',
+            overflow: 'hidden', position: 'relative',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
+          {/* Top date-nav header — present on every tablet screen */}
+          <TabletTopBar
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+          />
           {screenContent}
+
+          {/* FAB bottom-right — opens new reservation */}
+          <button
+            onClick={openNewReservation}
+            className="press"
+            aria-label="Nova reserva"
+            style={{
+              position: 'absolute',
+              right: 28,
+              bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              width: 64, height: 64, borderRadius: 999,
+              zIndex: 60,
+              background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+              color: '#fff',
+              border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(168,74,42,.38), 0 2px 6px rgba(168,74,42,.18)',
+              WebkitTapHighlightColor: 'transparent',
+            }}>
+            <Icon d={I.plus} size={28} stroke={2.4} />
+          </button>
         </main>
 
         {pickers}
@@ -497,6 +511,98 @@ function NavBtn({ id, tab, setTab, label, ico, special }: {
       <Icon d={ico} size={22} stroke={active ? 2.1 : 1.6} />
       <span style={{ fontSize: 10, fontWeight: active ? 700 : 500 }}>{label}</span>
     </button>
+  );
+}
+
+// ─── Tablet top bar — global date navigator (matches mockup) ────────────────
+const DAYS_CA   = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
+const MONTHS_CA = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
+
+function TabletTopBar({
+  selectedDate, setSelectedDate,
+}: {
+  selectedDate: Date;
+  setSelectedDate: (d: Date) => void;
+}) {
+  const d = selectedDate;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const selIso   = d.toISOString().slice(0, 10);
+  const isToday  = todayIso === selIso;
+  const dayLabel = `${DAYS_CA[d.getDay()]}, ${d.getDate()} de ${MONTHS_CA[d.getMonth()]}`;
+
+  function shiftDay(delta: number) {
+    const nd = new Date(d);
+    nd.setDate(nd.getDate() + delta);
+    setSelectedDate(nd);
+  }
+
+  return (
+    <header style={{
+      flexShrink: 0,
+      display: 'flex', alignItems: 'center', gap: 14,
+      padding: '14px 22px',
+      background: 'var(--cream)',
+      borderBottom: '1px solid rgba(60,40,20,.06)',
+      paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)',
+    }}>
+      {/* Prev day */}
+      <button onClick={() => shiftDay(-1)} className="day-btn press"
+        aria-label="Dia anterior"
+        style={{
+          width: 38, height: 38, borderRadius: 10,
+          background: 'var(--paper)', border: '1px solid rgba(60,40,20,.10)',
+          color: 'var(--ink-700)', cursor: 'pointer',
+          display: 'grid', placeItems: 'center', flexShrink: 0,
+          boxShadow: 'var(--sh-1)',
+        }}>
+        <Icon d={I.chevL} size={18} stroke={2} />
+      </button>
+
+      {/* Date label — centered */}
+      <div style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
+          color: 'var(--ink-900)', letterSpacing: -.005, textTransform: 'capitalize',
+        }}>
+          {dayLabel}
+        </span>
+        <span style={{ color: 'var(--ink-500)', display: 'flex' }}>
+          <Icon d={I.calendar} size={16} stroke={1.7} />
+        </span>
+      </div>
+
+      {/* Next day */}
+      <button onClick={() => shiftDay(1)} className="day-btn press"
+        aria-label="Dia següent"
+        style={{
+          width: 38, height: 38, borderRadius: 10,
+          background: 'var(--paper)', border: '1px solid rgba(60,40,20,.10)',
+          color: 'var(--ink-700)', cursor: 'pointer',
+          display: 'grid', placeItems: 'center', flexShrink: 0,
+          boxShadow: 'var(--sh-1)',
+        }}>
+        <Icon d={I.chevR} size={18} stroke={2} />
+      </button>
+
+      {/* Avui button — only when not today */}
+      <button onClick={() => setSelectedDate(new Date())}
+        disabled={isToday}
+        className="press"
+        style={{
+          padding: '0 16px', height: 38, borderRadius: 10,
+          border: '1.5px solid var(--terracotta-500)',
+          background: isToday ? 'transparent' : 'var(--terracotta-50)',
+          color: 'var(--terracotta-700)',
+          fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+          cursor: isToday ? 'default' : 'pointer',
+          opacity: isToday ? .5 : 1,
+          flexShrink: 0,
+        }}>
+        Avui
+      </button>
+    </header>
   );
 }
 
