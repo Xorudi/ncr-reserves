@@ -580,9 +580,19 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   const { customers, floorPlans } = useAppStore();
   const plan = floorPlans[bizId];
 
+  // Sempre obre el formulari amb data + hora del moment exacte
+  const nowDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  const nowTime = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+
   const [form, setForm] = useState({
-    date:   defaultDate,
-    time:   '13:00',
+    date:   nowDate(),
+    time:   nowTime(),
     name:   '',
     phone:  '',
     pax:    2,
@@ -602,7 +612,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
     if (!open) return;
-    setForm({ date: defaultDate, time: '13:00', name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe' });
+    setForm({ date: nowDate(), time: nowTime(), name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe' });
     setSaved(false);
     setTouched(false);
     setClientQuery('');
@@ -741,20 +751,66 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
           minHeight:0,
         }}>
 
-          {/* ───── Group 1: Quan i quants ───── */}
+          {/* ───── Group 1: Quan ─ tiles que mostren la data/hora formatada
+                i amaguen el input natiu darrere (no desborda la card) ───── */}
           <section>
-            <div style={sectionTitle}><span style={sectionDot} />Quan</div>
-            <div style={{ ...card, display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, padding:12 }}>
-              <div style={{ minWidth:0 }}>
-                <label style={lbl}>Data</label>
+            <div style={sectionTitle}>
+              <span style={sectionDot} />Quan
+              <span style={{ marginLeft:'auto', fontSize:11, color:'var(--ink-500)',
+                             fontWeight:550, letterSpacing:.04 }}>
+                Ara mateix
+              </span>
+            </div>
+            <div style={{ ...card, display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:8, padding:8 }}>
+              {/* DATA — label envoltant per fer clic a tota la tile */}
+              <label style={{
+                position:'relative', display:'flex', flexDirection:'column', gap:2,
+                background:'var(--paper)', borderRadius:10,
+                border:'1px solid rgba(60,40,20,.10)',
+                padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
+              }}>
+                <span style={{ ...lbl, marginBottom:0 }}>Data</span>
+                <span style={{
+                  fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+                  color:'var(--ink-900)', whiteSpace:'nowrap',
+                  overflow:'hidden', textOverflow:'ellipsis',
+                }}>
+                  {(() => {
+                    const [y,m,dd] = form.date.split('-').map(Number);
+                    const dt = new Date(y, (m||1)-1, dd||1);
+                    return `${dt.getDate()} ${MONTHS_SHORT[dt.getMonth()]} ${dt.getFullYear()}`;
+                  })()}
+                </span>
                 <input type="date" value={form.date} onChange={e => upd('date', e.target.value)}
-                  style={{ ...inp, minWidth:0, padding:'10px 12px' }} />
-              </div>
-              <div style={{ minWidth:0 }}>
-                <label style={lbl}>Hora</label>
+                  style={{
+                    position:'absolute', inset:0, opacity:0, cursor:'pointer',
+                    border:'none', background:'transparent', fontFamily:'inherit',
+                    color:'transparent',
+                  }} />
+              </label>
+
+              {/* HORA */}
+              <label style={{
+                position:'relative', display:'flex', flexDirection:'column', gap:2,
+                background:'var(--paper)', borderRadius:10,
+                border:'1px solid rgba(60,40,20,.10)',
+                padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
+              }}>
+                <span style={{ ...lbl, marginBottom:0 }}>Hora</span>
+                <span style={{
+                  fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+                  color:'var(--ink-900)', whiteSpace:'nowrap',
+                  letterSpacing:.005,
+                }}>
+                  {form.time}
+                </span>
                 <input type="time" value={form.time} onChange={e => upd('time', e.target.value)}
-                  style={{ ...inp, minWidth:0, padding:'10px 12px' }} />
-              </div>
+                  style={{
+                    position:'absolute', inset:0, opacity:0, cursor:'pointer',
+                    border:'none', background:'transparent', fontFamily:'inherit',
+                    color:'transparent',
+                  }} />
+              </label>
             </div>
           </section>
 
