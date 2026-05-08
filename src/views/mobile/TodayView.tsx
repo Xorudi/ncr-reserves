@@ -1043,7 +1043,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   onClose: () => void;
 }) {
   const biz = BUSINESSES.find(b => b.id === bizId)!;
-  const { customers, floorPlans } = useAppStore();
+  const { customers, floorPlans, addCustomer } = useAppStore();
   const plan = floorPlans[bizId];
 
   // Sempre obre el formulari amb data + hora del moment exacte
@@ -1075,6 +1075,13 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   const [paxInput,         setPaxInput]         = useState('');
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([]);
   const [showTableSel,     setShowTableSel]     = useState(false);
+  // Tracks whether the operator picked an existing client from the cartera
+  // (so we don't ask to "save to cartera" for someone already in it)
+  const [pickedFromCartera, setPickedFromCartera] = useState(false);
+  // Default ON when the user is typing a fresh client; toggle is hidden
+  // when there's no name+phone yet, or when picked from cartera, or when
+  // a customer with that exact phone already exists.
+  const [saveToCartera,     setSaveToCartera]     = useState(true);
 
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
@@ -1087,6 +1094,8 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
     setEditingPax(false);
     setSelectedTableIds([]);
     setShowTableSel(false);
+    setPickedFromCartera(false);
+    setSaveToCartera(true);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Computed: names of selected tables
@@ -1121,7 +1130,28 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
     upd('phone', c.phone || '');
     setClientQuery('');
     setShowDropdown(false);
+    setPickedFromCartera(true);
   }
+
+  // Match existing customer by phone (preferred) or exact name
+  const existingCustomer = useMemo(() => {
+    const phone = form.phone.replace(/\s/g, '');
+    if (phone.length >= 6) {
+      const m = bizClients.find(c => (c.phone || '').replace(/\s/g, '') === phone);
+      if (m) return m;
+    }
+    const name = form.name.trim().toLowerCase();
+    if (name.length >= 3) {
+      return bizClients.find(c => c.name.toLowerCase() === name);
+    }
+    return undefined;
+  }, [bizClients, form.phone, form.name]);
+
+  // Show the "Desar a la cartera" toggle only when the operator typed a
+  // fresh client (didn't pick from cartera, no exact existing match yet,
+  // and at least a phone OR a 3+-char name has been entered).
+  const showCarteraToggle = !pickedFromCartera && !existingCustomer
+    && (form.phone.replace(/\s/g,'').length >= 6 || form.name.trim().length >= 3);
 
   function handleSave() {
     setTouched(true);
@@ -1139,6 +1169,21 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
       tableIds:  selectedTableIds.length > 0 ? selectedTableIds : undefined,
       allergens: form.allergens.length > 0 ? form.allergens : undefined,
     });
+    // Optionally add the client to the cartera so the next reservation can
+    // pick them with one tap from the search dropdown.
+    if (showCarteraToggle && saveToCartera) {
+      addCustomer({
+        name:      form.name.trim(),
+        phone:     form.phone.trim(),
+        email:     '',
+        visits:    1,
+        lastVisit: form.date,
+        spend:     0,
+        tags:      form.allergens.length > 0 ? ['allergy'] : [],
+        biz:       [bizId],
+        notes:     form.notes || '',
+      });
+    }
     setSaved(true);
     setTimeout(onClose, 700);
   }
@@ -1460,6 +1505,63 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
                   onFocus={() => setShowDropdown(false)}
                   style={{ ...inp, padding:'10px 12px', fontFamily:'var(--font-mono)', fontSize:14 }} />
               </div>
+
+              {/* Save-to-cartera toggle — appears only for fresh clients */}
+              {showCarteraToggle && (
+                <button type="button"
+                  onClick={() => setSaveToCartera(v => !v)}
+                  className="press"
+                  style={{
+                    display:'flex', alignItems:'center', gap:11,
+                    padding:'10px 12px', borderRadius:11,
+                    border:'1px solid rgba(60,40,20,.08)',
+                    background: saveToCartera ? 'var(--olive-50)' : 'var(--paper)',
+                    cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+                    transition:'background 200ms var(--ease-in-out), border-color 200ms var(--ease-in-out)',
+                  }}>
+                  {/* Custom checkbox */}
+                  <span style={{
+                    width:22, height:22, borderRadius:6,
+                    border: saveToCartera
+                      ? '1.5px solid var(--olive-600)'
+                      : '1.5px solid rgba(60,40,20,.18)',
+                    background: saveToCartera ? 'var(--olive-600)' : 'var(--paper)',
+                    color:'#fff', flexShrink:0,
+                    display:'grid', placeItems:'center',
+                    transition:'background 180ms var(--ease-out), border-color 180ms var(--ease-out)',
+                  }}>
+                    {saveToCartera && <Icon d={I.check} size={13} stroke={2.6} />}
+                  </span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{
+                      fontSize:13.5, fontWeight:650, color:'var(--ink-900)',
+                      letterSpacing:-.005,
+                    }}>
+                      Desar a la cartera
+                    </div>
+                    <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:2 }}>
+                      Crea el client perquè la propera reserva sigui un toc
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {/* Existing-customer hint — replaces the toggle when found */}
+              {!pickedFromCartera && existingCustomer && (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:9,
+                  padding:'9px 12px', borderRadius:11,
+                  background:'var(--olive-50)',
+                  border:'1px solid rgba(116,133,74,.20)',
+                  fontSize:12.5, color:'var(--olive-700)', fontWeight:600,
+                }}>
+                  <Icon d={I.check} size={14} stroke={2.4} />
+                  <span style={{ flex:1, minWidth:0,
+                                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    Ja és a la cartera ({existingCustomer.visits} visites)
+                  </span>
+                </div>
+              )}
             </div>
           </section>
 
