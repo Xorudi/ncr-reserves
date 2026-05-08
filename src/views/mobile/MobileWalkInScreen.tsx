@@ -3,6 +3,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
 import type { MobileTab } from './MobileShell';
+import type { FloorTable } from '@/types';
 
 const PAX_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -44,29 +45,54 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
   const [notes,      setNotes]      = useState('');
   const [showExtra,  setShowExtra]  = useState(false);
   const [zoneId,     setZoneId]     = useState<string | null>(zones[0]?.id ?? null);
-  const [tableMode,  setTableMode]  = useState<'auto' | 'manual'>('auto');
-  const [selTableId, setSelTableId] = useState<string | null>(null);
-  const [done,       setDone]       = useState(false);
-  const [noTableWarn, setNoTableWarn] = useState(false);
+  const [tableMode,    setTableMode]    = useState<'auto' | 'manual'>('auto');
+  const [selTableIds,  setSelTableIds]  = useState<string[]>([]);
+  const [done,         setDone]         = useState(false);
+  const [noTableWarn,  setNoTableWarn]  = useState(false);
 
-  // Available (free) tables in selected zone with enough capacity
-  const availableTables = useMemo(() => {
+  // Free tables in the selected zone (any capacity)
+  const freeTables = useMemo(() => {
     if (!plan || !zoneId) return [];
     return plan.tables
-      .filter(t => t.zone === zoneId && t.status === 'free' && t.cap >= pax)
-      .sort((a, b) => a.cap - b.cap); // smallest fitting table first
-  }, [plan, zoneId, pax]);
+      .filter(t => t.zone === zoneId && t.status === 'free')
+      .sort((a, b) => a.cap - b.cap);
+  }, [plan, zoneId]);
 
   // All tables in zone (for manual list — show available + others with status)
   const zoneTables = useMemo(() => {
     if (!plan || !zoneId) return [];
     return plan.tables
       .filter(t => t.zone === zoneId)
-      .sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id));
+      .sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id, undefined, { numeric: true }));
   }, [plan, zoneId]);
 
-  const autoTable = availableTables[0] ?? null; // best auto pick
-  const finalTable = tableMode === 'auto' ? autoTable : (selTableId ? plan?.tables.find(t => t.id === selTableId) ?? null : null);
+  // Auto pick: prefer the smallest single table that fits; if none, greedily
+  // combine the smallest free tables until we have enough capacity (max 4
+  // tables grouped). Returns [] if even the combination can't reach pax.
+  const autoTables = useMemo<FloorTable[]>(() => {
+    const single = freeTables.find(t => t.cap >= pax);
+    if (single) return [single];
+    const combo: FloorTable[] = [];
+    let cap = 0;
+    for (const t of freeTables) {
+      if (cap >= pax) break;
+      if (combo.length >= 4) break;
+      combo.push(t); cap += t.cap;
+    }
+    return cap >= pax ? combo : [];
+  }, [freeTables, pax]);
+
+  // Final selection (auto or manual)
+  const finalTables = useMemo<FloorTable[]>(() => {
+    if (tableMode === 'auto') return autoTables;
+    if (!plan) return [];
+    return selTableIds
+      .map(id => plan.tables.find(t => t.id === id))
+      .filter(Boolean) as FloorTable[];
+  }, [tableMode, autoTables, plan, selTableIds]);
+
+  const finalCapacity = finalTables.reduce((s, t) => s + t.cap, 0);
+  const finalFits     = finalTables.length === 0 || finalCapacity >= pax;
 
   // Today's pending + confirmed reservations for this biz
   const pending = useMemo(() =>
@@ -77,14 +103,14 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
   );
 
   function handleSeat() {
-    // Auto mode: check there's a table available
-    if (tableMode === 'auto' && !autoTable && zones.length > 0) {
+    // Auto mode: check there's any combination available
+    if (tableMode === 'auto' && finalTables.length === 0 && zones.length > 0) {
       setNoTableWarn(true);
       return;
     }
     setNoTableWarn(false);
 
-    // Create reservation
+    // Create reservation linked to the resolved table set
     addReservation({
       bizId:  selectedBusiness,
       date:   todayStr,
@@ -95,18 +121,19 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
       source: 'walk-in',
       phone:  phone.trim() || undefined,
       notes:  notes.trim() || undefined,
+      tableIds: finalTables.length > 0 ? finalTables.map(t => t.id) : undefined,
     });
 
-    // Update table status
-    if (finalTable) {
-      updateFloorTable(selectedBusiness, finalTable.id, { status: 'seated', time: nowTime });
-    }
+    // Mark each picked table as seated
+    finalTables.forEach(t => {
+      updateFloorTable(selectedBusiness, t.id, { status: 'seated', time: nowTime });
+    });
 
     setDone(true);
     setTimeout(() => {
       setDone(false);
       setName(''); setPhone(''); setNotes(''); setPax(2);
-      setSelTableId(null); setShowExtra(false); setNoTableWarn(false);
+      setSelTableIds([]); setShowExtra(false); setNoTableWarn(false);
     }, 1800);
   }
 
@@ -117,7 +144,14 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
   // When zone changes, reset table selection
   function handleZoneChange(id: string) {
     setZoneId(id);
-    setSelTableId(null);
+    setSelTableIds([]);
+    setNoTableWarn(false);
+  }
+
+  function toggleTable(id: string) {
+    setSelTableIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+    );
     setNoTableWarn(false);
   }
 
@@ -262,7 +296,8 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                 {(['auto','manual'] as const).map(m => {
                   const a = tableMode === m;
                   return (
-                    <button key={m} onClick={() => { setTableMode(m); setSelTableId(null); setNoTableWarn(false); }}
+                    <button key={m} className="press"
+                      onClick={() => { setTableMode(m); setSelTableIds([]); setNoTableWarn(false); }}
                       style={{
                         padding:'7px 16px', borderRadius:999, border:'none',
                         background: a ? 'var(--paper)' : 'transparent',
@@ -276,70 +311,195 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                 })}
               </div>
 
-              {/* Auto result */}
+              {/* Auto result — single table OR a combo (e.g. 12 pax → 115+116+117) */}
               {tableMode === 'auto' && (
-                autoTable ? (
-                  <div style={{ padding:'12px 14px', borderRadius:12, background:'var(--olive-50)', border:'1px solid rgba(90,107,53,.2)', display:'flex', alignItems:'center', gap:10 }}>
-                    <div style={{ width:40, height:40, borderRadius:10, background:'var(--olive-100)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:'var(--olive-700)', flexShrink:0 }}>
-                      {autoTable.name ?? autoTable.id}
+                finalTables.length > 0 ? (
+                  <div style={{
+                    padding:'12px 14px', borderRadius:12,
+                    background:'var(--olive-50)',
+                    border:'1px solid rgba(116,133,74,.22)',
+                    display:'flex', alignItems:'center', gap:10,
+                  }}>
+                    <div style={{
+                      display:'flex', flexShrink:0, gap:-2,
+                    }}>
+                      {finalTables.slice(0, 3).map((t, i) => (
+                        <div key={t.id} style={{
+                          width:38, height:38, borderRadius:10,
+                          background:'var(--paper)',
+                          border:'1.5px solid var(--olive-600)',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          fontFamily:'var(--font-serif)', fontSize:14, fontWeight:500,
+                          color:'var(--olive-700)',
+                          marginLeft: i === 0 ? 0 : -8,
+                          zIndex: 10 - i,
+                          boxShadow:'0 1px 2px rgba(60,40,20,.06)',
+                        }}>
+                          {t.name ?? t.id}
+                        </div>
+                      ))}
+                      {finalTables.length > 3 && (
+                        <div style={{
+                          width:32, height:38, marginLeft:-8,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          fontSize:11, fontWeight:700, color:'var(--olive-700)',
+                        }}>
+                          +{finalTables.length - 3}
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <div style={{ fontSize:13.5, fontWeight:700, color:'var(--olive-700)' }}>
-                        Taula {autoTable.name ?? autoTable.id} · {autoTable.cap} pax
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{
+                        fontSize:13.5, fontWeight:700, color:'var(--olive-700)',
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                      }}>
+                        {finalTables.length === 1
+                          ? `Taula ${finalTables[0].name ?? finalTables[0].id}`
+                          : `Taules ${finalTables.map(t => t.name ?? t.id).join(' + ')}`}
                       </div>
-                      <div style={{ fontSize:11.5, color:'var(--olive-700)', opacity:.75, marginTop:1 }}>
-                        {zones.find(z => z.id === zoneId)?.label} · lliure
+                      <div style={{
+                        fontSize:11.5, color:'var(--olive-700)', opacity:.78, marginTop:2,
+                        fontFamily:'var(--font-mono)', letterSpacing:.02,
+                      }}>
+                        {finalCapacity} pax · {zones.find(z => z.id === zoneId)?.label}
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div style={{ padding:'12px 14px', borderRadius:12, background:'var(--clay-50)', border:'1px solid rgba(140,90,43,.2)', display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{
+                    padding:'12px 14px', borderRadius:12,
+                    background:'var(--clay-50)',
+                    border:'1px solid rgba(204,144,73,.25)',
+                    display:'flex', alignItems:'center', gap:10,
+                  }}>
                     <div style={{ fontFamily:'var(--font-serif)', fontSize:22, color:'var(--clay-700)', flexShrink:0 }}>!</div>
                     <div>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--clay-700)' }}>No hi ha taules disponibles</div>
-                      <div style={{ fontSize:11.5, color:'var(--clay-700)', opacity:.75 }}>Canvia de zona o redueix el pax</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:'var(--clay-700)' }}>No hi ha taules disponibles</div>
+                      <div style={{ fontSize:11.5, color:'var(--clay-700)', opacity:.78 }}>Canvia de zona o redueix el pax</div>
                     </div>
                   </div>
                 )
               )}
 
-              {/* Manual table list — 3-col grid */}
+              {/* Manual — multi-select tile grid + capacity strip */}
               {tableMode === 'manual' && (
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
-                  {zoneTables.map(t => {
-                    const isFree   = t.status === 'free';
-                    const fits     = t.cap >= pax;
-                    const selected = selTableId === t.id;
-                    const disabled = !isFree;
-                    return (
-                      <button key={t.id}
-                        onClick={() => !disabled && setSelTableId(selected ? null : t.id)}
-                        style={{
-                          aspectRatio:'1/1', borderRadius:12, padding:'10px 8px', fontFamily:'inherit',
-                          border: selected ? `2px solid var(--terracotta-600)` : disabled ? '1px solid rgba(60,40,20,.08)' : fits ? '1px solid rgba(60,40,20,.14)' : '1px solid rgba(185,90,30,.25)',
-                          background: selected ? 'var(--terracotta-50)' : disabled ? 'rgba(60,40,20,.04)' : 'var(--olive-50)',
-                          opacity: disabled ? .5 : 1,
-                          cursor: disabled ? 'not-allowed' : 'pointer',
-                          textAlign:'center', display:'flex', flexDirection:'column', justifyContent:'center', gap:4,
-                        }}>
-                        <div style={{ fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500, color: selected ? 'var(--terracotta-700)' : 'var(--olive-700)' }}>
-                          {t.name ?? t.id}
-                        </div>
-                        <div style={{ fontSize:10, color:'var(--ink-500)', fontWeight:600 }}>{t.cap} pax</div>
-                        {disabled && (
-                          <div style={{ fontSize:9, color:'var(--ink-400)', fontWeight:600, textTransform:'uppercase', letterSpacing:.3 }}>
-                            {t.status === 'seated' ? 'ocupada' : t.status}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                  {zoneTables.length === 0 && (
-                    <div style={{ gridColumn:'1/-1', fontSize:13, color:'var(--ink-500)', textAlign:'center', padding:'10px 0' }}>
-                      Cap taula en aquesta zona
+                <>
+                  {/* Selection summary — only when something's picked */}
+                  {selTableIds.length > 0 && (
+                    <div style={{
+                      marginBottom:10, padding:'9px 12px', borderRadius:10,
+                      background: finalFits ? 'var(--olive-50)' : 'var(--clay-50)',
+                      border: finalFits
+                        ? '1px solid rgba(116,133,74,.22)'
+                        : '1px solid rgba(204,144,73,.25)',
+                      display:'flex', alignItems:'center', gap:8,
+                      fontSize:12,
+                    }}>
+                      <span style={{
+                        fontFamily:'var(--font-serif)', fontWeight:500,
+                        color: finalFits ? 'var(--olive-700)' : 'var(--clay-700)',
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                        flex:1,
+                      }}>
+                        {finalTables.map(t => t.name ?? t.id).join(' + ')}
+                      </span>
+                      <span style={{
+                        fontFamily:'var(--font-mono)', fontWeight:700,
+                        color: finalFits ? 'var(--olive-700)' : 'var(--clay-700)',
+                        flexShrink:0,
+                      }}>
+                        {finalCapacity}/{pax}
+                      </span>
+                      {selTableIds.length > 0 && (
+                        <button onClick={() => setSelTableIds([])} className="press"
+                          style={{
+                            background:'transparent', border:'none',
+                            color:'var(--ink-500)', cursor:'pointer',
+                            fontSize:11, fontWeight:700, padding:'2px 6px',
+                          }}>
+                          Treure
+                        </button>
+                      )}
                     </div>
                   )}
-                </div>
+
+                  <div style={{
+                    display:'grid',
+                    gridTemplateColumns:'repeat(auto-fill, minmax(86px, 1fr))',
+                    gap:8,
+                  }}>
+                    {zoneTables.map(t => {
+                      const isFree   = t.status === 'free';
+                      const fits     = t.cap >= pax;
+                      const selected = selTableIds.includes(t.id);
+                      const disabled = !isFree;
+                      return (
+                        <button key={t.id} className="press"
+                          onClick={() => !disabled && toggleTable(t.id)}
+                          style={{
+                            aspectRatio:'1/1', borderRadius:12, padding:'10px 8px', fontFamily:'inherit',
+                            border: selected
+                              ? '1.5px solid var(--terracotta-600)'
+                              : disabled
+                                ? '1px solid rgba(60,40,20,.08)'
+                                : fits
+                                  ? '1px solid rgba(116,133,74,.20)'
+                                  : '1px solid rgba(204,144,73,.25)',
+                            background: selected
+                              ? 'var(--terracotta-50)'
+                              : disabled
+                                ? 'rgba(60,40,20,.04)'
+                                : 'var(--olive-50)',
+                            opacity: disabled ? .5 : 1,
+                            cursor: disabled ? 'not-allowed' : 'pointer',
+                            textAlign:'center',
+                            display:'flex', flexDirection:'column', justifyContent:'center', gap:3,
+                            position:'relative',
+                            transition:'background 160ms var(--ease-out), border-color 160ms var(--ease-out)',
+                          }}>
+                          <div style={{
+                            fontFamily:'var(--font-serif)', fontSize:20, fontWeight:500,
+                            color: selected ? 'var(--terracotta-700)' : 'var(--olive-700)',
+                            lineHeight:1,
+                          }}>
+                            {t.name ?? t.id}
+                          </div>
+                          <div style={{
+                            fontSize:10, color: selected ? 'var(--terracotta-700)' : 'var(--ink-500)',
+                            fontWeight:600, opacity:.85,
+                          }}>
+                            {t.cap} pax
+                          </div>
+                          {disabled && (
+                            <div style={{
+                              fontSize:8.5, color:'var(--ink-400)', fontWeight:700,
+                              textTransform:'uppercase', letterSpacing:.3,
+                            }}>
+                              {t.status === 'seated' ? 'ocupada' : t.status}
+                            </div>
+                          )}
+                          {/* Selection check badge */}
+                          {selected && (
+                            <span style={{
+                              position:'absolute', top:5, right:5,
+                              width:18, height:18, borderRadius:999,
+                              background:'var(--terracotta-600)', color:'#fff',
+                              display:'grid', placeItems:'center',
+                              boxShadow:'0 1px 3px rgba(168,74,42,.30)',
+                            }}>
+                              <Icon d={I.check} size={11} stroke={2.6} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {zoneTables.length === 0 && (
+                      <div style={{ gridColumn:'1/-1', fontSize:13, color:'var(--ink-500)', textAlign:'center', padding:'10px 0' }}>
+                        Cap taula en aquesta zona
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
