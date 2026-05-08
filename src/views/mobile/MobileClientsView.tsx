@@ -11,24 +11,64 @@ const TAG_LABEL: Record<string, string> = {
   birthday:'Aniversari', conflictiu:'Conflictiu', terrassa:'Terrassa',
 };
 
+// Filter ids — match Customer.tags entries (plus 'all' for no filter)
+type ClientFilter = 'all' | 'vip' | 'regular' | 'allergy' | 'birthday';
+const FILTER_LIST: { id: ClientFilter; label: string; tone?: string }[] = [
+  { id: 'all',      label: 'Tots'        },
+  { id: 'vip',      label: 'VIP'         },
+  { id: 'regular',  label: 'Habituals'   },
+  { id: 'allergy',  label: 'Al·lèrgies'  },
+  { id: 'birthday', label: 'Aniversaris' },
+];
+
 // ─── Main view ────────────────────────────────────────────────────────────────
 export default function MobileClientsView() {
-  const { selectedBusiness, customers } = useAppStore();
+  const { selectedBusiness, customers, reservations } = useAppStore();
   const [query,    setQuery]    = useState('');
+  const [filter,   setFilter]   = useState<ClientFilter>('all');
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editId,   setEditId]   = useState<string | null>(null);
   const [showNew,  setShowNew]  = useState(false);
 
-  const filtered = useMemo(() =>
-    customers
+  // Customers belonging to the active business (search + filter applied)
+  const bizClients = useMemo(
+    () => customers.filter(c => c.biz.includes(selectedBusiness as BusinessId)),
+    [customers, selectedBusiness],
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return bizClients
       .filter(c => {
-        if (!c.biz.includes(selectedBusiness as BusinessId)) return false;
-        if (query && !c.name.toLowerCase().includes(query.toLowerCase()) && !c.phone.includes(query)) return false;
+        if (q && !c.name.toLowerCase().includes(q) && !c.phone.includes(query)) return false;
+        if (filter !== 'all' && !c.tags.includes(filter)) return false;
         return true;
       })
-      .sort((a, b) => b.visits - a.visits),
-    [customers, selectedBusiness, query],
-  );
+      .sort((a, b) => b.visits - a.visits);
+  }, [bizClients, query, filter]);
+
+  // Header stats — totals + today's expected visitors (fuzzy first-name match)
+  const todayIso = isoDate(new Date());
+  const stats = useMemo(() => {
+    const totals: Record<ClientFilter, number> = {
+      all: bizClients.length, vip: 0, regular: 0, allergy: 0, birthday: 0,
+    };
+    bizClients.forEach(c => {
+      if (c.tags.includes('vip'))      totals.vip++;
+      if (c.tags.includes('regular'))  totals.regular++;
+      if (c.tags.includes('allergy'))  totals.allergy++;
+      if (c.tags.includes('birthday')) totals.birthday++;
+    });
+    const todayResNames = new Set(
+      reservations
+        .filter(r => r.bizId === selectedBusiness && r.date === todayIso)
+        .map(r => r.name.split(' ')[0].toLowerCase()),
+    );
+    const expected = bizClients.filter(c =>
+      todayResNames.has(c.name.split(' ')[0].toLowerCase()),
+    ).length;
+    return { ...totals, expected };
+  }, [bizClients, reservations, selectedBusiness, todayIso]);
 
   const detailClient = customers.find(c => c.id === detailId) ?? null;
   const editClient   = editId ? customers.find(c => c.id === editId) ?? null : null;
@@ -37,35 +77,135 @@ export default function MobileClientsView() {
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div style={{ padding:'10px 14px 8px', borderBottom:'var(--hair)', background:'var(--paper)', flexShrink:0 }}>
-        <div style={{ position:'relative', display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ flex:1, display:'flex', alignItems:'center', gap:8, padding:'11px 12px 11px 38px', borderRadius:12, background:'rgba(60,40,20,.06)' }}>
-            <div style={{ position:'absolute', left:14, pointerEvents:'none', display:'flex', color:'var(--ink-400)' }}><Icon d={I.search} size={16} /></div>
+      <div style={{
+        padding:'14px 16px 10px',
+        borderBottom:'var(--hair)', background:'var(--paper)',
+        flexShrink:0,
+      }}>
+        {/* Title + stats + new-button */}
+        <div style={{
+          display:'flex', alignItems:'center', gap:10, marginBottom:12,
+        }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{
+              fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500,
+              color:'var(--ink-900)', letterSpacing:-.005, lineHeight:1.05,
+            }}>
+              Clientela
+            </div>
+            <div style={{
+              fontSize:11.5, color:'var(--ink-500)', fontWeight:600,
+              letterSpacing:.05, marginTop:4,
+              fontFamily:'var(--font-mono)',
+              display:'flex', alignItems:'center', gap:6, flexWrap:'wrap',
+            }}>
+              <span key={`t-${stats.all}`} className="number-tween"
+                style={{ fontFamily:'var(--font-serif)', fontSize:13, fontWeight:500, color:'var(--ink-900)' }}>
+                {stats.all}
+              </span>
+              <span style={{ textTransform:'uppercase', letterSpacing:.08 }}>actius</span>
+              {stats.vip > 0 && (
+                <>
+                  <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+                  <span key={`v-${stats.vip}`} className="number-tween"
+                    style={{ fontFamily:'var(--font-serif)', fontSize:13, fontWeight:500, color:'#8a6a00' }}>
+                    {stats.vip}
+                  </span>
+                  <span style={{ color:'#8a6a00', textTransform:'uppercase', letterSpacing:.08 }}>vips</span>
+                </>
+              )}
+              {stats.expected > 0 && (
+                <>
+                  <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+                  <span key={`e-${stats.expected}`} className="number-tween"
+                    style={{ fontFamily:'var(--font-serif)', fontSize:13, fontWeight:500, color:'var(--terracotta-700)' }}>
+                    {stats.expected}
+                  </span>
+                  <span style={{ color:'var(--terracotta-700)', textTransform:'uppercase', letterSpacing:.08 }}>avui</span>
+                </>
+              )}
+            </div>
+          </div>
+          <button onClick={() => setShowNew(true)} className="press"
+            aria-label="Nou client"
+            style={{
+              height:40, padding:'0 14px', borderRadius:12, border:'none',
+              background:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+              color:'white', cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+              fontFamily:'inherit', fontSize:13, fontWeight:650, flexShrink:0,
+              boxShadow:'0 2px 6px rgba(168,74,42,.28)',
+            }}>
+            <Icon d={I.plus} size={15} stroke={2.4} />
+            Nou
+          </button>
+        </div>
+
+        {/* Search input */}
+        <div style={{ position:'relative', marginBottom:10 }}>
+          <div style={{
+            display:'flex', alignItems:'center', gap:8,
+            padding:'10px 12px 10px 38px', borderRadius:12,
+            background:'var(--cream)',
+            border:'1px solid rgba(60,40,20,.08)',
+          }}>
+            <div style={{
+              position:'absolute', left:14, pointerEvents:'none',
+              display:'flex', color:'var(--ink-400)',
+            }}><Icon d={I.search} size={16} /></div>
             <input value={query} onChange={e => setQuery(e.target.value)}
               placeholder="Cercar per nom o telèfon"
-              style={{ flex:1, border:'none', outline:'none', background:'transparent', fontFamily:'inherit', fontSize:14, color:'var(--ink-900)' }} />
+              style={{
+                flex:1, border:'none', outline:'none', background:'transparent',
+                fontFamily:'inherit', fontSize:14, color:'var(--ink-900)',
+              }} />
             {query && (
-              <button onClick={() => setQuery('')} style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, color:'var(--ink-400)', display:'grid', placeItems:'center' }}>
-                <Icon d={I.x} size={13} />
+              <button onClick={() => setQuery('')}
+                aria-label="Esborrar cerca"
+                style={{
+                  background:'rgba(60,40,20,.08)', border:'none',
+                  cursor:'pointer', borderRadius:999,
+                  width:22, height:22, color:'var(--ink-500)',
+                  display:'grid', placeItems:'center', flexShrink:0,
+                }}>
+                <Icon d={I.x} size={11} />
               </button>
             )}
           </div>
-          <button onClick={() => setShowNew(true)}
-            style={{ width:40, height:40, borderRadius:12, border:'none', background:'var(--terracotta-600)', color:'white', cursor:'pointer', display:'grid', placeItems:'center', flexShrink:0 }}>
-            <Icon d={I.plus} size={18} stroke={2.2} />
-          </button>
         </div>
-        {/* Filter chips */}
-        <div style={{ display:'flex', gap:6, marginTop:8, overflowX:'auto', paddingBottom:2 }}>
-          {['Tots','VIP','Habituals','Al·lèrgies','Aniversaris'].map((f, i) => (
-            <button key={f} style={{
-              padding:'5px 12px', borderRadius:999, whiteSpace:'nowrap', fontFamily:'inherit',
-              border: i === 0 ? 'none' : '1px solid rgba(60,40,20,.14)',
-              background: i === 0 ? 'var(--ink-900)' : 'var(--paper)',
-              color: i === 0 ? 'var(--cream)' : 'var(--ink-500)',
-              fontSize:12, fontWeight:600, cursor:'pointer',
-            }}>{f}</button>
-          ))}
+
+        {/* Filter chips — actually wired to filter state */}
+        <div style={{
+          display:'flex', gap:6, overflowX:'auto', paddingBottom:2,
+          scrollbarWidth:'none', msOverflowStyle:'none',
+        }}>
+          {FILTER_LIST.map(f => {
+            const active = filter === f.id;
+            const count  = stats[f.id];
+            return (
+              <button key={f.id} onClick={() => setFilter(f.id)} className="press"
+                style={{
+                  flexShrink:0, padding:'7px 13px', borderRadius:999,
+                  whiteSpace:'nowrap', fontFamily:'inherit',
+                  border: active ? 'none' : '1px solid rgba(60,40,20,.10)',
+                  background: active ? 'var(--ink-900)' : 'var(--paper)',
+                  color: active ? 'var(--cream)' : 'var(--ink-600)',
+                  fontSize:12.5, fontWeight: active ? 700 : 600, cursor:'pointer',
+                  display:'inline-flex', alignItems:'center', gap:6,
+                  transition:'background 200ms var(--ease-in-out), color 200ms var(--ease-in-out), border-color 200ms var(--ease-in-out)',
+                }}>
+                {f.label}
+                {count > 0 && (
+                  <span style={{
+                    fontSize:10.5, fontWeight:700,
+                    fontFamily:'var(--font-mono)',
+                    color: active ? 'var(--cream)' : 'var(--ink-500)',
+                    opacity: active ? .65 : .85,
+                  }}>{count}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -79,10 +219,7 @@ export default function MobileClientsView() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <div style={{ textAlign:'center', padding:'60px 16px', color:'var(--ink-500)' }}>
-            <div style={{ fontSize:28, marginBottom:8 }}>👤</div>
-            <div style={{ fontFamily:'var(--font-serif)', fontSize:15 }}>Cap client trobat</div>
-          </div>
+          <ClientsEmpty query={query} filter={filter} />
         )}
       </div>
 
@@ -120,37 +257,170 @@ export default function MobileClientsView() {
   );
 }
 
-// ─── Client row ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** "fa 3d" / "fa 2s" / "fa 1m" / "fa 2a" — short relative time in Catalan. */
+function relLastVisit(lastVisit: string | undefined): string | null {
+  if (!lastVisit) return null;
+  try {
+    const t = new Date(lastVisit).getTime();
+    if (Number.isNaN(t)) return null;
+    const diffDays = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+    if (diffDays === 0)  return 'avui';
+    if (diffDays === 1)  return 'ahir';
+    if (diffDays < 7)    return `fa ${diffDays} d`;
+    if (diffDays < 30)   return `fa ${Math.floor(diffDays / 7)} s`;
+    if (diffDays < 365)  return `fa ${Math.floor(diffDays / 30)} m`;
+    return `fa ${Math.floor(diffDays / 365)} a`;
+  } catch { return null; }
+}
+
+// ─── Empty state — no clients matched the query/filter ───────────────────────
+function ClientsEmpty({ query, filter }: { query: string; filter: ClientFilter }) {
+  return (
+    <div style={{
+      textAlign:'center', padding:'56px 22px 28px',
+      color:'var(--ink-500)',
+      display:'flex', flexDirection:'column', alignItems:'center', gap:14,
+    }}>
+      {/* Minimal "address book" line-art */}
+      <svg width="68" height="80" viewBox="0 0 68 80" fill="none" aria-hidden="true">
+        <path d="M14 8 H54 Q58 8 58 12 V72 Q58 76 54 76 H14 Q10 76 10 72 V12 Q10 8 14 8 Z"
+          stroke="var(--ink-400)" strokeWidth="1.6" fill="var(--cream)" />
+        {/* spine ribs */}
+        <path d="M10 22 H6 M10 36 H6 M10 50 H6 M10 64 H6"
+          stroke="var(--ink-300)" strokeWidth="1.2" strokeLinecap="round" />
+        {/* head + shoulders silhouette */}
+        <circle cx="34" cy="34" r="7" stroke="var(--ink-400)" strokeWidth="1.5" fill="var(--ink-50)" />
+        <path d="M22 56 Q22 46 34 46 Q46 46 46 56"
+          stroke="var(--ink-400)" strokeWidth="1.5" fill="var(--ink-50)" strokeLinecap="round" />
+        {/* contact lines */}
+        <path d="M22 64 H46 M26 70 H42"
+          stroke="var(--ink-300)" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+      <div>
+        <div style={{
+          fontFamily:'var(--font-serif)', fontSize:17, color:'var(--ink-700)',
+          letterSpacing:-.005,
+        }}>
+          {query
+            ? 'Cap client coincideix'
+            : filter !== 'all'
+              ? 'Cap client en aquest filtre'
+              : 'La cartera encara és buida'}
+        </div>
+        <div style={{ fontSize:13, color:'var(--ink-500)', marginTop:6 }}>
+          {query
+            ? `Prova canviant la cerca o esborrant-la`
+            : filter !== 'all'
+              ? 'Treu el filtre per veure tots els clients'
+              : 'Prem "Nou" per afegir el primer'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Client row — richer layout with last-visit, allergens, serif spend ──────
 function ClientRow({ client: c, onTap }: { client: Customer; onTap: () => void }) {
+  const lastSeen = relLastVisit(c.lastVisit);
+  const isVip      = c.tags.includes('vip');
+  const hasAllergy = c.tags.includes('allergy');
+  const isBirthday = c.tags.includes('birthday');
+  const palette    = avIdx(c.name);
   return (
     <button onClick={onTap} className="press"
       style={{
-        display:'flex', alignItems:'center', gap:12, padding:'13px 18px',
-        borderBottom:'var(--hair)', background:'var(--paper)', border:'none',
-        width:'100%', cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-        transition:'background 160ms var(--ease-out)',
+        display:'flex', alignItems:'center', gap:13, padding:'14px 18px',
+        borderBottom:'var(--hair)',
+        background: isVip
+          ? 'linear-gradient(180deg, rgba(243,220,166,.18) 0%, var(--paper) 60%)'
+          : 'var(--paper)',
+        border:'none', width:'100%', cursor:'pointer',
+        fontFamily:'inherit', textAlign:'left',
+        transition:'background 200ms var(--ease-out)',
       }}>
-      {/* Avatar — Fraunces serif initials circle */}
-      <div style={{
-        width:42, height:42, borderRadius:999, flexShrink:0,
-        background:'var(--cream)', display:'flex', alignItems:'center', justifyContent:'center',
-        fontFamily:'var(--font-serif)', fontSize:15, fontWeight:500, color:'var(--ink-800)',
-      }}>
+      {/* Avatar — palette-coloured serif initials, with subtle gold ring on VIPs */}
+      <span className={`avatar av-${palette}`}
+        style={{
+          width:46, height:46, borderRadius:999,
+          fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+          letterSpacing:-.005, flexShrink:0,
+          boxShadow: isVip ? '0 0 0 2px #d8b463' : 'none',
+        }}>
         {initials(c.name)}
-      </div>
+      </span>
+
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
-          <span style={{ fontSize:14.5, fontWeight:600, color:'var(--ink-900)' }}>{c.name}</span>
-          {c.tags.includes('vip') && (
-            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'#2a2119', color:'#f3dca6', fontWeight:700, letterSpacing:.3 }}>VIP</span>
+        {/* Name + inline tags */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+          <span style={{
+            fontSize:15, fontWeight:650, color:'var(--ink-900)', letterSpacing:-.005,
+          }}>{c.name}</span>
+          {isVip && (
+            <span style={{
+              fontSize:9.5, padding:'2px 6px', borderRadius:4,
+              background:'#2a2119', color:'#f3dca6',
+              fontWeight:700, letterSpacing:.3,
+            }}>VIP</span>
           )}
-          {c.tags.includes('allergy') && (
-            <span style={{ fontSize:9.5, padding:'2px 5px', borderRadius:4, background:'var(--rose-100)', color:'var(--rose-700)', fontWeight:700, letterSpacing:.3 }}>AL·LÈRGIA</span>
+          {hasAllergy && (
+            <span style={{
+              fontSize:9.5, padding:'2px 6px', borderRadius:4,
+              background:'var(--rose-50)', color:'var(--rose-700)',
+              fontWeight:700, letterSpacing:.3,
+              border:'1px solid rgba(194,74,74,.22)',
+              display:'inline-flex', alignItems:'center', gap:3,
+            }}>⚠ AL·LÈRGIA</span>
+          )}
+          {isBirthday && (
+            <span style={{ fontSize:13, lineHeight:1 }} aria-label="Aniversari">🎂</span>
           )}
         </div>
-        <div style={{ fontSize:12, color:'var(--ink-400)', marginTop:2, fontFamily:'var(--font-mono)' }}>{c.phone}</div>
-        <div style={{ fontSize:11, color:'var(--ink-500)', marginTop:1 }}>{c.visits} visites{c.spend ? ` · ${c.spend}€` : ''}</div>
+
+        {/* Phone in mono */}
+        <div style={{
+          fontSize:12, color:'var(--ink-500)', marginTop:3,
+          fontFamily:'var(--font-mono)', fontWeight:550, letterSpacing:.005,
+        }}>{c.phone || '—'}</div>
+
+        {/* Stats line: visits · spend · last-seen */}
+        <div style={{
+          fontSize:11.5, color:'var(--ink-500)', marginTop:5,
+          display:'flex', alignItems:'center', gap:7, flexWrap:'wrap',
+        }}>
+          <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+            <span style={{
+              fontFamily:'var(--font-serif)', fontSize:13.5, fontWeight:500,
+              color:'var(--ink-900)', letterSpacing:-.005,
+            }}>{c.visits}</span>
+            <span style={{ fontWeight:600 }}>{c.visits === 1 ? 'visita' : 'visites'}</span>
+          </span>
+          {c.spend > 0 && (
+            <>
+              <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+              <span style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                <span style={{
+                  fontFamily:'var(--font-serif)', fontSize:13.5, fontWeight:500,
+                  color: c.spend > 500 ? 'var(--olive-700)' : 'var(--ink-900)', letterSpacing:-.005,
+                }}>{c.spend}</span>
+                <span style={{ fontWeight:600, color: c.spend > 500 ? 'var(--olive-700)' : 'var(--ink-500)' }}>€</span>
+              </span>
+            </>
+          )}
+          {lastSeen && (
+            <>
+              <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+              <span style={{
+                fontWeight:600,
+                fontFamily:'var(--font-mono)', fontSize:11.5,
+                color: lastSeen === 'avui' ? 'var(--terracotta-700)' : 'var(--ink-500)',
+              }}>{lastSeen}</span>
+            </>
+          )}
+        </div>
       </div>
+
       <Icon d={I.chevR} size={14} />
     </button>
   );
