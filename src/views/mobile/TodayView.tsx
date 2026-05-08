@@ -233,6 +233,32 @@ function HoldToDelete({ onConfirm }: { onConfirm: () => void }) {
   );
 }
 
+/** Inline status mini-stat: dot + serif number + label. Used inside the
+ *  hero card to summarise the active shift's status distribution. */
+function StatusInline({ n, label, fg, dot }: {
+  n: number; label: string; fg: string; dot: string;
+}) {
+  const dim = n === 0;
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'baseline', gap:4,
+      opacity: dim ? .45 : 1,
+    }}>
+      <span style={{
+        width:6, height:6, borderRadius:999, background: dot,
+        alignSelf:'center', flexShrink:0,
+      }} />
+      <span key={n} className="number-tween" style={{
+        fontFamily:'var(--font-serif)', fontSize:14, fontWeight:500,
+        color: fg, letterSpacing:-.005, lineHeight:1,
+      }}>{n}</span>
+      <span style={{ color: fg, fontWeight:550, fontSize:11.5 }}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
 /** Empty-state illustration: a minimal restaurant chair in line art with a
  *  barely-perceptible idle sway. The shadow expands in sync. */
 function EmptyChair() {
@@ -410,54 +436,264 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
         </div>
         )}
 
-        {/* Segmented control + count */}
+        {/* Shift toggle — left: pill segmented, right: serif hero counts */}
         {(migdia.length > 0 || nit.length > 0) && (
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:10 }}>
-            <div style={{ display:'inline-flex', padding:3, background:'rgba(60,40,20,.06)', borderRadius:999, gap:2 }}>
+          <div style={{
+            display:'flex', justifyContent:'space-between', alignItems:'center',
+            paddingBottom:10,
+          }}>
+            <div style={{
+              display:'inline-flex', padding:3,
+              background:'rgba(60,40,20,.06)',
+              borderRadius:999, gap:2,
+            }}>
               {[
-                { v: 'M', label: 'Migdia', count: migdia.length },
-                { v: 'N', label: 'Nit',    count: nit.length    },
+                { v: 'M', label: 'Migdia', count: migdia.length, color:'#9c5d1f', halo:'rgba(204,144,73,.18)' },
+                { v: 'N', label: 'Nit',    count: nit.length,    color:'#3a4a6e', halo:'rgba(58,74,110,.16)' },
               ].map(o => {
                 const a = effectiveShift === o.v;
                 return (
                   <button key={o.v} onClick={() => setShift(o.v as 'M' | 'N')}
+                    className="press"
                     style={{
-                      padding:'7px 14px', borderRadius:999, border:'none',
+                      padding:'7px 13px', borderRadius:999, border:'none',
                       background: a ? 'var(--paper)' : 'transparent',
                       color: a ? 'var(--ink-900)' : 'var(--ink-500)',
-                      fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                      fontSize:13, fontWeight:650, cursor:'pointer', fontFamily:'inherit',
                       boxShadow: a ? 'var(--sh-1)' : 'none',
-                      transition:'background .15s, box-shadow .15s',
+                      transition:'background 200ms var(--ease-out), box-shadow 200ms var(--ease-out)',
+                      display:'inline-flex', alignItems:'center', gap:6,
                     }}>
+                    <span style={{
+                      width:14, height:14, borderRadius:999,
+                      background: a ? o.halo : 'transparent',
+                      color: a ? o.color : 'var(--ink-400)',
+                      display:'grid', placeItems:'center',
+                    }}>
+                      {o.v === 'M' ? (
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+                          <circle cx="7" cy="7" r="2.6" fill="currentColor" />
+                          <path d="M7 1.6V3 M7 11v1.4 M1.6 7H3 M11 7h1.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+                          <path d="M11.2 9.6 a4.6 4.6 0 1 1 -1.2 -8 a3.6 3.6 0 0 0 1.2 8 z" fill="currentColor" />
+                        </svg>
+                      )}
+                    </span>
                     {o.label}
-                    <span style={{ marginLeft:5, fontSize:11, opacity:.7, fontWeight:500 }}>{o.count}</span>
+                    <span key={o.count} className="number-tween" style={{
+                      fontFamily:'var(--font-serif)', fontSize:13, fontWeight:500,
+                      color: a ? o.color : 'var(--ink-500)', marginLeft:1,
+                    }}>{o.count}</span>
                   </button>
                 );
               })}
-            </div>
-            <div style={{ fontSize:11.5, color:'var(--ink-500)', fontWeight:600 }}>
-              {activeList.length} res · {activePax} pax
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Stat boxes — Confirmades / Pendents / A taula ───────────────── */}
-      {activeList.length > 0 && (
-        <div style={{ flexShrink:0, background:'var(--cream)', padding:'0 14px 10px',
-                      display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
-          {([
-            ['Confirmades', activeList.filter(r => r.status === 'confirmed').length, 'var(--olive-700)',       'var(--olive-50)'],
-            ['Pendents',    activeList.filter(r => r.status === 'pending').length,   'var(--clay-700)',        'var(--clay-50)'],
-            ['A taula',     activeList.filter(r => r.status === 'seated').length,    'var(--terracotta-700)', 'var(--terracotta-50)'],
-          ] as [string, number, string, string][]).map(([label, n, fg, bg]) => (
-            <div key={label} style={{ background:bg, borderRadius:12, padding:'10px 12px' }}>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500, color:fg, lineHeight:1 }}>{n}</div>
-              <div style={{ fontSize:10.5, color:fg, fontWeight:600, marginTop:4, opacity:.85 }}>{label}</div>
+      {/* ── Hero stat card — replaces the three flat stat boxes ────────── */}
+      {activeList.length > 0 && (() => {
+        const biz = BUSINESSES.find(b => b.id === selectedBusiness);
+        const cap = biz?.capacity ?? 80;
+        const confirmed = activeList.filter(r => r.status === 'confirmed').length;
+        const pending   = activeList.filter(r => r.status === 'pending').length;
+        const seated    = activeList.filter(r => r.status === 'seated').length;
+        const completed = activeList.filter(r => r.status === 'completed').length;
+        const occupancy = cap > 0 ? Math.min(100, Math.round((activePax / cap) * 100)) : 0;
+
+        // Find next upcoming reservation for the active shift
+        const nowIso = isoDate(new Date());
+        const isToday = dateStr === nowIso;
+        const now = new Date();
+        const nowMin = now.getHours() * 60 + now.getMinutes();
+        const upcoming = activeList
+          .filter(r => r.status !== 'completed' && r.status !== 'cancelled' && r.status !== 'noshow')
+          .find(r => {
+            if (!isToday) return true;
+            const [h, m] = r.time.split(':').map(Number);
+            return (h * 60 + m) >= nowMin;
+          });
+        let countdown: string | null = null;
+        if (upcoming && isToday) {
+          const [h, m] = upcoming.time.split(':').map(Number);
+          const diff = (h * 60 + m) - nowMin;
+          if (diff > 0 && diff < 24 * 60) {
+            const hh = Math.floor(diff / 60);
+            const mm = diff % 60;
+            countdown = hh > 0 ? `d'aquí ${hh}h ${mm}m` : `d'aquí ${mm} min`;
+          } else if (diff >= -30 && diff <= 0) {
+            countdown = 'ara mateix';
+          }
+        }
+
+        // Pax distribution percentages for the bar (clamped to total cap)
+        const pctPax = (n: number) => Math.min(100, (n / cap) * 100);
+
+        return (
+          <div style={{
+            flexShrink:0, padding:'0 14px 12px',
+          }}>
+            <div style={{
+              background:'var(--paper)',
+              border:'1px solid rgba(60,40,20,.08)',
+              borderRadius:14,
+              boxShadow:'0 1px 2px rgba(60,40,20,.04)',
+              padding:'14px 14px 12px',
+              display:'flex', flexDirection:'column', gap:11,
+            }}>
+              {/* Top: hero numbers in serif */}
+              <div style={{
+                display:'flex', alignItems:'baseline', gap:14, flexWrap:'wrap',
+              }}>
+                <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
+                  <span key={`r-${activeList.length}`} className="number-tween" style={{
+                    fontFamily:'var(--font-serif)', fontSize:28, fontWeight:500,
+                    color:'var(--ink-900)', letterSpacing:-.005, lineHeight:1,
+                  }}>{activeList.length}</span>
+                  <span style={{
+                    fontSize:11, fontWeight:700, letterSpacing:.08,
+                    color:'var(--ink-500)', textTransform:'uppercase',
+                    fontFamily:'var(--font-mono)',
+                  }}>res</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
+                  <span key={`p-${activePax}`} className="number-tween" style={{
+                    fontFamily:'var(--font-serif)', fontSize:24, fontWeight:500,
+                    color:'var(--ink-900)', letterSpacing:-.005, lineHeight:1,
+                  }}>{activePax}</span>
+                  <span style={{
+                    fontSize:11, fontWeight:700, letterSpacing:.08,
+                    color:'var(--ink-500)', textTransform:'uppercase',
+                    fontFamily:'var(--font-mono)',
+                  }}>pax</span>
+                </div>
+                <span style={{ flex:1 }} />
+                <div style={{
+                  display:'flex', alignItems:'baseline', gap:3,
+                  padding:'4px 10px', borderRadius:999,
+                  background: occupancy > 75 ? 'var(--terracotta-50)'
+                            : occupancy > 40 ? 'var(--olive-50)'
+                            : 'var(--ink-100)',
+                }}>
+                  <span key={`o-${occupancy}`} className="number-tween" style={{
+                    fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+                    color: occupancy > 75 ? 'var(--terracotta-700)'
+                         : occupancy > 40 ? 'var(--olive-700)'
+                         : 'var(--ink-700)',
+                    letterSpacing:-.005,
+                  }}>{occupancy}</span>
+                  <span style={{
+                    fontSize:10, fontWeight:700, letterSpacing:.04,
+                    color: occupancy > 75 ? 'var(--terracotta-700)'
+                         : occupancy > 40 ? 'var(--olive-700)'
+                         : 'var(--ink-500)',
+                  }}>%</span>
+                  <span style={{
+                    marginLeft:4,
+                    fontSize:10, fontWeight:700, letterSpacing:.06,
+                    color: occupancy > 75 ? 'var(--terracotta-700)'
+                         : occupancy > 40 ? 'var(--olive-700)'
+                         : 'var(--ink-500)',
+                    textTransform:'uppercase',
+                    fontFamily:'var(--font-mono)',
+                  }}>ocup</span>
+                </div>
+              </div>
+
+              {/* Multi-segment occupancy bar */}
+              <div style={{
+                position:'relative', height:8, borderRadius:999,
+                background:'rgba(60,40,20,.06)', overflow:'hidden',
+                display:'flex',
+              }}>
+                {/* Order: seated → confirmed → pending (most committed first) */}
+                {seated > 0 && (
+                  <div style={{
+                    width:`${pctPax(activeList.filter(r => r.status === 'seated').reduce((s, r) => s + r.pax, 0))}%`,
+                    background:'var(--terracotta-600)',
+                    transition:'width 320ms var(--ease-in-out)',
+                  }} />
+                )}
+                {confirmed > 0 && (
+                  <div style={{
+                    width:`${pctPax(activeList.filter(r => r.status === 'confirmed').reduce((s, r) => s + r.pax, 0))}%`,
+                    background:'var(--olive-600)',
+                    transition:'width 320ms var(--ease-in-out)',
+                  }} />
+                )}
+                {pending > 0 && (
+                  <div style={{
+                    width:`${pctPax(activeList.filter(r => r.status === 'pending').reduce((s, r) => s + r.pax, 0))}%`,
+                    background:'var(--clay-500)',
+                    transition:'width 320ms var(--ease-in-out)',
+                  }} />
+                )}
+              </div>
+
+              {/* Inline status mini-stats */}
+              <div style={{
+                display:'flex', alignItems:'center', gap:14, flexWrap:'wrap',
+                fontSize:11.5, fontWeight:600,
+              }}>
+                <StatusInline n={confirmed}  label="confirmada"  fg="var(--olive-700)"      dot="var(--olive-600)" />
+                <StatusInline n={pending}    label="pendent"     fg="var(--clay-700)"       dot="var(--clay-500)" />
+                <StatusInline n={seated}     label="a taula"     fg="var(--terracotta-700)" dot="var(--terracotta-600)" />
+                {completed > 0 && (
+                  <StatusInline n={completed} label="acabada"    fg="var(--ink-600)"        dot="var(--ink-400)" />
+                )}
+              </div>
+
+              {/* Next-up strip */}
+              {upcoming && (
+                <div style={{
+                  marginTop:2, paddingTop:10,
+                  borderTop:'1px dashed rgba(60,40,20,.10)',
+                  display:'flex', alignItems:'center', gap:10,
+                }}>
+                  <span style={{
+                    width:6, height:6, borderRadius:999,
+                    background:'var(--terracotta-600)',
+                    boxShadow:'0 0 0 3px rgba(168,74,42,.16)',
+                    flexShrink:0,
+                  }} />
+                  <span style={{
+                    fontSize:10.5, fontWeight:700, letterSpacing:.08,
+                    color:'var(--ink-500)', textTransform:'uppercase',
+                    fontFamily:'var(--font-mono)',
+                  }}>Pròxima</span>
+                  <span style={{
+                    fontFamily:'var(--font-mono)', fontWeight:700, fontSize:13,
+                    color:'var(--ink-800)',
+                  }}>{upcoming.time}</span>
+                  <span style={{ width:3, height:3, borderRadius:999, background:'var(--ink-300)' }} />
+                  <span style={{
+                    fontSize:13, fontWeight:650, color:'var(--ink-900)',
+                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                    flex:1, minWidth:0, letterSpacing:-.005,
+                  }}>{upcoming.name}</span>
+                  <span style={{
+                    fontSize:11, fontWeight:700, color:'var(--ink-500)',
+                    fontFamily:'var(--font-mono)', flexShrink:0,
+                  }}>{upcoming.pax}p</span>
+                  {countdown && (
+                    <span style={{
+                      fontSize:10.5, fontWeight:700, letterSpacing:.04,
+                      color:'var(--terracotta-700)',
+                      background:'var(--terracotta-50)',
+                      padding:'2px 7px', borderRadius:999,
+                      fontFamily:'var(--font-mono)',
+                      flexShrink:0,
+                    }}>{countdown}</span>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* ── Reservation list ────────────────────────────────────────────── */}
       <div
