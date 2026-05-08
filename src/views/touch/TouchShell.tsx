@@ -1090,7 +1090,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
   );
 }
 
-// ─── User picker sheet — animated, shared ────────────────────────────────────
+// ─── User picker sheet — elevated, with clocked-in status + role hierarchy ───
 function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployeeId, onSelect, onClose }: {
   open: boolean; bizId: BusinessId;
   employees: Employee[]; employeeRoles: EmployeeRole[];
@@ -1101,51 +1101,212 @@ function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployee
   const roleMap = Object.fromEntries(employeeRoles.map(r => [r.id, r]));
   const sorted  = [...bizEmps].sort((a, b) => (roleMap[a.roleId]?.order ?? 99) - (roleMap[b.roleId]?.order ?? 99));
 
+  // How many are clocked in right now — shown in the header subtitle
+  const inCount = bizEmps.filter(e => e.clockedIn).length;
+
+  // Format an HH:MM "started X ago" for clocked-in operators
+  const startedLabel = (startedAt?: string | null) => {
+    if (!startedAt) return null;
+    try {
+      const t = new Date(startedAt);
+      const diff = Math.max(0, Date.now() - t.getTime());
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return `Des de fa ${mins} min`;
+      const hrs = Math.floor(mins / 60);
+      const rem = mins % 60;
+      return rem === 0 ? `Des de fa ${hrs}h` : `Des de fa ${hrs}h ${rem}m`;
+    } catch { return null; }
+  };
+
   return (
     <AnimatedSheet open={open} onClose={onClose} zIndex={500}>
       <div style={{
-        width: '100%', background: 'var(--paper)',
-        borderRadius: '18px 18px 0 0', padding: '16px 12px 32px',
-        maxHeight: '72dvh', overflowY: 'auto',
+        width: '100%',
+        background: 'linear-gradient(180deg, var(--paper) 0%, var(--ink-50) 100%)',
+        borderRadius: '22px 22px 0 0',
+        padding: '10px 16px 24px',
+        boxShadow: '0 -8px 32px rgba(60,40,20,.18)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)',
+        maxHeight: '82dvh', overflowY: 'auto',
       }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--ink-200)', margin: '0 auto 16px' }} />
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase', marginBottom: 12, paddingLeft: 4 }}>
-          Usuari actiu
+        <div style={{
+          width: 38, height: 4, borderRadius: 2,
+          background: 'var(--ink-200)', margin: '8px auto 16px',
+        }} />
+
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+          padding: '0 4px', marginBottom: 18,
+        }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500,
+              color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
+            }}>
+              Qui hi és?
+            </div>
+            <div style={{
+              fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+              letterSpacing: .08, textTransform: 'uppercase', marginTop: 4,
+              fontFamily: 'var(--font-mono)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              {inCount > 0 ? (
+                <>
+                  <span style={{
+                    width: 5, height: 5, borderRadius: 999,
+                    background: 'var(--olive-600)',
+                    boxShadow: '0 0 0 3px rgba(116,133,74,.18)',
+                  }} />
+                  {inCount} fitxat{inCount !== 1 ? 's' : ''} · {sorted.length} actius
+                </>
+              ) : (
+                <>{sorted.length} actius · ningú fitxat</>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="Tancar" className="press"
+            style={{
+              width: 34, height: 34, borderRadius: 999,
+              background: 'var(--cream)', border: '1px solid rgba(60,40,20,.08)',
+              cursor: 'pointer', color: 'var(--ink-600)',
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+            }}>
+            <Icon d={I.x} size={15} />
+          </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-          {sorted.map(emp => {
+
+        {/* Operator cards — stacked, staggered */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sorted.map((emp, i) => {
             const role     = roleMap[emp.roleId];
             const isActive = emp.id === activeEmployeeId;
+            const inShift  = !!emp.clockedIn;
+            const since    = inShift ? startedLabel(emp.startedAt) : null;
             return (
-              <button key={emp.id} onClick={() => onSelect(emp.id)}
-                style={{
-                  display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px',
-                  border: isActive ? '2px solid var(--terracotta-500)' : '1.5px solid rgba(60,40,20,.1)',
-                  borderRadius: 12,
-                  background: isActive ? 'var(--terracotta-50)' : 'var(--cream)',
-                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                }}>
-                <span className={`avatar av-${avIdx(emp.fullName)}`}
-                  style={{ width: 32, height: 32, fontSize: 11, display: 'grid', placeItems: 'center', borderRadius: '50%' }}>
-                  {emp.initials}
-                </span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? 'var(--terracotta-700)' : 'var(--ink-900)' }}>
-                    {emp.fullName}
+              <div key={emp.id}
+                className="row-stagger"
+                style={{ ['--row-i' as string]: Math.min(i, 7) }}>
+                <button onClick={() => onSelect(emp.id)} className="press"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    width: '100%', padding: '12px 14px',
+                    border: isActive ? '1.5px solid var(--terracotta-500)' : '1px solid rgba(60,40,20,.08)',
+                    borderRadius: 14,
+                    background: isActive
+                      ? 'linear-gradient(180deg, var(--terracotta-50) 0%, var(--paper) 100%)'
+                      : 'var(--paper)',
+                    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                    boxShadow: isActive
+                      ? '0 2px 8px rgba(168,74,42,.16), 0 1px 2px rgba(60,40,20,.04)'
+                      : '0 1px 2px rgba(60,40,20,.04)',
+                    transition: 'background 220ms var(--ease-in-out), border-color 220ms var(--ease-in-out), box-shadow 220ms var(--ease-in-out)',
+                  }}>
+                  {/* Avatar with subtle clocked-in ring */}
+                  <span style={{ position: 'relative', flexShrink: 0 }}>
+                    <span className={`avatar av-${avIdx(emp.fullName)}`}
+                      style={{
+                        width: 44, height: 44, fontSize: 14,
+                        fontFamily: 'var(--font-serif)', fontWeight: 500,
+                        display: 'grid', placeItems: 'center',
+                        borderRadius: '50%',
+                        boxShadow: inShift ? '0 0 0 2px var(--olive-500)' : 'none',
+                      }}>
+                      {emp.initials}
+                    </span>
+                    {inShift && (
+                      <span style={{
+                        position: 'absolute', bottom: -2, right: -2,
+                        width: 12, height: 12, borderRadius: 999,
+                        background: 'var(--olive-600)',
+                        border: '2px solid var(--paper)',
+                      }} />
+                    )}
+                  </span>
+
+                  {/* Name + role + since */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      flexWrap: 'wrap',
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500,
+                        color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
+                      }}>
+                        {emp.fullName}
+                      </span>
+                      {role && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '2px 7px',
+                          borderRadius: 5, background: role.color, color: role.textColor,
+                          letterSpacing: .04, textTransform: 'uppercase',
+                        }}>
+                          {role.name}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{
+                      fontSize: 11.5, color: 'var(--ink-500)', fontWeight: 550,
+                      marginTop: 4, display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                      {inShift ? (
+                        <>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            color: 'var(--olive-700)', fontWeight: 700,
+                          }}>
+                            <span style={{
+                              width: 5, height: 5, borderRadius: 999,
+                              background: 'var(--olive-600)',
+                            }} />
+                            Fitxat
+                          </span>
+                          {since && (
+                            <>
+                              <span style={{ width: 3, height: 3, borderRadius: 999, background: 'var(--ink-300)' }} />
+                              <span style={{ fontFamily: 'var(--font-mono)' }}>{since}</span>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ fontStyle: 'italic', color: 'var(--ink-400)' }}>
+                          Fora de torn
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  {role && (
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3, background: role.color, color: role.textColor }}>
-                      {role.name}
+
+                  {/* Active marker */}
+                  {isActive && (
+                    <span style={{
+                      width: 26, height: 26, borderRadius: 999,
+                      background: 'var(--terracotta-600)', color: '#fff',
+                      display: 'grid', placeItems: 'center', flexShrink: 0,
+                      boxShadow: '0 2px 6px rgba(168,74,42,.30)',
+                    }}>
+                      <Icon d={I.check} size={14} stroke={2.6} />
                     </span>
                   )}
-                </div>
-              </button>
+                </button>
+              </div>
             );
           })}
         </div>
+
+        {/* Continue without active operator */}
         {activeEmployeeId && (
-          <button onClick={() => onSelect(null)}
-            style={{ marginTop: 14, width: '100%', padding: '10px 0', border: 'var(--hair)', borderRadius: 10, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: 'var(--ink-500)' }}>
+          <button onClick={() => onSelect(null)} className="press"
+            style={{
+              marginTop: 14, width: '100%', padding: '12px 14px',
+              border: '1px dashed rgba(60,40,20,.18)',
+              borderRadius: 12, background: 'transparent',
+              cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 13, color: 'var(--ink-500)', fontWeight: 600,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            }}>
+            <Icon d={I.x} size={13} />
             Continuar sense usuari actiu
           </button>
         )}
