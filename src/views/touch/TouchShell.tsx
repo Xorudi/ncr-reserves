@@ -918,40 +918,173 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
   open: boolean; current: BusinessId;
   onSelect: (id: BusinessId) => void; onClose: () => void;
 }) {
+  const { reservations } = useAppStore();
+  const todayIso = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const hourNow = new Date().getHours() + new Date().getMinutes() / 60;
+  const inMigdia = hourNow >= 13 && hourNow < 16;
+  const inNit    = hourNow >= 19 && hourNow < 23.5;
+
   return (
     <AnimatedSheet open={open} onClose={onClose} zIndex={500}>
       <div style={{
-        width: '100%', background: 'var(--paper)',
-        borderRadius: '18px 18px 0 0', padding: '16px 14px 32px',
+        width: '100%',
+        background: 'linear-gradient(180deg, var(--paper) 0%, var(--ink-50) 100%)',
+        borderRadius: '22px 22px 0 0',
+        padding: '10px 16px 28px',
+        boxShadow: '0 -8px 32px rgba(60,40,20,.18)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)',
       }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--ink-200)', margin: '0 auto 14px' }} />
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase', marginBottom: 10, paddingLeft: 2 }}>
-          Canviar negoci
-        </div>
-        {BUSINESSES.map(b => (
-          <button key={b.id} onClick={() => onSelect(b.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              padding: '13px 12px',
-              border: b.id === current ? `1.5px solid ${b.hue}` : '1px solid rgba(60,40,20,.1)',
-              borderRadius: 12, marginBottom: 8,
-              background: b.id === current ? b.hueSoft : 'var(--cream)',
-              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        <div style={{
+          width: 38, height: 4, borderRadius: 2,
+          background: 'var(--ink-200)', margin: '8px auto 16px',
+        }} />
+
+        {/* Header — serif title + mono subtitle */}
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+          padding: '0 4px', marginBottom: 18,
+        }}>
+          <div>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500,
+              color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
             }}>
-            <span style={{ width: 36, height: 36, borderRadius: 9, background: b.hueSoft, color: b.hue, fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-serif)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-              {b.monogram}
-            </span>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-900)' }}>{b.name}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{b.kind}</div>
+              Quin negoci?
             </div>
-            {b.id === current && (
-              <span style={{ marginLeft: 'auto', color: b.hue }}>
-                <Icon d={I.check} size={18} stroke={2.5} />
-              </span>
-            )}
+            <div style={{
+              fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+              letterSpacing: .08, textTransform: 'uppercase', marginTop: 4,
+              fontFamily: 'var(--font-mono)',
+            }}>
+              {BUSINESSES.length} actius · canvia el context
+            </div>
+          </div>
+          <button onClick={onClose} aria-label="Tancar"
+            className="press"
+            style={{
+              width: 34, height: 34, borderRadius: 999,
+              background: 'var(--cream)', border: '1px solid rgba(60,40,20,.08)',
+              cursor: 'pointer', color: 'var(--ink-600)',
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+            }}>
+            <Icon d={I.x} size={15} />
           </button>
-        ))}
+        </div>
+
+        {/* Business cards — staggered entrance */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {BUSINESSES.map((b, i) => {
+            const isCur = b.id === current;
+            const dayRes = reservations.filter(r => r.bizId === b.id && r.date === todayIso);
+            const totalRes = dayRes.length;
+            const totalPax = dayRes.reduce((s, r) => s + r.pax, 0);
+            const seated   = dayRes.filter(r => r.status === 'seated').length;
+            const shiftLbl = inMigdia ? 'Servei migdia' : inNit ? 'Servei nit' : 'Fora servei';
+            const shiftColor = inMigdia
+              ? { bg: 'var(--clay-50)', fg: 'var(--clay-700)', dot: 'var(--clay-500)' }
+              : inNit
+                ? { bg: 'var(--plum-100)', fg: 'var(--plum-700)', dot: 'var(--plum-600)' }
+                : { bg: 'var(--ink-100)', fg: 'var(--ink-500)', dot: 'var(--ink-400)' };
+            return (
+              <div key={b.id}
+                className="row-stagger"
+                style={{ ['--row-i' as string]: i }}>
+                <button onClick={() => onSelect(b.id)}
+                  className="press"
+                  style={{
+                    display: 'flex', flexDirection: 'column', gap: 10,
+                    width: '100%', padding: '14px 14px 12px',
+                    border: isCur ? `1.5px solid ${b.hue}` : '1px solid rgba(60,40,20,.08)',
+                    borderRadius: 14,
+                    background: isCur
+                      ? `linear-gradient(180deg, ${b.hueSoft} 0%, var(--paper) 100%)`
+                      : 'var(--paper)',
+                    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                    boxShadow: isCur
+                      ? `0 2px 8px ${b.hue}22, 0 1px 2px rgba(60,40,20,.04)`
+                      : '0 1px 2px rgba(60,40,20,.04)',
+                    transition: 'background 220ms var(--ease-in-out), border-color 220ms var(--ease-in-out), box-shadow 220ms var(--ease-in-out)',
+                  }}>
+                  {/* Top row: monogram + name + kind + check */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{
+                      width: 46, height: 46, borderRadius: 12,
+                      background: b.hueSoft, color: b.hue,
+                      fontWeight: 600, fontSize: 17, fontFamily: 'var(--font-serif)',
+                      display: 'grid', placeItems: 'center', flexShrink: 0,
+                      letterSpacing: -.005,
+                      border: `1px solid ${b.hue}22`,
+                    }}>
+                      {b.monogram}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 500,
+                        color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
+                      }}>
+                        {b.name}
+                      </div>
+                      <div style={{
+                        fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 600,
+                        letterSpacing: .08, textTransform: 'uppercase', marginTop: 3,
+                        fontFamily: 'var(--font-mono)',
+                      }}>
+                        {b.kind ?? 'Negoci'}
+                      </div>
+                    </div>
+                    {isCur && (
+                      <span style={{
+                        width: 26, height: 26, borderRadius: 999,
+                        background: b.hue, color: '#fff',
+                        display: 'grid', placeItems: 'center', flexShrink: 0,
+                        boxShadow: `0 2px 6px ${b.hue}55`,
+                      }}>
+                        <Icon d={I.check} size={14} stroke={2.6} />
+                      </span>
+                    )}
+                  </div>
+
+                  {/* KPI strip — inline metrics + shift indicator */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    paddingTop: 10,
+                    borderTop: '1px dashed rgba(60,40,20,.10)',
+                  }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '3px 8px', borderRadius: 999,
+                      background: shiftColor.bg, color: shiftColor.fg,
+                      fontSize: 10.5, fontWeight: 700, letterSpacing: .03,
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: 999, background: shiftColor.dot }} />
+                      {shiftLbl}
+                    </span>
+                    <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink-500)', fontWeight: 600 }}>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 14, color: 'var(--ink-900)', fontWeight: 500 }}>
+                        {totalRes}
+                      </span>{' '}res
+                      <span style={{ color: 'var(--ink-300)', margin: '0 5px' }}>·</span>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 14, color: 'var(--ink-900)', fontWeight: 500 }}>
+                        {totalPax}
+                      </span>{' '}pax
+                      {seated > 0 && (
+                        <>
+                          <span style={{ color: 'var(--ink-300)', margin: '0 5px' }}>·</span>
+                          <span style={{ color: 'var(--terracotta-700)', fontWeight: 700 }}>
+                            {seated} a taula
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </AnimatedSheet>
   );
