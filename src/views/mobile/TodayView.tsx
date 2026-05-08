@@ -307,12 +307,21 @@ const MONTHS_SHORT = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct
 function parseH(t: string) { return parseInt(t.split(':')[0], 10); }
 
 // ─── Main view ────────────────────────────────────────────────────────────────
-interface TodayViewProps { newResTrigger?: number; hideDateNav?: boolean; }
+interface TodayViewProps {
+  newResTrigger?: number;
+  hideDateNav?: boolean;
+  onOpenNotes?: () => void;
+}
 
-export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false }: TodayViewProps) {
+export default function MobileTodayView({
+  newResTrigger = 0,
+  hideDateNav = false,
+  onOpenNotes,
+}: TodayViewProps) {
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
     addReservation, floorPlans, updateReservationStatus,
+    shiftNotes,
   } = useAppStore();
 
   // Forward status progression for swipe-to-advance + confirmation toast
@@ -367,6 +376,15 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
   const d        = selectedDate;
   const isToday  = isoDate(new Date()) === dateStr;
   const dayLabel = `${DAYS_CA[d.getDay()]}, ${d.getDate()} de ${MONTHS_CA[d.getMonth()]}`;
+
+  // Shift notes count for today's date — drives the small pill next to the
+  // Migdia/Nit toggle. Only shown on Reserves tab (this view).
+  const todayNotes = useMemo(
+    () => shiftNotes.filter(n => n.bizId === selectedBusiness && n.date === dateStr),
+    [shiftNotes, selectedBusiness, dateStr],
+  );
+  const notesCount = todayNotes.length;
+  const firstNote  = todayNotes.sort((a, b) => b.createdAt - a.createdAt)[0];
 
   const dayRes = useMemo(() =>
     reservations
@@ -436,11 +454,11 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
         </div>
         )}
 
-        {/* Shift toggle — left: pill segmented, right: serif hero counts */}
-        {(migdia.length > 0 || nit.length > 0) && (
+        {/* Shift toggle — left: pill segmented, right: notes pill (Reserves only) */}
+        {(migdia.length > 0 || nit.length > 0 || onOpenNotes) && (
           <div style={{
             display:'flex', justifyContent:'space-between', alignItems:'center',
-            paddingBottom:10,
+            paddingBottom:10, gap:8,
           }}>
             <div style={{
               display:'inline-flex', padding:3,
@@ -490,6 +508,75 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
                 );
               })}
             </div>
+
+            {/* Notes pill — only on Reserves (where onOpenNotes is provided).
+                Shows the first note inline when there are notes, or a small
+                "+ Nota" ghost when empty. Tap opens the global NotesSheet. */}
+            {onOpenNotes && (
+              notesCount > 0 ? (
+                <button onClick={onOpenNotes} className="press"
+                  aria-label="Notes del torn"
+                  style={{
+                    flex: 1, minWidth: 0, maxWidth: 360,
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '6px 10px 6px 11px',
+                    borderRadius: 999,
+                    background: 'linear-gradient(180deg, #fff8e6 0%, #fbf2d3 100%)',
+                    border: '1px solid rgba(180,140,40,.20)',
+                    boxShadow: '0 1px 2px rgba(180,140,40,.06)',
+                    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  }}>
+                  <span style={{
+                    width: 7, height: 7, borderRadius: 999,
+                    background: '#c89a3a', flexShrink: 0,
+                    boxShadow: '0 0 0 2px rgba(200,154,58,.18)',
+                  }} />
+                  <span style={{
+                    fontSize: 9.5, fontWeight: 700, letterSpacing: .08,
+                    color: '#8a6a10', textTransform: 'uppercase',
+                    fontFamily: 'var(--font-mono)', flexShrink: 0,
+                  }}>
+                    Nota torn
+                  </span>
+                  <span style={{
+                    flex: 1, minWidth: 0,
+                    fontFamily: 'var(--font-serif)', fontSize: 12.5, fontWeight: 500,
+                    color: '#5e4708', letterSpacing: -.005,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {firstNote?.body}
+                  </span>
+                  {notesCount > 1 && (
+                    <span key={notesCount} className="number-tween"
+                      style={{
+                        fontSize: 10, fontWeight: 700, color: '#8a6a10',
+                        background: 'rgba(200,154,58,.20)',
+                        padding: '1px 6px', borderRadius: 999,
+                        fontFamily: 'var(--font-mono)', flexShrink: 0,
+                      }}>
+                      +{notesCount - 1}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <button onClick={onOpenNotes} className="press"
+                  aria-label="Afegir nota del torn"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '6px 11px',
+                    borderRadius: 999,
+                    background: 'transparent',
+                    border: '1px dashed rgba(180,140,40,.40)',
+                    color: '#8a6a10',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 11.5, fontWeight: 650, letterSpacing: .02,
+                    flexShrink: 0,
+                  }}>
+                  <Icon d={I.plus} size={11} stroke={2.4} />
+                  Nota torn
+                </button>
+              )
+            )}
           </div>
         )}
       </div>

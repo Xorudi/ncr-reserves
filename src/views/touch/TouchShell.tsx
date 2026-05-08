@@ -18,7 +18,7 @@ import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useDevice } from '@/hooks/useDevice';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import Toaster from '@/components/shared/Toaster';
-import { NotesBanner, NotesSheet } from '@/views/touch/NotesSystem';
+import { NotesSheet } from '@/views/touch/NotesSystem';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
 // ── Touch screens — shared between mobile and tablet ─────────────────────────
@@ -252,7 +252,13 @@ export default function TouchShell() {
   const screenContent = (
     <div key={tab} className="tab-enter"
       style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {tab === 'reservations' && <TouchReservationsScreen newResTrigger={newResTrigger} hideDateNav={isTablet} />}
+      {tab === 'reservations' && (
+        <TouchReservationsScreen
+          newResTrigger={newResTrigger}
+          hideDateNav={isTablet}
+          onOpenNotes={() => setShowNotesSheet(true)}
+        />
+      )}
       {tab === 'tables'       && <TouchTablesScreen />}
       {tab === 'walkin'       && <TouchWalkInScreen onSwitchTab={setTab} />}
       {tab === 'clients'      && <TouchClientsScreen />}
@@ -502,12 +508,6 @@ export default function TouchShell() {
             </div>
           )}
 
-          {/* Operational shift notes — banner shows when notes exist; on
-              the Reserves tab it also shows a dashed ghost as entry point. */}
-          <NotesBanner bizId={selectedBusiness} date={selectedDate}
-            showEmptyHint={tab === 'reservations'}
-            onOpen={() => setShowNotesSheet(true)} />
-
           {screenContent}
 
           {/* FAB bottom-right — opens new reservation */}
@@ -638,9 +638,6 @@ export default function TouchShell() {
         onTouchEnd={handleTouchEnd}
       >
         <PullIndicator pullY={pull.pullY} refreshing={pull.refreshing} />
-        <NotesBanner bizId={selectedBusiness} date={selectedDate}
-          showEmptyHint={tab === 'reservations'}
-          onOpen={() => setShowNotesSheet(true)} />
         {screenContent}
       </main>
 
