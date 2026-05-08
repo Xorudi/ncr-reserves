@@ -27,6 +27,50 @@ export default function MobileTablesScreen() {
   const [selTable, setSelTable] = useState<FloorTable | null>(null);
   // Coordinates of the tap that opened the sheet, so it can scale-from-tap
   const [tapPt, setTapPt] = useState<{ x: number; y: number } | null>(null);
+  // Edit mode — multi-select tables to batch-edit pax / shape / accent
+  const [editMode,    setEditMode]    = useState(false);
+  const [editIds,     setEditIds]     = useState<Set<string>>(new Set());
+
+  function toggleEdit(id: string) {
+    setEditIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function exitEdit() {
+    setEditMode(false);
+    setEditIds(new Set());
+  }
+  function bumpCap(delta: number) {
+    if (!plan) return;
+    editIds.forEach(id => {
+      const t = plan.tables.find(x => x.id === id);
+      if (!t) return;
+      const next = Math.max(1, Math.min(20, t.cap + delta));
+      if (next !== t.cap) updateFloorTable(selectedBusiness, id, { cap: next });
+    });
+  }
+  function setShapeFor(shape: 'round' | 'square' | 'rect') {
+    editIds.forEach(id => updateFloorTable(selectedBusiness, id, { shape }));
+  }
+  function setAccentFor(accent: import('@/types').TableAccent | undefined) {
+    editIds.forEach(id => updateFloorTable(selectedBusiness, id, { accent }));
+  }
+  function toggleBlockedSelected() {
+    if (!plan) return;
+    // If ALL selected are blocked → unblock all; else block all
+    const allBlocked = [...editIds].every(id =>
+      plan.tables.find(x => x.id === id)?.status === 'blocked',
+    );
+    editIds.forEach(id => {
+      if (allBlocked) {
+        updateFloorTable(selectedBusiness, id, { status: 'free', res: undefined, time: undefined });
+      } else {
+        updateFloorTable(selectedBusiness, id, { status: 'blocked' });
+      }
+    });
+  }
 
   // ── Swipe L/R inside the table grid → cycle through zones ────────────────
   const touchStartX = useRef(0);
@@ -123,7 +167,7 @@ export default function MobileTablesScreen() {
   const isToday   = isoDate(new Date()) === dateStr;
 
   return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
 
       {/* Date header */}
       <div style={{ padding:'8px 14px 6px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
@@ -131,6 +175,20 @@ export default function MobileTablesScreen() {
           {isToday ? 'Avui' : dateLabel}
         </span>
         <span style={{ fontSize:11.5, color:'var(--ink-400)' }}>· taules del dia</span>
+        <span style={{ flex:1 }} />
+        <button onClick={() => editMode ? exitEdit() : setEditMode(true)} className="press"
+          style={{
+            padding:'5px 11px', borderRadius:8,
+            border: editMode ? 'none' : '1px solid rgba(60,40,20,.12)',
+            background: editMode ? 'var(--ink-900)' : 'transparent',
+            color: editMode ? 'var(--cream)' : 'var(--ink-700)',
+            fontFamily:'inherit', fontSize:12, fontWeight:650,
+            cursor:'pointer',
+            display:'inline-flex', alignItems:'center', gap:5,
+          }}>
+          <Icon d={editMode ? I.check : I.pencil} size={12} stroke={editMode ? 2.6 : 2} />
+          {editMode ? 'Acabar' : 'Editar'}
+        </button>
       </div>
 
       {/* Stat boxes — 4-col Fraunces grid */}
@@ -206,25 +264,67 @@ export default function MobileTablesScreen() {
               {group.tables.map(t => {
                 const st = STATUS_STYLE[t.status];
                 const isSeated = t.status === 'seated';
+                const isEditSel = editIds.has(t.id);
+                const accent = t.accent;
+                const accentColor =
+                  accent === 'terracotta' ? 'var(--terracotta-600)' :
+                  accent === 'olive'      ? 'var(--olive-600)'      :
+                  accent === 'clay'       ? 'var(--clay-600)'       :
+                  accent === 'sky'        ? 'var(--sky-600)'        :
+                  accent === 'plum'       ? 'var(--plum-600)'       :
+                  accent === 'rose'       ? 'var(--rose-600)'       :
+                  null;
+                const radius = t.shape === 'round' ? 999 : t.shape === 'rect' ? 8 : 12;
                 return (
                   <button key={t.id}
                     onClick={(e) => {
+                      if (editMode) {
+                        toggleEdit(t.id);
+                        return;
+                      }
                       const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                       setTapPt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
                       setSelTable(t);
                     }}
                     className="press"
                     style={{
+                      position:'relative',
                       aspectRatio:'1/1.05',
-                      background:st.bg, borderRadius:12, padding:'9px 8px 7px',
-                      border: isSeated
-                        ? '1px solid var(--terracotta-500)'
-                        : '1px solid rgba(60,40,20,.08)',
+                      background:st.bg, borderRadius:radius, padding:'9px 8px 7px',
+                      border: isEditSel
+                        ? '2px solid var(--ink-900)'
+                        : isSeated
+                          ? '1px solid var(--terracotta-500)'
+                          : '1px solid rgba(60,40,20,.08)',
                       textAlign:'left', cursor:'pointer',
                       fontFamily:'inherit', display:'flex', flexDirection:'column',
                       justifyContent:'space-between', gap:2,
-                      boxShadow: isSeated ? '0 1px 3px rgba(168,74,42,.12)' : 'none',
+                      boxShadow: isEditSel
+                        ? '0 2px 8px rgba(60,40,20,.18)'
+                        : isSeated ? '0 1px 3px rgba(168,74,42,.12)' : 'none',
+                      transition:'border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out)',
                     }}>
+                    {/* Per-table accent dot in top-right */}
+                    {accentColor && !editMode && (
+                      <span style={{
+                        position:'absolute', top:5, right:5,
+                        width:7, height:7, borderRadius:999,
+                        background:accentColor,
+                        boxShadow:`0 0 0 2px ${st.bg}`,
+                      }} />
+                    )}
+                    {editMode && (
+                      <span style={{
+                        position:'absolute', top:5, right:5,
+                        width:18, height:18, borderRadius:999,
+                        background: isEditSel ? 'var(--ink-900)' : 'rgba(60,40,20,.10)',
+                        color:'#fff',
+                        display:'grid', placeItems:'center',
+                        transition:'background 160ms var(--ease-out)',
+                      }}>
+                        {isEditSel && <Icon d={I.check} size={11} stroke={2.6} />}
+                      </span>
+                    )}
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:4 }}>
                       <span style={{
                         fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
@@ -288,8 +388,22 @@ export default function MobileTablesScreen() {
         )}
       </div>
 
+      {/* Edit-mode floating action bar — appears when editing tables */}
+      {editMode && (
+        <EditBar
+          count={editIds.size}
+          plan={plan ?? null}
+          editIds={editIds}
+          onBumpCap={bumpCap}
+          onShape={setShapeFor}
+          onAccent={setAccentFor}
+          onToggleBlock={toggleBlockedSelected}
+          onClearSel={() => setEditIds(new Set())}
+        />
+      )}
+
       {/* Table action sheet */}
-      {selTable && (() => {
+      {selTable && !editMode && (() => {
         // Use the LIVE status (from effectiveTable) so the sheet matches what
         // the user just tapped and stale persisted statuses don't leak in.
         const liveTable = liveTables.find(t => t.id === selTable.id) ?? selTable;
@@ -669,3 +783,168 @@ function TableActionSheet({
     </>
   );
 }
+
+// ─── Edit-mode floating bar — batch ops on multi-selected tables ─────────────
+function EditBar({
+  count, plan, editIds,
+  onBumpCap, onShape, onAccent, onToggleBlock, onClearSel,
+}: {
+  count: number;
+  plan: import('@/types').FloorPlan | null;
+  editIds: Set<string>;
+  onBumpCap: (delta: number) => void;
+  onShape: (s: 'round' | 'square' | 'rect') => void;
+  onAccent: (a: import('@/types').TableAccent | undefined) => void;
+  onToggleBlock: () => void;
+  onClearSel: () => void;
+}) {
+  // Quick read-back: are all selected currently blocked? (label + colour)
+  const allBlocked = plan && count > 0
+    ? [...editIds].every(id => plan.tables.find(x => x.id === id)?.status === 'blocked')
+    : false;
+  // Common cap among selected (or null when mixed)
+  const caps = plan && count > 0
+    ? [...editIds].map(id => plan.tables.find(x => x.id === id)?.cap ?? 0)
+    : [];
+  const sameCap = caps.length > 0 && caps.every(c => c === caps[0]) ? caps[0] : null;
+
+  const ACCENTS: { id: import('@/types').TableAccent | undefined; color: string; label: string }[] = [
+    { id: undefined,     color: 'transparent',           label: 'Cap'        },
+    { id: 'terracotta',  color: 'var(--terracotta-600)', label: 'Terracotta' },
+    { id: 'olive',       color: 'var(--olive-600)',      label: 'Olive'      },
+    { id: 'clay',        color: 'var(--clay-600)',       label: 'Clay'       },
+    { id: 'sky',         color: 'var(--sky-600)',        label: 'Sky'        },
+    { id: 'plum',        color: 'var(--plum-600)',       label: 'Plum'       },
+    { id: 'rose',        color: 'var(--rose-600)',       label: 'Rose'       },
+  ];
+
+  return (
+    <div style={{
+      position:'absolute', left:0, right:0, bottom:0, zIndex:80,
+      paddingBottom:'max(env(safe-area-inset-bottom, 0px), 12px)',
+      pointerEvents:'none',
+    }}>
+      <div style={{
+        margin:'0 14px', pointerEvents:'auto',
+        background:'var(--paper)',
+        borderRadius:18,
+        boxShadow:'0 -2px 24px rgba(60,40,20,.12), 0 4px 12px rgba(60,40,20,.06)',
+        border:'1px solid rgba(60,40,20,.08)',
+        padding:'12px 14px 10px',
+        display:'flex', flexDirection:'column', gap:10,
+      }}>
+        {/* Header: count + clear */}
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{
+            fontFamily:'var(--font-serif)', fontSize:15, fontWeight:500,
+            color:'var(--ink-900)', letterSpacing:-.005,
+          }}>
+            <span key={count} className="number-tween" style={{ fontFamily:'var(--font-serif)' }}>{count}</span>{' '}
+            seleccionad{count === 1 ? 'a' : 'es'}
+          </div>
+          {count > 0 && (
+            <button onClick={onClearSel} className="press"
+              style={{
+                marginLeft:'auto',
+                padding:'3px 8px', borderRadius:6, border:'none',
+                background:'transparent', color:'var(--ink-500)',
+                fontSize:11.5, fontWeight:650, cursor:'pointer',
+              }}>Treure</button>
+          )}
+        </div>
+
+        {/* Pax stepper + Forma + Block in one row */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+          <span style={{
+            fontSize:10.5, fontWeight:700, color:'var(--ink-500)',
+            letterSpacing:.06, textTransform:'uppercase',
+          }}>Pax</span>
+          <button onClick={() => onBumpCap(-1)} disabled={count === 0} className="press"
+            style={stepBtn}>−</button>
+          <span style={{
+            minWidth:30, textAlign:'center',
+            fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+            color:'var(--ink-900)',
+          }}>
+            {sameCap !== null ? sameCap : '~'}
+          </span>
+          <button onClick={() => onBumpCap(1)} disabled={count === 0} className="press"
+            style={stepBtn}>+</button>
+
+          <span style={{ width:1, height:22, background:'rgba(60,40,20,.08)', margin:'0 4px' }} />
+
+          {/* Shape buttons */}
+          <button onClick={() => onShape('square')} disabled={count === 0} className="press"
+            title="Quadrada"
+            style={shapeBtn}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <rect x="2.5" y="2.5" width="9" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" />
+            </svg>
+          </button>
+          <button onClick={() => onShape('round')} disabled={count === 0} className="press"
+            title="Rodona"
+            style={shapeBtn}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="4.6" stroke="currentColor" strokeWidth="1.4" />
+            </svg>
+          </button>
+          <button onClick={() => onShape('rect')} disabled={count === 0} className="press"
+            title="Rectangular"
+            style={shapeBtn}>
+            <svg width="16" height="14" viewBox="0 0 16 14" fill="none">
+              <rect x="1.5" y="3.5" width="13" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+            </svg>
+          </button>
+
+          <span style={{ flex:1 }} />
+
+          <button onClick={onToggleBlock} disabled={count === 0} className="press"
+            style={{
+              padding:'7px 12px', borderRadius:9, border:'1px solid rgba(60,40,20,.10)',
+              background: allBlocked ? 'var(--olive-50)' : 'var(--ink-100)',
+              color: allBlocked ? 'var(--olive-700)' : 'var(--ink-800)',
+              fontFamily:'inherit', fontSize:12, fontWeight:650, cursor: count === 0 ? 'not-allowed' : 'pointer',
+              opacity: count === 0 ? .4 : 1,
+            }}>
+            {allBlocked ? 'Desbloquejar' : 'Bloquejar'}
+          </button>
+        </div>
+
+        {/* Accent palette */}
+        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+          <span style={{
+            fontSize:10.5, fontWeight:700, color:'var(--ink-500)',
+            letterSpacing:.06, textTransform:'uppercase',
+          }}>Color</span>
+          {ACCENTS.map(a => (
+            <button key={a.id ?? 'none'}
+              onClick={() => onAccent(a.id)} disabled={count === 0}
+              className="press"
+              title={a.label}
+              style={{
+                width:24, height:24, borderRadius:999,
+                border: a.id === undefined
+                  ? '1.5px dashed rgba(60,40,20,.30)'
+                  : `1.5px solid ${a.color}`,
+                background: a.id === undefined ? 'transparent' : a.color,
+                cursor: count === 0 ? 'not-allowed' : 'pointer',
+                opacity: count === 0 ? .4 : 1,
+                padding:0,
+              }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const stepBtn: React.CSSProperties = {
+  width:30, height:30, borderRadius:999, border:'1px solid rgba(60,40,20,.12)',
+  background:'var(--paper)', cursor:'pointer', fontSize:15, color:'var(--ink-700)',
+  display:'grid', placeItems:'center', fontFamily:'inherit', fontWeight:500,
+};
+const shapeBtn: React.CSSProperties = {
+  width:30, height:30, borderRadius:8, border:'1px solid rgba(60,40,20,.12)',
+  background:'var(--paper)', cursor:'pointer', color:'var(--ink-700)',
+  display:'grid', placeItems:'center', padding:0,
+};

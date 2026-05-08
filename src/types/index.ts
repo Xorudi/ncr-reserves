@@ -51,6 +51,8 @@ export interface FloorZone {
   x?: number; y?: number; w?: number; h?: number;
 }
 
+export type TableAccent = 'terracotta' | 'olive' | 'clay' | 'sky' | 'plum' | 'rose';
+
 export interface FloorTable {
   id: string;
   name?: string;      // display name (e.g. "10-bis", "T4"); falls back to id
@@ -66,6 +68,8 @@ export interface FloorTable {
   time?: string;
   note?: string;
   reservedLater?: boolean;
+  /** Optional per-table accent tag (operator-defined grouping/marker). */
+  accent?: TableAccent;
 }
 
 export interface FloorPlan {
