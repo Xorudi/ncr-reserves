@@ -12,129 +12,287 @@ import { idbGet } from '@/backup/indexedDB';
 
 type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups';
 
-export default function MobileMoreScreen({ onSwitchTab }: { onSwitchTab: (tab: MobileTab) => void }) {
+export default function MobileMoreScreen({ onSwitchTab, onOpenNotes, onSwitchUser }: {
+  onSwitchTab: (tab: MobileTab) => void;
+  onOpenNotes?: () => void;
+  onSwitchUser?: () => void;
+}) {
   const [sub, setSub] = useState<SubScreen>('menu');
 
   if (sub === 'alerts')   return <AlertsScreen  onBack={() => setSub('menu')} />;
   if (sub === 'calendar') return <CalendarScreen onBack={() => setSub('menu')} />;
   if (sub === 'backups')  return <MobileBackupScreen onBack={() => setSub('menu')} />;
 
-  return <MoreMenu onSub={setSub} onSwitchTab={onSwitchTab} />;
+  return <MoreMenu onSub={setSub} onSwitchTab={onSwitchTab} onOpenNotes={onOpenNotes} onSwitchUser={onSwitchUser} />;
 }
 
 // ─── More menu ───────────────────────────────────────────────────────────────
-function MoreMenu({ onSub, onSwitchTab }: {
+function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
   onSub: (s: SubScreen) => void;
   onSwitchTab: (tab: MobileTab) => void;
+  onOpenNotes?: () => void;
+  onSwitchUser?: () => void;
 }) {
-  const { selectedBusiness, employees, employeeRoles, activeEmployeeId } = useAppStore();
+  const {
+    selectedBusiness, employees, employeeRoles, activeEmployeeId,
+    reservations, shiftNotes, appEvents, selectedDate,
+  } = useAppStore();
   const biz     = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const emp     = employees.find(e => e.id === activeEmployeeId) ?? null;
   const roleMap = Object.fromEntries(employeeRoles.map(r => [r.id, r]));
   const role    = emp ? roleMap[emp.roleId] : null;
 
-  const MENU_ITEMS: { label: string; desc: string; ico: React.ReactNode; action: () => void }[] = [
+  // Live counts for menu badges
+  const todayIso     = isoDate(selectedDate);
+  const pendingCount = reservations.filter(r =>
+    r.bizId === selectedBusiness && r.date === todayIso && r.status === 'pending').length;
+  const eventsCount  = appEvents.filter(e =>
+    e.bizId === selectedBusiness && e.date === todayIso).length;
+  const notesCount   = shiftNotes.filter(n =>
+    n.bizId === selectedBusiness && n.date === todayIso).length;
+  const alertsCount  = pendingCount + eventsCount;
+
+  type MenuItem = {
+    label: string; desc: string; ico: React.ReactNode;
+    action: () => void; badge?: number; tone?: 'olive' | 'clay' | 'terracotta' | 'sky';
+  };
+  const OPERATIONAL: MenuItem[] = [
+    {
+      label: 'Notes del torn',
+      desc:  'Avís ràpid per al servei (sense calamars, plat especial…)',
+      ico:   I.note ?? I.pencil,
+      action: () => onOpenNotes?.(),
+      badge: notesCount, tone: 'clay',
+    },
     {
       label: 'Alertes',
-      desc:  'Reserves pendents, notes de torn, esdeveniments',
+      desc:  'Reserves pendents i esdeveniments d\'avui',
       ico:   I.bell,
       action: () => onSub('alerts'),
+      badge: alertsCount, tone: 'terracotta',
     },
     {
       label: 'Calendari',
       desc:  'Vista mensual de reserves',
       ico:   I.calendar,
       action: () => onSub('calendar'),
+      tone: 'sky',
     },
-    {
-      label: 'Reserves',
-      desc:  'Tornar a la llista de reserves',
-      ico:   I.list,
-      action: () => onSwitchTab('reservations'),
-    },
+  ];
+  const SYSTEM: MenuItem[] = [
     {
       label: 'Còpies de seguretat',
       desc:  'Backup local, exportar i importar dades',
       ico:   I.shield,
       action: () => onSub('backups'),
+      tone: 'olive',
     },
   ];
+
+  function renderItem(item: MenuItem) {
+    const toneBg =
+      item.tone === 'olive'      ? 'var(--olive-50)'      :
+      item.tone === 'clay'       ? 'var(--clay-50)'       :
+      item.tone === 'terracotta' ? 'var(--terracotta-50)' :
+      item.tone === 'sky'        ? 'var(--sky-50)'        :
+      'var(--cream)';
+    const toneFg =
+      item.tone === 'olive'      ? 'var(--olive-700)'      :
+      item.tone === 'clay'       ? 'var(--clay-700)'       :
+      item.tone === 'terracotta' ? 'var(--terracotta-700)' :
+      item.tone === 'sky'        ? 'var(--sky-700)'        :
+      'var(--terracotta-600)';
+    return (
+      <button key={item.label} onClick={item.action} className="press"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 14,
+          padding: '14px 16px', borderRadius: 14,
+          border: '1px solid rgba(60,40,20,.08)',
+          background: 'var(--paper)',
+          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+          width: '100%',
+          boxShadow: '0 1px 2px rgba(60,40,20,.04)',
+          transition: 'background 200ms var(--ease-in-out)',
+        }}>
+        <span style={{
+          width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+          background: toneBg, color: toneFg,
+          display: 'grid', placeItems: 'center',
+          border: `1px solid ${toneFg}22`,
+        }}>
+          <Icon d={item.ico} size={19} stroke={1.9} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            display:'flex', alignItems:'center', gap:8,
+            fontSize: 14.5, fontWeight: 650, color: 'var(--ink-900)',
+            letterSpacing: -.005,
+          }}>
+            {item.label}
+            {item.badge !== undefined && item.badge > 0 && (
+              <span key={item.badge} className="number-tween" style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: .04,
+                padding: '2px 7px', borderRadius: 999,
+                background: toneFg, color: '#fff',
+                fontFamily: 'var(--font-mono)',
+              }}>
+                {item.badge}
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3 }}>{item.desc}</div>
+        </div>
+        <Icon d={I.chevR} size={15} />
+      </button>
+    );
+  }
 
   return (
     <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 14px var(--scroll-pad-bottom)' }}>
 
-      {/* User card */}
-      {emp ? (
+      {/* Header — serif title */}
+      <div style={{ padding: '0 4px 16px' }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 16px', borderRadius: 14, background: 'var(--paper)',
-          border: '1px solid rgba(60,40,20,.1)', marginBottom: 20,
+          fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 500,
+          color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
         }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+          Més
+        </div>
+        <div style={{
+          fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+          letterSpacing: .08, textTransform: 'uppercase', marginTop: 4,
+          fontFamily: 'var(--font-mono)',
+        }}>
+          Operacions, dades i configuració
+        </div>
+      </div>
+
+      {/* User + biz card */}
+      {emp ? (
+        <button onClick={() => onSwitchUser?.()} className="press"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '14px 14px', borderRadius: 16,
+            background: `linear-gradient(180deg, ${biz.hueSoft} 0%, var(--paper) 70%)`,
+            border: `1px solid ${biz.hue}22`,
+            marginBottom: 20, width: '100%',
+            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+            boxShadow: `0 2px 8px ${biz.hue}14`,
+          }}>
+          <span style={{
+            position: 'relative',
+            width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
             background: role?.color ?? 'var(--terracotta-50)',
             color: role?.textColor ?? 'var(--terracotta-700)',
             display: 'grid', placeItems: 'center',
-            fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 15,
+            fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 17,
+            boxShadow: emp.clockedIn ? '0 0 0 2px var(--olive-500)' : 'none',
           }}>
             {emp.initials}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>{emp.fullName}</div>
-            {role && (
+            {emp.clockedIn && (
               <span style={{
-                fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
-                background: role.color, color: role.textColor,
-              }}>
-                {role.name}
-              </span>
+                position: 'absolute', bottom: -2, right: -2,
+                width: 13, height: 13, borderRadius: 999,
+                background: 'var(--olive-600)',
+                border: '2px solid var(--paper)',
+              }} />
             )}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500,
+              color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
+            }}>
+              {emp.fullName}
+            </div>
+            <div style={{
+              fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 600,
+              letterSpacing: .06, textTransform: 'uppercase', marginTop: 4,
+              fontFamily: 'var(--font-mono)',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              {role && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                  background: role.color, color: role.textColor,
+                }}>{role.name}</span>
+              )}
+              <span style={{ color: biz.hue, opacity: .85 }}>{biz.name}</span>
+            </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 12, color: 'var(--ink-500)' }}>{biz.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink-400)' }}>{biz.kind}</div>
-          </div>
-        </div>
+          <span style={{
+            fontSize: 11, color: 'var(--ink-500)', fontWeight: 700,
+            letterSpacing: .04,
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}>
+            Canviar
+            <Icon d={I.chevR} size={13} />
+          </span>
+        </button>
       ) : (
-        <div style={{
-          padding: '13px 16px', borderRadius: 14, background: 'var(--paper)',
-          border: '1px solid rgba(60,40,20,.1)', marginBottom: 20,
-          fontSize: 13, color: 'var(--ink-500)',
-        }}>
-          Cap usuari actiu · {biz.name}
-        </div>
+        <button onClick={() => onSwitchUser?.()} className="press"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '14px 16px', borderRadius: 16,
+            background: 'var(--paper)',
+            border: '1px dashed rgba(60,40,20,.20)',
+            marginBottom: 20, width: '100%',
+            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+            color: 'var(--ink-500)',
+          }}>
+          <span style={{
+            width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+            background: 'var(--ink-100)', color: 'var(--ink-500)',
+            display: 'grid', placeItems: 'center',
+          }}>
+            <Icon d={I.users} size={18} />
+          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 15, fontWeight: 500,
+              color: 'var(--ink-700)',
+            }}>Cap usuari fitxat</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2 }}>
+              Toca per fitxar · {biz.name}
+            </div>
+          </div>
+          <Icon d={I.chevR} size={14} />
+        </button>
       )}
 
-      {/* Menu items */}
+      {/* Operational group */}
+      <SectionLabel>Operacional</SectionLabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+        {OPERATIONAL.map(renderItem)}
+      </div>
+
+      {/* System group */}
+      <SectionLabel>Sistema</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {MENU_ITEMS.map(item => (
-          <button key={item.label} onClick={item.action}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              padding: '14px 16px', borderRadius: 13,
-              border: '1px solid rgba(60,40,20,.1)', background: 'var(--paper)',
-              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-            }}>
-            <span style={{
-              width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-              background: 'var(--cream)', color: 'var(--terracotta-600)',
-              display: 'grid', placeItems: 'center',
-            }}>
-              <Icon d={item.ico} size={20} stroke={1.7} />
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-900)' }}>{item.label}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink-500)' }}>{item.desc}</div>
-            </div>
-            <Icon d={I.chevR} size={16} />
-          </button>
-        ))}
+        {SYSTEM.map(renderItem)}
       </div>
 
       {/* App version */}
-      <div style={{ marginTop: 32, textAlign: 'center', fontSize: 11, color: 'var(--ink-300)' }}>
-        NCR RESERVES · v0.1
+      <div style={{
+        marginTop: 28, textAlign: 'center',
+        fontSize: 10, color: 'var(--ink-400)',
+        fontFamily: 'var(--font-mono)', fontWeight: 600,
+        letterSpacing: .12, textTransform: 'uppercase',
+      }}>
+        NCR Reserves · v0.1
       </div>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontSize: 10.5, fontWeight: 700, color: 'var(--ink-500)',
+      letterSpacing: .08, textTransform: 'uppercase',
+      padding: '0 4px 8px',
+    }}>
+      {children}
     </div>
   );
 }

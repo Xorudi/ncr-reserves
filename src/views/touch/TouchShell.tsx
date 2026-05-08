@@ -256,7 +256,13 @@ export default function TouchShell() {
       {tab === 'tables'       && <TouchTablesScreen />}
       {tab === 'walkin'       && <TouchWalkInScreen onSwitchTab={setTab} />}
       {tab === 'clients'      && <TouchClientsScreen />}
-      {tab === 'more'         && <TouchMoreScreen onSwitchTab={setTab} />}
+      {tab === 'more'         && (
+        <TouchMoreScreen
+          onSwitchTab={setTab}
+          onOpenNotes={() => setShowNotesSheet(true)}
+          onSwitchUser={() => setShowUserPicker(true)}
+        />
+      )}
     </div>
   );
 
