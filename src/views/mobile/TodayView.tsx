@@ -496,18 +496,42 @@ export default function MobileTodayView({ newResTrigger = 0, hideDateNav = false
             <React.Fragment key={listKey}>
               {showTimeHeader && (() => {
                 const isLunch = parseH(r.time) < 18;
-                const dotColor = isLunch ? 'var(--clay-500)' : 'var(--plum-600)';
-                const lineColor = isLunch ? 'rgba(204,144,73,.18)' : 'rgba(138,79,118,.18)';
+                // Day → sun in clay (warm ochre); night → moon in deep indigo.
+                // Replaces the previous lilac plum dot which read as dull.
+                const fg     = isLunch ? '#9c5d1f' : '#3a4a6e';
+                const haloBg = isLunch ? 'rgba(204,144,73,.18)' : 'rgba(58,74,110,.16)';
+                const lineCol = isLunch ? 'rgba(204,144,73,.20)' : 'rgba(58,74,110,.18)';
                 return (
                   <div style={{ padding:'14px 18px 6px', display:'flex', alignItems:'center', gap:10 }}>
                     <span style={{
-                      width:7, height:7, borderRadius:999, background:dotColor, flexShrink:0,
-                      boxShadow:`0 0 0 3px ${isLunch ? 'rgba(204,144,73,.14)' : 'rgba(138,79,118,.14)'}`,
-                    }} />
-                    <span className="mono" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)', flexShrink:0 }}>{r.time}</span>
+                      width:18, height:18, borderRadius:999,
+                      background: haloBg, flexShrink:0, color: fg,
+                      display:'grid', placeItems:'center',
+                    }}>
+                      {isLunch ? (
+                        // Sun: solid disc + four short rays
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                          <circle cx="7" cy="7" r="2.6" fill="currentColor" />
+                          <path d="M7 1.6 V3 M7 11 V12.4 M1.6 7 H3 M11 7 H12.4
+                                   M3.1 3.1 L4 4 M10 10 L10.9 10.9
+                                   M3.1 10.9 L4 10 M10 4 L10.9 3.1"
+                            stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        // Moon: crescent via subtraction
+                        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                          <path d="M11.2 9.6 a4.6 4.6 0 1 1 -1.2 -8 a3.6 3.6 0 0 0 1.2 8 z"
+                            fill="currentColor" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="mono" style={{
+                      fontSize:13, fontWeight:650, color:'var(--ink-800)',
+                      flexShrink:0, letterSpacing:.005,
+                    }}>{r.time}</span>
                     <div style={{
                       flex:1, height:1,
-                      background: `linear-gradient(90deg, ${lineColor} 0%, rgba(60,40,20,.04) 100%)`,
+                      background: `linear-gradient(90deg, ${lineCol} 0%, rgba(60,40,20,.04) 100%)`,
                     }} />
                   </div>
                 );

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
-import { isoDate } from '@/data/mockData';
+import { isoDate, getZoneIcon } from '@/data/mockData';
 import { effectiveTable } from '@/utils/tableStatus';
 import type { FloorTable, TableStatus, Reservation } from '@/types';
 
@@ -70,10 +70,33 @@ export default function MobileTablesScreen() {
   const [confirmText, setConfirmText]   = useState('');
 
   const zones  = useMemo(() => plan ? [...plan.zones].sort((a, b) => a.order - b.order) : [], [plan]);
-  const tables = useMemo(() => {
-    const base = zoneId === '__all__' ? liveTables : liveTables.filter(t => t.zone === zoneId);
-    return [...base].sort((a, b) => (a.name ?? a.id).localeCompare(b.name ?? b.id));
-  }, [liveTables, zoneId]);
+
+  // Sort tables within a single zone — natural numeric order ("Taula 2" < "Taula 10")
+  const sortByName = (a: FloorTable, b: FloorTable) =>
+    (a.name ?? a.id).localeCompare(b.name ?? b.id, undefined, { numeric: true });
+
+  // For "Totes" view: group by zone in zone-order, NOT a flat numeric sort
+  // (otherwise "Bar 1" sits next to "Menjador 1" which makes no spatial sense).
+  // For a single zone: just the sorted list of that zone's tables.
+  const tableGroups = useMemo<{ id: string; label: string; tables: FloorTable[] }[]>(() => {
+    if (zoneId !== '__all__') {
+      const z = zones.find(z => z.id === zoneId);
+      const list = liveTables.filter(t => t.zone === zoneId).sort(sortByName);
+      return [{ id: zoneId, label: z?.label ?? '', tables: list }];
+    }
+    return zones
+      .map(z => ({
+        id: z.id,
+        label: z.label,
+        tables: liveTables.filter(t => t.zone === z.id).sort(sortByName),
+      }))
+      .filter(g => g.tables.length > 0);
+  }, [liveTables, zoneId, zones]);
+
+  const totalTables = useMemo(
+    () => tableGroups.reduce((s, g) => s + g.tables.length, 0),
+    [tableGroups],
+  );
 
   // Counts (based on live date-aware statuses)
   const counts = useMemo(() => {
@@ -144,78 +167,105 @@ export default function MobileTablesScreen() {
         ))}
       </div>
 
-      {/* Table grid — auto-fit so all tables of the zone fit on screen.
-          Swipe L/R cycles through zones (instead of changing the date). */}
+      {/* Table groups — flat single-zone grid, or grouped-by-zone for "Totes".
+          Swipe L/R cycles through zones (handled by handleTouch* below). */}
       <div className="scroll"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         style={{ flex:1, overflowY:'auto', padding:'10px 14px var(--scroll-pad-bottom)' }}>
-        <div style={{
-          display:'grid',
-          gridTemplateColumns:'repeat(auto-fill, minmax(96px, 1fr))',
-          gap:8,
-        }}>
-          {tables.map(t => {
-            const st = STATUS_STYLE[t.status];
-            const isSeated = t.status === 'seated';
-            return (
-              <button key={t.id}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  setTapPt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
-                  setSelTable(t);
-                }}
-                className="press"
-                style={{
-                  aspectRatio:'1/1.05',
-                  background:st.bg, borderRadius:12, padding:'9px 8px 7px',
-                  border: isSeated
-                    ? '1px solid var(--terracotta-500)'
-                    : '1px solid rgba(60,40,20,.08)',
-                  textAlign:'left', cursor:'pointer',
-                  fontFamily:'inherit', display:'flex', flexDirection:'column',
-                  justifyContent:'space-between', gap:2,
-                  boxShadow: isSeated ? '0 1px 3px rgba(168,74,42,.12)' : 'none',
+        {tableGroups.map((group, gi) => (
+          <div key={group.id} style={{ marginTop: gi === 0 ? 0 : 14 }}>
+            {/* Zone header — only when viewing "Totes" so a single-zone view
+                doesn't get a redundant title above its grid. */}
+            {zoneId === '__all__' && (
+              <div style={{
+                display:'flex', alignItems:'center', gap:9,
+                margin:'4px 2px 9px',
+              }}>
+                <span style={{ fontSize:13, lineHeight:1, color:'var(--ink-500)' }}>
+                  {getZoneIcon(group.label)}
+                </span>
+                <span style={{
+                  fontFamily:'var(--font-serif)', fontSize:14.5, fontWeight:500,
+                  color:'var(--ink-700)', letterSpacing:-.005,
                 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:4 }}>
-                  <span style={{
-                    fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
-                    color:st.color, lineHeight:1, letterSpacing:-.005,
-                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                    flex:1, minWidth:0,
-                  }}>
-                    {t.name ?? t.id}
-                  </span>
-                  <span style={{ fontSize:9, color:st.color, fontWeight:700, opacity:.7,
-                                 letterSpacing:.04, flexShrink:0, marginTop:1 }}>{t.cap}p</span>
-                </div>
-                <div style={{ minHeight:0 }}>
-                  {t.res && (
-                    <div style={{ fontSize:10, color:st.color, fontWeight:650, lineHeight:1.15,
-                                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {t.res.split(' ')[0]}
+                  {group.label}
+                </span>
+                <span style={{
+                  fontSize:10.5, color:'var(--ink-500)', fontWeight:650,
+                  fontFamily:'var(--font-mono)', letterSpacing:.04,
+                }}>{group.tables.length}</span>
+                <div style={{ flex:1, height:1, background:'rgba(60,40,20,.06)' }} />
+              </div>
+            )}
+            <div style={{
+              display:'grid',
+              gridTemplateColumns:'repeat(auto-fill, minmax(96px, 1fr))',
+              gap:8,
+            }}>
+              {group.tables.map(t => {
+                const st = STATUS_STYLE[t.status];
+                const isSeated = t.status === 'seated';
+                return (
+                  <button key={t.id}
+                    onClick={(e) => {
+                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setTapPt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+                      setSelTable(t);
+                    }}
+                    className="press"
+                    style={{
+                      aspectRatio:'1/1.05',
+                      background:st.bg, borderRadius:12, padding:'9px 8px 7px',
+                      border: isSeated
+                        ? '1px solid var(--terracotta-500)'
+                        : '1px solid rgba(60,40,20,.08)',
+                      textAlign:'left', cursor:'pointer',
+                      fontFamily:'inherit', display:'flex', flexDirection:'column',
+                      justifyContent:'space-between', gap:2,
+                      boxShadow: isSeated ? '0 1px 3px rgba(168,74,42,.12)' : 'none',
+                    }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:4 }}>
+                      <span style={{
+                        fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500,
+                        color:st.color, lineHeight:1, letterSpacing:-.005,
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                        flex:1, minWidth:0,
+                      }}>
+                        {t.name ?? t.id}
+                      </span>
+                      <span style={{ fontSize:9, color:st.color, fontWeight:700, opacity:.7,
+                                    letterSpacing:.04, flexShrink:0, marginTop:1 }}>{t.cap}p</span>
                     </div>
-                  )}
-                  {t.time && (
-                    <div style={{ fontSize:9, color:st.color, opacity:.7,
-                                  fontFamily:'var(--font-mono)', marginTop:1 }}>{t.time}</div>
-                  )}
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                  <span style={{
-                    width:5, height:5, borderRadius:999, background:st.color, opacity:.7, flexShrink:0,
-                  }} />
-                  <span style={{ fontSize:8.5, color:st.color, fontWeight:700,
-                                 textTransform:'uppercase', letterSpacing:.25, opacity:.75,
-                                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {st.label}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        {tables.length === 0 && (
+                    <div style={{ minHeight:0 }}>
+                      {t.res && (
+                        <div style={{ fontSize:10, color:st.color, fontWeight:650, lineHeight:1.15,
+                                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {t.res.split(' ')[0]}
+                        </div>
+                      )}
+                      {t.time && (
+                        <div style={{ fontSize:9, color:st.color, opacity:.7,
+                                      fontFamily:'var(--font-mono)', marginTop:1 }}>{t.time}</div>
+                      )}
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      <span style={{
+                        width:5, height:5, borderRadius:999, background:st.color, opacity:.7, flexShrink:0,
+                      }} />
+                      <span style={{ fontSize:8.5, color:st.color, fontWeight:700,
+                                    textTransform:'uppercase', letterSpacing:.25, opacity:.75,
+                                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {st.label}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {totalTables === 0 && (
           <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink-500)', fontSize:14 }}>
             Cap taula en aquesta zona
           </div>
