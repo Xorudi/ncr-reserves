@@ -401,113 +401,281 @@ function AlertCard({ children }: { children: React.ReactNode }) {
 
 // ─── Calendar screen ──────────────────────────────────────────────────────────
 function CalendarScreen({ onBack }: { onBack: () => void }) {
-  const { selectedBusiness, reservations } = useAppStore();
+  const { selectedBusiness, reservations, appEvents, setSelectedDate } = useAppStore();
   const today = new Date();
   const [monthOffset, setMonthOffset] = useState(0);
 
   const viewDate = useMemo(() => {
-    const d = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-    return d;
+    return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   }, [monthOffset]);
 
   const year  = viewDate.getFullYear();
   const month = viewDate.getMonth();
-
   const monthLabel = viewDate.toLocaleDateString('ca-ES', { month: 'long', year: 'numeric' });
 
-  // Compute cells
+  // Cells (Mon-first calendar)
   const cells = useMemo(() => {
-    const firstDow = (new Date(year, month, 1).getDay() + 6) % 7; // Mon=0
+    const firstDow    = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const total = firstDow + daysInMonth;
-    const rows  = Math.ceil(total / 7);
+    const total       = firstDow + daysInMonth;
+    const rows        = Math.ceil(total / 7);
     const arr: (number | null)[] = Array(rows * 7).fill(null);
     for (let d = 1; d <= daysInMonth; d++) arr[firstDow + d - 1] = d;
     return arr;
   }, [year, month]);
 
-  // Count reservations per day
-  const countByDay = useMemo(() => {
-    const m: Record<string, number> = {};
+  // Per-day stats: reservations, pax, migdia/nit split, has event
+  type DayStat = { count: number; pax: number; migdia: number; nit: number; hasEvent: boolean };
+  const statsByDay = useMemo(() => {
+    const m: Record<string, DayStat> = {};
     reservations.filter(r => r.bizId === selectedBusiness).forEach(r => {
       const [ry, rm] = r.date.split('-').map(Number);
-      if (ry === year && rm === month + 1) m[r.date] = (m[r.date] ?? 0) + 1;
+      if (ry !== year || rm !== month + 1) return;
+      const s = m[r.date] ?? { count: 0, pax: 0, migdia: 0, nit: 0, hasEvent: false };
+      s.count++;
+      s.pax += r.pax;
+      const h = parseInt(r.time.split(':')[0] ?? '0', 10);
+      if (h < 18) s.migdia += r.pax; else s.nit += r.pax;
+      m[r.date] = s;
+    });
+    appEvents.filter(e => e.bizId === selectedBusiness).forEach(e => {
+      const [ry, rm] = e.date.split('-').map(Number);
+      if (ry !== year || rm !== month + 1) return;
+      m[e.date] = { ...(m[e.date] ?? { count: 0, pax: 0, migdia: 0, nit: 0, hasEvent: false }), hasEvent: true };
     });
     return m;
-  }, [reservations, selectedBusiness, year, month]);
+  }, [reservations, appEvents, selectedBusiness, year, month]);
 
-  const [selDay, setSelDay] = useState<number | null>(null);
+  // Month totals (header KPIs) + busiest day
+  const monthTotals = useMemo(() => {
+    let count = 0, pax = 0, busiest = 0, busyDay: number | null = null;
+    Object.entries(statsByDay).forEach(([ds, s]) => {
+      count += s.count; pax += s.pax;
+      if (s.pax > busiest) { busiest = s.pax; busyDay = parseInt(ds.split('-')[2], 10); }
+    });
+    const maxPax = Math.max(0, ...Object.values(statsByDay).map(s => s.pax));
+    return { count, pax, busyDay, busiest, maxPax };
+  }, [statsByDay]);
 
-  const selDate  = selDay ? isoDate(new Date(year, month, selDay)) : null;
-  const dayRes   = selDate
+  const [selDay, setSelDay] = useState<number | null>(today.getDate());
+
+  const selIsoDate = selDay ? isoDate(new Date(year, month, selDay)) : null;
+  const dayRes = selIsoDate
     ? reservations
-        .filter(r => r.bizId === selectedBusiness && r.date === selDate)
+        .filter(r => r.bizId === selectedBusiness && r.date === selIsoDate)
         .sort((a, b) => a.time.localeCompare(b.time))
     : [];
+  const dayStat = selIsoDate ? statsByDay[selIsoDate] ?? null : null;
 
   const todayStr = isoDate(today);
 
+  // Heatmap intensity (terracotta single-hue) — pax / max
+  function intensityFor(s?: DayStat) {
+    if (!s || s.pax === 0) return 0;
+    if (monthTotals.maxPax === 0) return 0;
+    const ratio = s.pax / monthTotals.maxPax;
+    return Math.min(0.18 + ratio * 0.7, 0.92);
+  }
+
+  function jumpToDay(day: number) {
+    setSelectedDate(new Date(year, month, day));
+    onBack();
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Header */}
-      <div style={{ padding: '12px 14px 11px', background: 'var(--paper)', borderBottom: 'var(--hair)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button onClick={onBack} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink-600)', display: 'grid', placeItems: 'center' }}>
-          <Icon d={I.chevL} size={20} stroke={2} />
-        </button>
-        <button onClick={() => setMonthOffset(m => m - 1)}
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px', color: 'var(--ink-500)' }}>
-          <Icon d={I.chevL} size={16} />
-        </button>
-        <span style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 700, color: 'var(--ink-900)', textTransform: 'capitalize' }}>
-          {monthLabel}
-        </span>
-        <button onClick={() => setMonthOffset(m => m + 1)}
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 6px', color: 'var(--ink-500)' }}>
-          <Icon d={I.chevR} size={16} />
-        </button>
-        <button onClick={() => { setMonthOffset(0); setSelDay(today.getDate()); }}
-          style={{ padding: '4px 10px', borderRadius: 7, border: '1.5px solid rgba(60,40,20,.15)', background: 'var(--cream)', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--ink-700)', cursor: 'pointer' }}>
-          Avui
-        </button>
+
+      {/* ── Header — serif title + month nav + Avui pill ──────────────── */}
+      <div style={{
+        padding: '14px 16px 12px',
+        background: 'var(--paper)', borderBottom: 'var(--hair)',
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <button onClick={onBack} className="press"
+            style={{
+              width: 34, height: 34, borderRadius: 999,
+              background: 'var(--cream)', border: '1px solid rgba(60,40,20,.08)',
+              cursor: 'pointer', color: 'var(--ink-700)',
+              display: 'grid', placeItems: 'center', flexShrink: 0,
+            }}>
+            <Icon d={I.chevL} size={16} stroke={2} />
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500,
+              color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.05,
+              textTransform: 'capitalize',
+            }}>
+              {monthLabel}
+            </div>
+            <div style={{
+              fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+              letterSpacing: .08, textTransform: 'uppercase', marginTop: 4,
+              fontFamily: 'var(--font-mono)',
+              display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+            }}>
+              <span key={`mc-${monthTotals.count}`} className="number-tween"
+                style={{ fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 500, color: 'var(--ink-900)' }}>
+                {monthTotals.count}
+              </span>
+              <span>reserves</span>
+              <span style={{ width: 3, height: 3, borderRadius: 999, background: 'var(--ink-300)' }} />
+              <span key={`mp-${monthTotals.pax}`} className="number-tween"
+                style={{ fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 500, color: 'var(--ink-900)' }}>
+                {monthTotals.pax}
+              </span>
+              <span>pax</span>
+              {monthTotals.busyDay && (
+                <>
+                  <span style={{ width: 3, height: 3, borderRadius: 999, background: 'var(--ink-300)' }} />
+                  <span style={{ color: 'var(--terracotta-700)' }}>
+                    pic dia{' '}
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 500 }}>
+                      {monthTotals.busyDay}
+                    </span>
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Month navigation row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => setMonthOffset(m => m - 1)} className="press"
+            style={navBtn}>
+            <Icon d={I.chevL} size={15} stroke={2} />
+          </button>
+          <button onClick={() => setMonthOffset(m => m + 1)} className="press"
+            style={navBtn}>
+            <Icon d={I.chevR} size={15} stroke={2} />
+          </button>
+          <span style={{ flex: 1 }} />
+          <button onClick={() => { setMonthOffset(0); setSelDay(today.getDate()); }}
+            disabled={monthOffset === 0 && selDay === today.getDate()}
+            className="press"
+            style={{
+              padding: '6px 13px', borderRadius: 8,
+              border: '1.5px solid var(--terracotta-500)',
+              background: 'var(--terracotta-50)', color: 'var(--terracotta-700)',
+              fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+              cursor: 'pointer',
+              opacity: (monthOffset === 0 && selDay === today.getDate()) ? .5 : 1,
+            }}>
+            Avui
+          </button>
+        </div>
       </div>
 
-      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '12px 10px var(--scroll-pad-bottom)' }}>
-        {/* Day-of-week headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 4 }}>
-          {['Dl','Dt','Dc','Dj','Dv','Ds','Dg'].map(d => (
-            <div key={d} style={{ textAlign: 'center', fontSize: 10.5, fontWeight: 600, color: 'var(--ink-400)', paddingBottom: 4 }}>{d}</div>
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '14px 10px var(--scroll-pad-bottom)' }}>
+
+        {/* ── Day-of-week headers ─────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 6, padding: '0 4px' }}>
+          {['Dl','Dt','Dc','Dj','Dv','Ds','Dg'].map((d, i) => (
+            <div key={d} style={{
+              textAlign: 'center',
+              fontSize: 10, fontWeight: 700,
+              letterSpacing: .12, textTransform: 'uppercase',
+              color: i >= 5 ? 'var(--terracotta-700)' : 'var(--ink-500)',
+              fontFamily: 'var(--font-mono)',
+              paddingBottom: 4,
+            }}>{d}</div>
           ))}
         </div>
 
-        {/* Calendar grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
+        {/* ── Heatmap grid ────────────────────────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, padding: '0 4px' }}>
           {cells.map((day, i) => {
             if (!day) return <div key={i} />;
             const ds      = isoDate(new Date(year, month, day));
-            const count   = countByDay[ds] ?? 0;
+            const stat    = statsByDay[ds];
+            const intensity = intensityFor(stat);
             const isToday = ds === todayStr;
             const isSel   = day === selDay;
+            const dow     = (new Date(year, month, day).getDay() + 6) % 7;
+            const isWknd  = dow >= 5;
             return (
-              <button key={i} onClick={() => setSelDay(day === selDay ? null : day)}
+              <button key={i}
+                onClick={() => setSelDay(day === selDay ? null : day)}
+                className="press"
                 style={{
-                  padding: '6px 2px 7px',
-                  borderRadius: 9,
-                  border: isSel ? '2px solid var(--terracotta-600)' : '1.5px solid transparent',
-                  background: isSel ? 'var(--terracotta-50)' : isToday ? 'rgba(60,40,20,.06)' : 'transparent',
+                  position: 'relative',
+                  aspectRatio: '1/1.05', minHeight: 0,
+                  borderRadius: 10,
+                  border: isSel
+                    ? '2px solid var(--terracotta-600)'
+                    : isToday
+                      ? '1.5px solid var(--terracotta-500)'
+                      : '1px solid rgba(60,40,20,.06)',
+                  background: intensity > 0
+                    ? `rgba(168,74,42,${intensity})`
+                    : isWknd ? 'var(--cream)' : 'var(--paper)',
                   cursor: 'pointer', fontFamily: 'inherit',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'flex-start',
+                  padding: '6px 2px 5px',
+                  transition: 'border-color 200ms var(--ease-out), background 220ms var(--ease-out)',
+                  overflow: 'hidden',
                 }}>
                 <span style={{
-                  fontSize: 13, fontWeight: isToday ? 800 : isSel ? 700 : 500,
-                  color: isSel ? 'var(--terracotta-700)' : isToday ? 'var(--terracotta-600)' : 'var(--ink-800)',
+                  fontFamily: 'var(--font-serif)', fontSize: 14,
+                  fontWeight: 500, lineHeight: 1, letterSpacing: -.005,
+                  color: intensity > 0.45
+                    ? '#fff'
+                    : isSel ? 'var(--terracotta-700)'
+                    : isToday ? 'var(--terracotta-600)'
+                    : 'var(--ink-900)',
                 }}>
                   {day}
                 </span>
-                {count > 0 && (
+
+                {/* Pax tally — shown on busy days */}
+                {stat && stat.pax > 0 && (
                   <span style={{
-                    width: 16, height: 5, borderRadius: 3,
-                    background: isSel ? 'var(--terracotta-500)' : 'var(--terracotta-300)',
-                    fontSize: 9, color: 'white', display: 'grid', placeItems: 'center', fontWeight: 700,
+                    fontSize: 9, fontWeight: 700, marginTop: 3,
+                    fontFamily: 'var(--font-mono)', letterSpacing: .04,
+                    color: intensity > 0.45 ? 'rgba(255,255,255,.85)' : 'var(--terracotta-700)',
+                  }}>
+                    {stat.pax}p
+                  </span>
+                )}
+
+                {/* Bottom split-bar — clay vs plum proportions of pax */}
+                {stat && stat.pax > 0 && (
+                  <span style={{
+                    position: 'absolute', left: 4, right: 4, bottom: 3,
+                    height: 2, borderRadius: 999,
+                    background: 'rgba(255,255,255,.2)',
+                    overflow: 'hidden', display: 'flex',
+                  }}>
+                    <span style={{
+                      width: `${(stat.migdia / stat.pax) * 100}%`,
+                      background: intensity > 0.45 ? 'rgba(255,255,255,.9)' : '#c89a3a',
+                    }} />
+                    <span style={{
+                      width: `${(stat.nit / stat.pax) * 100}%`,
+                      background: intensity > 0.45 ? 'rgba(255,255,255,.55)' : '#6b3e5c',
+                    }} />
+                  </span>
+                )}
+
+                {/* Event marker — small dot top-right */}
+                {stat?.hasEvent && (
+                  <span style={{
+                    position: 'absolute', top: 3, right: 3,
+                    width: 5, height: 5, borderRadius: 999,
+                    background: '#1a4ea0',
+                    boxShadow: intensity > 0.45 ? '0 0 0 1.5px rgba(255,255,255,.6)' : '0 0 0 1.5px var(--paper)',
+                  }} />
+                )}
+
+                {/* Today underline accent */}
+                {isToday && !isSel && (
+                  <span style={{
+                    position: 'absolute', top: 3, left: 3,
+                    width: 4, height: 4, borderRadius: 999,
+                    background: 'var(--terracotta-600)',
                   }} />
                 )}
               </button>
@@ -515,30 +683,120 @@ function CalendarScreen({ onBack }: { onBack: () => void }) {
           })}
         </div>
 
-        {/* Day panel */}
+        {/* ── Heatmap legend ───────────────────────────────────────── */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '14px 8px 4px',
+          fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 600,
+          letterSpacing: .04,
+        }}>
+          <span style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Menys</span>
+          {[0.12, 0.30, 0.50, 0.70, 0.90].map(v => (
+            <span key={v} style={{
+              width: 14, height: 14, borderRadius: 4,
+              background: `rgba(168,74,42,${v})`,
+              border: '1px solid rgba(60,40,20,.05)',
+            }} />
+          ))}
+          <span style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Més</span>
+          <span style={{ flex: 1 }} />
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            fontFamily: 'var(--font-mono)', textTransform: 'uppercase',
+          }}>
+            <span style={{ width: 5, height: 5, borderRadius: 999, background: '#1a4ea0' }} />
+            Esdev.
+          </span>
+        </div>
+
+        {/* ── Day panel — selected day's reservations ──────────────── */}
         {selDay && (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase', marginBottom: 8 }}>
-              {new Date(year, month, selDay).toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-              {' · '}{dayRes.length} reserva{dayRes.length !== 1 ? 'es' : ''}
+          <div style={{ marginTop: 18, padding: '0 4px' }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
+            }}>
+              <div>
+                <div style={{
+                  fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 500,
+                  color: 'var(--ink-900)', letterSpacing: -.005,
+                  textTransform: 'capitalize',
+                }}>
+                  {new Date(year, month, selDay).toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </div>
+                <div style={{
+                  fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+                  letterSpacing: .06, marginTop: 3,
+                  fontFamily: 'var(--font-mono)',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <span>{dayRes.length} reserves</span>
+                  {dayStat && (
+                    <>
+                      <span style={{ width: 3, height: 3, borderRadius: 999, background: 'var(--ink-300)' }} />
+                      <span>{dayStat.pax} pax</span>
+                      {dayStat.migdia > 0 && (
+                        <span style={{ color: '#9c5d1f' }}> · {dayStat.migdia} migdia</span>
+                      )}
+                      {dayStat.nit > 0 && (
+                        <span style={{ color: 'var(--plum-700)' }}> · {dayStat.nit} nit</span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => jumpToDay(selDay)} className="press"
+                style={{
+                  marginLeft: 'auto',
+                  padding: '7px 12px', borderRadius: 9, border: 'none',
+                  background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
+                  color: '#fff', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  boxShadow: '0 2px 6px rgba(168,74,42,.28)',
+                  flexShrink: 0,
+                }}>
+                Anar al dia
+                <Icon d={I.chevR} size={12} stroke={2.4} />
+              </button>
             </div>
+
             {dayRes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--ink-400)', fontSize: 13 }}>
-                Cap reserva
+              <div style={{
+                textAlign: 'center', padding: '32px 0',
+                color: 'var(--ink-400)', fontSize: 13,
+                fontFamily: 'var(--font-serif)', fontStyle: 'italic',
+              }}>
+                Cap reserva aquest dia
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                {dayRes.map(r => (
-                  <div key={r.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 13px', borderRadius: 10,
-                    background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)',
-                  }}>
-                    <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-700)', flexShrink: 0 }}>{r.time}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {dayRes.map((r, i) => (
+                  <div key={r.id}
+                    className="row-stagger"
+                    style={{ ['--row-i' as string]: Math.min(i, 7) }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 13px', borderRadius: 11,
+                      background: 'var(--paper)',
+                      border: '1px solid rgba(60,40,20,.07)',
+                      boxShadow: '0 1px 2px rgba(60,40,20,.03)',
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700,
+                        color: 'var(--ink-700)', flexShrink: 0,
+                      }}>{r.time}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 13.5, fontWeight: 650, color: 'var(--ink-900)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          letterSpacing: -.005,
+                        }}>{r.name}</div>
+                      </div>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, color: 'var(--ink-500)',
+                        flexShrink: 0, fontFamily: 'var(--font-mono)',
+                      }}>{r.pax}p</span>
                     </div>
-                    <span style={{ fontSize: 12, color: 'var(--ink-500)', flexShrink: 0 }}>{r.pax}p</span>
                   </div>
                 ))}
               </div>
@@ -549,6 +807,15 @@ function CalendarScreen({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
+
+const navBtn: React.CSSProperties = {
+  width: 34, height: 34, borderRadius: 9,
+  border: '1px solid rgba(60,40,20,.10)',
+  background: 'var(--paper)', cursor: 'pointer',
+  color: 'var(--ink-700)',
+  display: 'grid', placeItems: 'center',
+  boxShadow: 'var(--sh-1)',
+};
 
 // ─── Mobile Backup Screen ─────────────────────────────────────────────────────
 function MobileBackupScreen({ onBack }: { onBack: () => void }) {
