@@ -73,6 +73,11 @@ interface AppState {
   // ── Table management ──────────────────────────────────────────────────────────
   releaseTable: (bizId: string, tableId: string) => void;
   releaseAllTables: (bizId: string, includeBlocked?: boolean) => void;
+  /** Mark every still-seated reservation from a past date as completed and
+   *  free up the tables they held. Called automatically at app start / when
+   *  the app comes to foreground, so the floor plan never carries forward
+   *  yesterday's covers. */
+  closeOutPastDays: (bizId?: string) => void;
 
   // ── Customer CRUD ─────────────────────────────────────────────────────────────
   addCustomer:    (c: Omit<Customer, 'id'>) => void;
@@ -323,6 +328,70 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     const updatedPlan = get().floorPlans[bizId];
     if (updatedPlan) cloud.upsertFloorPlan(bizId, updatedPlan);
     get().reservations.filter(r => r.bizId === bizId).forEach(r => cloud.upsertReservation(r));
+  },
+
+  closeOutPastDays: (bizId) => {
+    // Today as a local-date ISO (avoids UTC off-by-one)
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+    const stale = get().reservations.filter(r =>
+      (!bizId || r.bizId === bizId) &&
+      r.date < todayIso &&
+      (r.status === 'seated' || r.status === 'confirmed' || r.status === 'pending'),
+    );
+    if (stale.length === 0) return;
+
+    const touchedBizIds = new Set<string>();
+
+    set((s) => {
+      // 1. Mark each stale reservation as completed (or noshow if it was
+      //    only pending — never seated and the day is over)
+      const reservations = s.reservations.map(r => {
+        if (!stale.find(x => x.id === r.id)) return r;
+        touchedBizIds.add(r.bizId);
+        const newStatus = r.status === 'seated' || r.status === 'confirmed'
+          ? 'completed' as const
+          : 'noshow' as const;
+        return { ...r, status: newStatus };
+      });
+
+      // 2. For every plan that had a stale reservation, free up the linked
+      //    tables (preserve manual blocks).
+      const floorPlans: typeof s.floorPlans = { ...s.floorPlans };
+      for (const bid of touchedBizIds) {
+        const plan = floorPlans[bid];
+        if (!plan) continue;
+        const stillActiveIds = new Set(
+          reservations
+            .filter(r => r.bizId === bid && (r.status === 'seated' || r.status === 'confirmed' || r.status === 'pending'))
+            .flatMap(r => r.tableIds ?? []),
+        );
+        const tables = plan.tables.map(t => {
+          if (t.status === 'blocked') return t;
+          if (stillActiveIds.has(t.id))   return t;
+          // Was held by a stale reservation → free
+          if (t.status === 'seated' || t.status === 'confirmed' || t.status === 'reserved' || t.status === 'pending') {
+            return { ...t, status: 'free' as const, res: undefined, time: undefined };
+          }
+          return t;
+        });
+        floorPlans[bid] = { ...plan, tables };
+      }
+
+      return { reservations, floorPlans };
+    });
+
+    // Push updates to cloud
+    const after = get();
+    stale.forEach(s => {
+      const r = after.reservations.find(x => x.id === s.id);
+      if (r) cloud.upsertReservation(r);
+    });
+    touchedBizIds.forEach(bid => {
+      const plan = after.floorPlans[bid];
+      if (plan) cloud.upsertFloorPlan(bid, plan);
+    });
   },
 
   deleteReservation: (id) => {

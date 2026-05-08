@@ -84,7 +84,19 @@ export default function TouchShell() {
     activeEmployeeId, setActiveEmployee,
     selectedDate, setSelectedDate,
     reservations,
+    closeOutPastDays,
   } = useAppStore();
+
+  // Close out yesterday automatically — runs once on mount, when the tab
+  // becomes visible again (operator left the iPad on overnight), and any time
+  // selectedDate changes (so navigating into today triggers cleanup too).
+  useEffect(() => {
+    closeOutPastDays();
+    const onVis = () => { if (!document.hidden) closeOutPastDays(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [closeOutPastDays]);
+  useEffect(() => { closeOutPastDays(); }, [selectedDate, closeOutPastDays]);
 
   const { isTablet, isStandalone } = useDevice();
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
