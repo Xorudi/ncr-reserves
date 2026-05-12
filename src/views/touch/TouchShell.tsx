@@ -20,6 +20,7 @@ import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import Toaster, { toast } from '@/components/shared/Toaster';
 import SearchSheet from '@/components/shared/SearchSheet';
 import WaitlistSheet from '@/components/shared/WaitlistSheet';
+import WeatherWidget from '@/components/shared/WeatherWidget';
 import { NotesSheet } from '@/views/touch/NotesSystem';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
@@ -659,6 +660,7 @@ export default function TouchShell() {
           </div>
         </div>
 
+        <WeatherWidget compact />
         <button onClick={() => setShowSearch(true)} aria-label="Cerca"
           style={{
             width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
@@ -992,6 +994,9 @@ function TabletTopBar({
         }}>
         <Icon d={I.chevR} size={18} stroke={2} />
       </button>
+
+      {/* Weather pill — forecast for the selected day */}
+      <WeatherWidget />
 
       {/* Avui button — only when not today */}
       <button onClick={() => setSelectedDate(new Date())}

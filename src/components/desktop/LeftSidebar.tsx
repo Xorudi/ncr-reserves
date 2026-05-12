@@ -3,6 +3,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import type { BusinessId, BusinessStats, Employee, EmployeeRole } from '@/types';
+import WeatherWidget from '@/components/shared/WeatherWidget';
 
 interface Props {
   activeBizId: BusinessId;
@@ -87,6 +88,13 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
       </div>
 
       <div style={{ height:1,background:'rgba(60,40,20,0.08)',margin:'4px 12px' }} />
+
+      {/* Weather pill — discreet, between the search bar and biz switcher.
+          Sits in its own row so it can show without competing with the
+          search affordance for taps. */}
+      <div style={{ padding:'4px 12px' }}>
+        <WeatherWidget />
+      </div>
 
       {/* Global search trigger — also opens with Cmd/Ctrl+K. */}
       {onSearch && (
