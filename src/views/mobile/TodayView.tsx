@@ -17,13 +17,19 @@ import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/ty
  * row is dragged. On release: trigger or snap-back (200ms ease-out).
  */
 function SwipeableRow({
-  children, onForward, forwardLabel, forwardColor, disabled,
+  children,
+  onForward, forwardLabel, forwardColor, disabled,
+  onBackward, backwardLabel, backwardColor, backwardDisabled,
 }: {
   children: React.ReactNode;
   onForward?: () => void;
   forwardLabel: string;
   forwardColor: { bg: string; fg: string; ring: string };
   disabled?: boolean;
+  onBackward?: () => void;
+  backwardLabel?: string;
+  backwardColor?: { bg: string; fg: string; ring: string };
+  backwardDisabled?: boolean;
 }) {
   const [dx, setDx]               = useState(0);
   const [animatingBack, setAnimB] = useState(false);
@@ -34,7 +40,7 @@ function SwipeableRow({
   const THRESH_PX  = 96;
 
   function onDown(e: React.PointerEvent) {
-    if (disabled) return;
+    if (disabled && backwardDisabled) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     startX.current    = e.clientX;
     startTime.current = Date.now();
@@ -44,7 +50,6 @@ function SwipeableRow({
   }
 
   function onMove(e: React.PointerEvent) {
-    if (disabled) return;
     if (e.buttons === 0) return;
     const delta = e.clientX - startX.current;
     if (!dragging.current && Math.abs(delta) > 6) {
@@ -53,10 +58,16 @@ function SwipeableRow({
     }
     if (dragging.current) {
       let d = delta;
-      // Damp past threshold
-      if (d > THRESH_PX) d = THRESH_PX + (d - THRESH_PX) * 0.4;
-      // Resist left drag (no action there)
-      if (d < 0) d = d * 0.25;
+      // Right swipe (forward) — damp past threshold; resist if disabled
+      if (d > 0) {
+        if (disabled) d = d * 0.25;
+        else if (d > THRESH_PX) d = THRESH_PX + (d - THRESH_PX) * 0.4;
+      }
+      // Left swipe (backward) — damp past threshold; resist if disabled
+      if (d < 0) {
+        if (backwardDisabled) d = d * 0.25;
+        else if (d < -THRESH_PX) d = -THRESH_PX + (d + THRESH_PX) * 0.4;
+      }
       setDx(d);
     }
   }
@@ -65,17 +76,23 @@ function SwipeableRow({
     if (!dragging.current) { setDx(0); return; }
     const elapsed  = Math.max(Date.now() - startTime.current, 1);
     const velocity = dx / elapsed;
-    const should   = !fired.current && (dx >= THRESH_PX || velocity > 0.11);
+    const shouldFwd  = !fired.current && !disabled        && (dx >=  THRESH_PX || velocity >  0.11);
+    const shouldBwd  = !fired.current && !backwardDisabled && (dx <= -THRESH_PX || velocity < -0.11);
     setAnimB(true);
-    if (should && onForward) {
+    if (shouldFwd && onForward) {
       fired.current = true;
       onForward();
+    } else if (shouldBwd && onBackward) {
+      fired.current = true;
+      onBackward();
     }
     setDx(0);
     dragging.current = false;
   }
 
-  const opacity = Math.min(Math.max(dx / THRESH_PX, 0), 1);
+  const fwdOpacity = Math.min(Math.max( dx / THRESH_PX, 0), 1);
+  const bwdOpacity = Math.min(Math.max(-dx / THRESH_PX, 0), 1);
+  const bwdColor   = backwardColor ?? { bg:'var(--rose-50)', fg:'var(--rose-700)', ring:'rgba(194,74,74,.30)' };
 
   return (
     // data-swipeable signals to the shell-level day-swipe handler that this
@@ -84,13 +101,13 @@ function SwipeableRow({
     // user never accidentally jumps days while interacting with a reservation.
     <div data-swipeable="true"
       style={{ position:'relative', overflow:'hidden' }}>
-      {/* Forward-action overlay revealed under the row */}
+      {/* Forward-action overlay revealed under the row (right swipe) */}
       <div aria-hidden style={{
         position:'absolute', inset:0,
         background: `linear-gradient(90deg, transparent 25%, ${forwardColor.bg} 65%)`,
         display:'flex', alignItems:'center', justifyContent:'flex-end',
         padding:'0 22px',
-        opacity,
+        opacity: fwdOpacity,
         pointerEvents:'none',
         transition: animatingBack ? 'opacity 200ms var(--ease-out)' : 'none',
       }}>
@@ -105,6 +122,28 @@ function SwipeableRow({
           {forwardLabel}
         </span>
       </div>
+      {/* Backward-action overlay revealed under the row (left swipe) */}
+      {onBackward && (
+        <div aria-hidden style={{
+          position:'absolute', inset:0,
+          background: `linear-gradient(270deg, transparent 25%, ${bwdColor.bg} 65%)`,
+          display:'flex', alignItems:'center', justifyContent:'flex-start',
+          padding:'0 22px',
+          opacity: bwdOpacity,
+          pointerEvents:'none',
+          transition: animatingBack ? 'opacity 200ms var(--ease-out)' : 'none',
+        }}>
+          <span style={{
+            display:'inline-flex', alignItems:'center', gap:6,
+            color: bwdColor.fg, fontWeight:700, fontSize:13,
+            padding:'4px 10px', borderRadius:999,
+            background:'rgba(255,255,255,.6)',
+            border:`1px solid ${bwdColor.ring}`,
+          }}>
+            {backwardLabel ?? 'No-show'}
+          </span>
+        </div>
+      )}
       {/* Draggable row content */}
       <div
         onPointerDown={onDown}
@@ -345,6 +384,11 @@ export default function MobileTodayView({
       completed: 'ink',
     };
     toast(`${r.name} · ${labels[ns]}`, { icon: 'check', tone: tones[ns] });
+  }
+
+  function markNoShow(r: Reservation) {
+    updateReservationStatus(r.id, 'noshow');
+    toast(`${r.name} · No-show`, { icon: 'alert', tone: 'rose' });
   }
   function swipeMetaFor(r: Reservation): {
     label: string; bg: string; fg: string; ring: string; disabled: boolean;
@@ -867,12 +911,16 @@ export default function MobileTodayView({
               >
                 {(() => {
                   const meta = swipeMetaFor(r);
+                  const canNoShow = r.status !== 'noshow' && r.status !== 'completed' && r.status !== 'cancelled';
                   return (
                     <SwipeableRow
                       forwardLabel={meta.label}
                       forwardColor={{ bg: meta.bg, fg: meta.fg, ring: meta.ring }}
                       disabled={meta.disabled}
                       onForward={() => advanceStatus(r)}
+                      backwardLabel="No-show"
+                      backwardDisabled={!canNoShow}
+                      onBackward={() => markNoShow(r)}
                     >
                       <ResRow
                         res={r}

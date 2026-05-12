@@ -5,6 +5,7 @@ import { BUSINESSES, initials, avIdx } from '@/data/mockData';
 import { Modal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId } from '@/types';
+import { rankCustomers, computeCustomerStats, type CustomerStats, type Level } from '@/utils/loyalty';
 
 function fmtDate(iso: string) {
   const [y,m,d] = iso.split('-');
@@ -13,22 +14,38 @@ function fmtDate(iso: string) {
 }
 
 export default function ClientsView() {
-  const { selectedBusiness, customers, addCustomer } = useAppStore();
+  const { selectedBusiness, customers, addCustomer, reservations } = useAppStore();
   const [query, setQuery]   = useState('');
   const [filter, setFilter] = useState('all');
   const [showNewClient, setShowNewClient] = useState(false);
   const { selectedCustomer, setSelectedCustomer } = useAppStore();
 
+  // Compute the full ranking for the current business once; rank field is stable
+  // across filters so the user always sees a client's global position.
+  const ranked = useMemo(
+    () => rankCustomers(customers, reservations, selectedBusiness as BusinessId),
+    [customers, reservations, selectedBusiness],
+  );
+  const rankMap = useMemo(() => {
+    const m = new Map<string, { stats: CustomerStats; rank: number }>();
+    for (const r of ranked) m.set(r.customer.id, { stats: r.stats, rank: r.rank });
+    return m;
+  }, [ranked]);
+
   const filtered = useMemo(() => {
-    return customers.filter(c => {
+    const base = customers.filter(c => {
       if (!c.biz.includes(selectedBusiness as any)) return false;
       if (filter === 'vip'     && !c.tags.includes('vip'))     return false;
       if (filter === 'regular' && !c.tags.includes('regular')) return false;
       if (filter === 'new'     && c.visits > 1)                 return false;
       if (query && !c.name.toLowerCase().includes(query.toLowerCase()) && !c.phone.includes(query)) return false;
       return true;
-    }).sort((a,b) => b.visits - a.visits);
-  }, [selectedBusiness, query, filter, customers]);
+    });
+    if (filter === 'ranking') {
+      return base.sort((a, b) => (rankMap.get(a.id)?.rank ?? 9999) - (rankMap.get(b.id)?.rank ?? 9999));
+    }
+    return base.sort((a, b) => b.visits - a.visits);
+  }, [selectedBusiness, query, filter, customers, rankMap]);
 
   return (
     <div style={{ flex:1,display:'flex',height:'100%',overflow:'hidden' }}>
@@ -42,7 +59,7 @@ export default function ClientsView() {
               style={{ flex:1,border:'none',outline:'none',background:'transparent',fontFamily:'inherit',fontSize:13,color:'var(--ink-900)' }} />
           </div>
           <div style={{ display:'flex',gap:3 }}>
-            {([['all','Tots'],['regular','Habituals'],['vip','VIP'],['new','Nous']] as const).map(([k,label]) => (
+            {([['all','Tots'],['ranking','🏆 Ranking'],['regular','Habituals'],['vip','VIP'],['new','Nous']] as const).map(([k,label]) => (
               <button key={k} onClick={() => setFilter(k)} style={{ padding:'6px 12px',borderRadius:999,border:filter===k?'none':'1px solid rgba(60,40,20,.14)',background:filter===k?'var(--ink-900)':'transparent',color:filter===k?'var(--cream)':'var(--ink-700)',fontFamily:'inherit',fontSize:12,fontWeight:600,cursor:'pointer' }}>{label}</button>
             ))}
           </div>
@@ -59,7 +76,7 @@ export default function ClientsView() {
           <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
             <thead>
               <tr style={{ background:'var(--ink-50)',borderBottom:'var(--hair)' }}>
-                {[['Client','',260],['Telèfon','',150],['Visites','center',80],['Última','',120],['Ticket','right',110],['Etiquetes','',150],['Negocis','',120]] .map(([h,a,w],i) => (
+                {[['#','center',46],['Client','',260],['Nivell','',140],['Telèfon','',150],['Visites','center',80],['Última','',120],['Ticket','right',110],['Etiquetes','',150],['Negocis','',120]] .map(([h,a,w],i) => (
                   <th key={i} style={{ textAlign:(a||'left') as any,padding:'9px 14px',fontSize:10.5,fontWeight:700,letterSpacing:.08,textTransform:'uppercase',color:'var(--ink-500)',width:Number(w) }}>{h}</th>
                 ))}
               </tr>
@@ -68,11 +85,17 @@ export default function ClientsView() {
               {filtered.map(c => {
                 const avg = c.visits > 0 ? Math.round(c.spend / c.visits) : 0;
                 const isSel = selectedCustomer?.id === c.id;
+                const entry = rankMap.get(c.id);
+                const isPodium = entry && entry.rank <= 3;
+                const podiumIcon = entry?.rank === 1 ? '🥇' : entry?.rank === 2 ? '🥈' : entry?.rank === 3 ? '🥉' : null;
                 return (
                   <tr key={c.id} onClick={() => setSelectedCustomer(isSel ? null : c)}
                     style={{ borderBottom:'var(--hair)',cursor:'pointer',background:isSel?'var(--ink-100)':'transparent' }}
                     onMouseEnter={e => { if(!isSel)(e.currentTarget as HTMLElement).style.background='var(--ink-50)'; }}
                     onMouseLeave={e => { if(!isSel)(e.currentTarget as HTMLElement).style.background='transparent'; }}>
+                    <td style={{ padding:'11px 14px',textAlign:'center',fontFamily:'var(--font-mono)',fontSize:12,fontWeight:700,color: isPodium ? 'var(--ink-900)' : 'var(--ink-500)' }}>
+                      {podiumIcon ?? entry?.rank ?? '—'}
+                    </td>
                     <td style={{ padding:'11px 14px' }}>
                       <div style={{ display:'flex',alignItems:'center',gap:10 }}>
                         <span className={`avatar av-${avIdx(c.name)}`}>{initials(c.name)}</span>
@@ -81,6 +104,9 @@ export default function ClientsView() {
                           {c.email && <div style={{ fontSize:11,color:'var(--ink-500)' }}>{c.email}</div>}
                         </div>
                       </div>
+                    </td>
+                    <td style={{ padding:'11px 14px' }}>
+                      {entry && <LevelPill level={entry.stats.level} points={entry.stats.points} />}
                     </td>
                     <td style={{ padding:'11px 14px',fontFamily:'var(--font-mono)',fontSize:12,color:'var(--ink-700)' }}>{c.phone}</td>
                     <td style={{ padding:'11px 14px',textAlign:'center',fontWeight:600,color:'var(--ink-900)' }}>{c.visits}</td>
@@ -129,8 +155,26 @@ export default function ClientsView() {
   );
 }
 
+function LevelPill({ level, points }: { level: Level; points: number }) {
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap:5,
+      padding:'3px 9px', borderRadius:999,
+      background: level.bg, color: level.color,
+      fontSize:11, fontWeight:700,
+      border:`1px solid ${level.color}33`,
+    }}>
+      <span>{level.icon}</span>
+      <span>{level.name}</span>
+      <span style={{ opacity:.7, fontWeight:600 }}>· {points} pt</span>
+    </span>
+  );
+}
+
 function ClientDetailPanel({ cust, onClose }: { cust: Customer; onClose: () => void }) {
   const avg = cust.visits > 0 ? Math.round(cust.spend / cust.visits) : 0;
+  const { reservations } = useAppStore();
+  const stats = useMemo(() => computeCustomerStats(cust, reservations), [cust, reservations]);
   return (
     <aside style={{ width:360,flex:'none',borderLeft:'var(--hair)',background:'var(--cream)',display:'flex',flexDirection:'column',height:'100%',overflow:'hidden' }}>
       {/* Header */}
@@ -161,6 +205,47 @@ function ClientDetailPanel({ cust, onClose }: { cust: Customer; onClose: () => v
       </div>
 
       <div className="scroll" style={{ overflowY:'auto',flex:1,padding:'14px 18px' }}>
+        {/* ── Fidelitat ──────────────────────────────────────── */}
+        <div style={{ marginBottom:18, padding:'14px', borderRadius:12, background:stats.level.bg + '55', border:`1px solid ${stats.level.color}22` }}>
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10 }}>
+            <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+              <span style={{ fontSize:22 }}>{stats.level.icon}</span>
+              <div>
+                <div style={{ fontFamily:'var(--font-serif)',fontSize:16,fontWeight:600,color:stats.level.color,lineHeight:1.1 }}>{stats.level.name}</div>
+                <div style={{ fontSize:11,color:'var(--ink-500)',marginTop:2 }}>{stats.points} punts · {stats.completed} visites</div>
+              </div>
+            </div>
+            {stats.nextLevel && (
+              <div style={{ textAlign:'right',fontSize:11,color:'var(--ink-600)' }}>
+                <div style={{ fontWeight:600 }}>{stats.nextLevel.min - Math.max(0,stats.points)} pt</div>
+                <div style={{ opacity:.7 }}>fins {stats.nextLevel.name}</div>
+              </div>
+            )}
+          </div>
+          {/* Progress bar */}
+          <div style={{ height:6,borderRadius:3,background:'rgba(255,255,255,.6)',overflow:'hidden' }}>
+            <div style={{ height:'100%',width:`${stats.progressPct}%`,background:stats.level.color,transition:'width 320ms ease' }} />
+          </div>
+          {/* Badges */}
+          <div style={{ display:'flex',gap:6,flexWrap:'wrap',marginTop:12 }}>
+            {stats.badges.map(b => (
+              <span key={b.id} title={b.description}
+                style={{
+                  display:'inline-flex',alignItems:'center',gap:4,
+                  padding:'4px 9px',borderRadius:999,
+                  background: b.earned ? 'var(--paper)' : 'transparent',
+                  color: b.earned ? 'var(--ink-800)' : 'var(--ink-400)',
+                  border:'1px solid rgba(60,40,20,.12)',
+                  fontSize:11, fontWeight:600,
+                  opacity: b.earned ? 1 : .55,
+                  filter: b.earned ? 'none' : 'grayscale(1)',
+                }}>
+                <span>{b.icon}</span><span>{b.label}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
         {cust.notes && (
           <div style={{ marginBottom:16 }}>
             <Label>Notes del client</Label>
