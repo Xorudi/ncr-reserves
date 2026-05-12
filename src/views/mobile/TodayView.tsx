@@ -7,6 +7,17 @@ import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
 import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
+import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/loyalty';
+
+interface LoyaltyEntry { stats: CustomerStats; rank: number; }
+interface LoyaltyLookup {
+  byPhone: Map<string, LoyaltyEntry>;
+  byName:  Map<string, LoyaltyEntry>;
+}
+function lookupLoyalty(l: LoyaltyLookup, r: Reservation): LoyaltyEntry | undefined {
+  if (r.phone && l.byPhone.has(r.phone)) return l.byPhone.get(r.phone);
+  return l.byName.get(r.name.trim().toLowerCase());
+}
 
 /**
  * SwipeableRow — drag horizontally to advance a reservation's status.
@@ -360,8 +371,23 @@ export default function MobileTodayView({
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
     addReservation, floorPlans, updateReservationStatus,
-    shiftNotes,
+    shiftNotes, customers,
   } = useAppStore();
+
+  // Precompute loyalty lookup once per (customers, reservations, biz) so each
+  // ResRow can render a level pill in O(1). Index by phone first, name as
+  // fallback — matches the heuristic used in computeCustomerStats.
+  const loyaltyLookup = useMemo(() => {
+    const ranked = rankCustomersFn(customers, reservations, selectedBusiness as any);
+    const byPhone = new Map<string, LoyaltyEntry>();
+    const byName  = new Map<string, LoyaltyEntry>();
+    for (const r of ranked) {
+      const entry: LoyaltyEntry = { stats: r.stats, rank: r.rank };
+      if (r.customer.phone) byPhone.set(r.customer.phone, entry);
+      byName.set(r.customer.name.trim().toLowerCase(), entry);
+    }
+    return { byPhone, byName };
+  }, [customers, reservations, selectedBusiness]);
 
   // Forward status progression for swipe-to-advance + confirmation toast
   function advanceStatus(r: Reservation) {
@@ -927,6 +953,7 @@ export default function MobileTodayView({
                         selected={sel?.id === r.id}
                         onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
                         plan={plan}
+                        loyalty={lookupLoyalty(loyaltyLookup, r)}
                       />
                     </SwipeableRow>
                   );
@@ -1017,9 +1044,10 @@ const STATUS_TINT: Record<string, { paxBg: string; paxFg: string; paxRing: strin
   noshow:    { paxBg:'var(--rose-50)',       paxFg:'var(--rose-700)',       paxRing:'var(--rose-600)',       rowTint:'rgba(194,74,74,.04)'    },
 };
 
-function ResRow({ res: r, selected, onSel, plan }: {
+function ResRow({ res: r, selected, onSel, plan, loyalty }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
+  loyalty?: LoyaltyEntry;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const effectiveStatus: ReservationStatus =
@@ -1169,9 +1197,23 @@ function ResRow({ res: r, selected, onSel, plan }: {
         )}
       </div>
 
-      {/* Right side — status pill */}
-      <div style={{ flexShrink:0, alignSelf:'flex-start', marginTop:2 }}>
+      {/* Right side — status pill + loyalty level (visible reference for the customer) */}
+      <div style={{ flexShrink:0, alignSelf:'flex-start', marginTop:2, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5 }}>
         <ResStatePill state={effectiveStatus} />
+        {loyalty && (
+          <span title={`${loyalty.stats.points} punts · rang #${loyalty.rank}`} style={{
+            display:'inline-flex', alignItems:'center', gap:3,
+            padding:'2px 7px', borderRadius:999,
+            background: loyalty.stats.level.bg,
+            color: loyalty.stats.level.color,
+            border: `1px solid ${loyalty.stats.level.color}33`,
+            fontSize:10, fontWeight:700, letterSpacing:.2,
+            whiteSpace:'nowrap',
+          }}>
+            <span style={{ fontSize:11 }}>{loyalty.stats.level.icon}</span>
+            <span>{loyalty.stats.level.name}</span>
+          </span>
+        )}
       </div>
     </button>
   );
