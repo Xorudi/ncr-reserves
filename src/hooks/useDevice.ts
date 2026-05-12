@@ -35,27 +35,45 @@ function detectStandalone(): boolean {
       || window.matchMedia('(display-mode: minimal-ui)').matches;
 }
 
-/** True when the primary pointer is coarse (finger / stylus) */
+/**
+ * True when the device supports touch.
+ *
+ * matchMedia('(pointer: coarse)') is the canonical answer but iOS Safari has
+ * known quirks where it can return false during very early page lifecycle.
+ * `navigator.maxTouchPoints` is a stable structural fact about the device and
+ * works as a reliable fallback. We OR them so we only return false when both
+ * agree.
+ */
 function detectTouch(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia('(pointer: coarse)').matches;
+  const mq = window.matchMedia('(pointer: coarse)').matches;
+  const maxTouch = (navigator as { maxTouchPoints?: number }).maxTouchPoints ?? 0;
+  return mq || maxTouch > 0;
 }
 
 /**
  * Device classification rules
  *
- *  mobile   < 768 px                              (phones)
- *  tablet   768–1099 px  OR  touch device         (tablets, iPads, touch monitors)
- *  desktop  >= 1100 px  AND  NOT touch            (mouse-driven wide screens)
+ *   any touch device  width < 600  → mobile  (phones / very small tablets)
+ *   any touch device  width ≥ 600  → tablet  (iPads, Android tablets, etc.)
+ *   non-touch         width < 768  → mobile  (narrow non-touch browser window)
+ *   non-touch         width ≥ 1100 → desktop
+ *   non-touch         768–1099     → tablet  (narrow desktop window)
  *
- * The key insight: a touch device is NEVER desktop, regardless of width.
- * A bar tablet in landscape at 1024 px has pointer:coarse → tablet shell.
- * Only a non-touch screen at 1100 px+ gets the full desktop layout.
+ * Key invariant: an iPad in portrait at 810×1080 (or even 768×1024 for the
+ * classic models) MUST always classify as tablet. The previous rule had a
+ * `w < 768` mobile fallback that ANY touch device could trigger via Safari
+ * viewport quirks, flickering the tablet shell into the mobile layout.
+ * Now touch devices below 600 px (phones only) are mobile; everything else
+ * touch is tablet.
  */
 function classify(w: number, isTouch: boolean): DeviceType {
-  if (w < 768)              return 'mobile';
-  if (w >= 1100 && !isTouch) return 'desktop';
-  return 'tablet'; // 768–1099 any pointer, OR touch at any width ≥ 768
+  if (isTouch) {
+    return w < 600 ? 'mobile' : 'tablet';
+  }
+  if (w < 768) return 'mobile';
+  if (w >= 1100) return 'desktop';
+  return 'tablet';
 }
 
 function snapshot(): DeviceInfo {
@@ -83,6 +101,12 @@ export function useDevice(): DeviceInfo {
   useEffect(() => {
     const update = () => setInfo(snapshot());
 
+    // Re-evaluate once after mount — iOS Safari (especially in PWA mode) can
+    // report stale viewport dimensions during the first paint, which used to
+    // make the iPad briefly classify as mobile. A second rAF tick guarantees
+    // the visual viewport has settled.
+    const r = requestAnimationFrame(() => requestAnimationFrame(update));
+
     window.addEventListener('resize',            update, { passive: true });
     window.addEventListener('orientationchange', update, { passive: true });
 
@@ -99,6 +123,7 @@ export function useDevice(): DeviceInfo {
     }
 
     return () => {
+      cancelAnimationFrame(r);
       window.removeEventListener('resize',            update);
       window.removeEventListener('orientationchange', update);
       try {
