@@ -973,8 +973,11 @@ function ResRow({ res: r, selected, onSel, plan }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
 }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const effectiveStatus: ReservationStatus =
+    r.status === 'noshow' && r.date < today ? 'completed' : r.status;
   const tl   = buildTableLine(r, plan);
-  const tint = STATUS_TINT[r.status] ?? STATUS_TINT.pending;
+  const tint = STATUS_TINT[effectiveStatus] ?? STATUS_TINT.pending;
   const allergens = r.allergens ?? [];
   const hasAllergens = allergens.length > 0 || r.tags?.includes('allergy');
 
@@ -1120,7 +1123,7 @@ function ResRow({ res: r, selected, onSel, plan }: {
 
       {/* Right side — status pill */}
       <div style={{ flexShrink:0, alignSelf:'flex-start', marginTop:2 }}>
-        <ResStatePill state={r.status} />
+        <ResStatePill state={effectiveStatus} />
       </div>
     </button>
   );
@@ -1257,6 +1260,11 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
   if (res && res !== snap) setSnap(res);
   const r = snap;
 
+  const today = new Date().toISOString().slice(0, 10);
+  const effectiveStatus: ReservationStatus | undefined = r
+    ? (r.status === 'noshow' && r.date < today ? 'completed' : r.status)
+    : undefined;
+
   const plan = r ? floorPlans[r.bizId] : undefined;
   const assignedTableNames = (r?.tableIds ?? [])
     .map(id => plan?.tables.find(t => t.id === id)?.name ?? id)
@@ -1317,7 +1325,7 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
               {r.time} · {r.pax} pax{r.source ? ` · ${r.source}` : ''}
             </div>
           </div>
-          <ResStatePill state={r.status} />
+          <ResStatePill state={effectiveStatus ?? r.status} />
           {onEditFull && (
             <button onClick={() => onEditFull(r)} aria-label="Editar" className="press"
               style={{
