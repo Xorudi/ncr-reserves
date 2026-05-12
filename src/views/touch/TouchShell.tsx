@@ -18,6 +18,7 @@ import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useDevice } from '@/hooks/useDevice';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import Toaster, { toast } from '@/components/shared/Toaster';
+import SearchSheet from '@/components/shared/SearchSheet';
 import { NotesSheet } from '@/views/touch/NotesSystem';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
@@ -64,6 +65,7 @@ export default function TouchShell() {
   const [showBizPicker,  setShowBizPicker]  = useState(false);
   const [showUserPicker, setShowUserPicker] = useState(false);
   const [showNotesSheet, setShowNotesSheet] = useState(false);
+  const [showSearch,     setShowSearch]     = useState(false);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
   // Read the Visual Viewport height synchronously so the container height
   // is correct on the very first paint. visualViewport.height tracks the
@@ -412,6 +414,21 @@ export default function TouchShell() {
             })}
           </div>
 
+          {/* ── Search button — sits just above the avatar ───────── */}
+          <div style={{ padding: '0 12px 10px', display: 'flex', justifyContent: 'center' }}>
+            <button onClick={() => setShowSearch(true)} title="Cerca global"
+              className="press"
+              style={{
+                width: 42, height: 42, borderRadius: 12,
+                display: 'grid', placeItems: 'center',
+                border: '1px solid rgba(60,40,20,.08)', cursor: 'pointer',
+                background: 'var(--paper)', color: 'var(--ink-700)',
+                boxShadow: '0 1px 2px rgba(60,40,20,.04)',
+              }}>
+              <Icon d={I.search} size={16} stroke={1.9} />
+            </button>
+          </div>
+
           {/* ── Active user avatar at bottom ───────────────────────── */}
           <div style={{ padding: '14px 12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{
@@ -555,6 +572,11 @@ export default function TouchShell() {
           authorName={activeEmp?.fullName ?? ''}
           onClose={() => setShowNotesSheet(false)}
         />
+        <SearchSheet
+          open={showSearch}
+          onClose={() => setShowSearch(false)}
+          onNavigate={t => setTab(t)}
+        />
         <Toaster />
       </div>
     );
@@ -631,6 +653,16 @@ export default function TouchShell() {
           </div>
         </div>
 
+        <button onClick={() => setShowSearch(true)} aria-label="Cerca"
+          style={{
+            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid rgba(60,40,20,.14)',
+            background: 'var(--paper)', color: 'var(--ink-500)',
+            cursor: 'pointer',
+          }}>
+          <Icon d={I.search} size={17} stroke={2} />
+        </button>
         <button onClick={() => setTab('more')}
           style={{
             width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
@@ -712,6 +744,11 @@ export default function TouchShell() {
         date={selectedDate}
         authorName={activeEmp?.fullName ?? ''}
         onClose={() => setShowNotesSheet(false)}
+      />
+      <SearchSheet
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        onNavigate={t => setTab(t)}
       />
       <Toaster />
     </div>

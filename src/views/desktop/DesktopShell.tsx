@@ -10,6 +10,7 @@ import StaffView from './StaffView';
 import CalendarView from './CalendarView';
 import SettingsView from './SettingsView';
 import StatsScreen from '@/views/mobile/StatsScreen';
+import SearchSheet from '@/components/shared/SearchSheet';
 import { ConfirmReservationModal, CancelReservationModal, WaitlistModal, BlockTableModal, MergeTablesModal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, getStats } from '@/data/mockData';
@@ -28,6 +29,19 @@ export default function DesktopShell() {
 
   const [page, setPage] = useState<string>('today');
   const [showForm, setShowForm] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Cmd/Ctrl+K opens global search (standard pattern for desktop apps).
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const biz   = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const stats = getStats(selectedBusiness);
@@ -67,6 +81,7 @@ export default function DesktopShell() {
         onNavigate={handleNavigate}
         onNewReservation={() => { setShowForm(true); setShowWalkin(false); setPage('today'); }}
         onWalkin={() => { setShowWalkin(true); setShowForm(false); setPage('today'); }}
+        onSearch={() => setShowSearch(true)}
       />
 
       <main style={{ flex:1, display:'flex', height:'100%', overflow:'hidden' }}>
@@ -110,6 +125,11 @@ export default function DesktopShell() {
         primary={mergeModalTable}
         onClose={() => setMergeModalTable(null)}
         onConfirm={() => setMergeModalTable(null)}
+      />
+      <SearchSheet
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        onNavigate={t => setPage(t === 'reservations' ? 'today' : t)}
       />
     </div>
   );

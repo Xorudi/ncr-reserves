@@ -12,9 +12,10 @@ interface Props {
   onNavigate?: (page: string) => void;
   onNewReservation?: () => void;
   onWalkin?: () => void;
+  onSearch?: () => void;
 }
 
-export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'today', onNavigate, onNewReservation, onWalkin }: Props) {
+export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'today', onNavigate, onNewReservation, onWalkin, onSearch }: Props) {
   const { businessConfigs, employees, employeeRoles, activeEmployeeId, setActiveEmployee } = useAppStore();
   const [showUserPicker, setShowUserPicker] = useState(false);
 
@@ -86,6 +87,28 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
       </div>
 
       <div style={{ height:1,background:'rgba(60,40,20,0.08)',margin:'4px 12px' }} />
+
+      {/* Global search trigger — also opens with Cmd/Ctrl+K. */}
+      {onSearch && (
+        <div style={{ padding:'4px 12px' }}>
+          <button onClick={onSearch}
+            style={{
+              display:'flex', alignItems:'center', gap:10, width:'100%',
+              padding:'7px 10px', borderRadius:8,
+              border:'1px solid rgba(60,40,20,.10)',
+              background:'var(--cream)', color:'var(--ink-500)',
+              cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+            }}>
+            <Icon d={I.search} size={14} />
+            <span style={{ flex:1, fontSize:12.5 }}>Cerca…</span>
+            <span style={{
+              fontSize:10, padding:'2px 6px', borderRadius:5,
+              background:'var(--paper)', border:'1px solid rgba(60,40,20,.1)',
+              fontFamily:'var(--font-mono)', color:'var(--ink-500)',
+            }}>⌘K</span>
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
       <nav style={{ padding:'8px 12px',display:'flex',flexDirection:'column',gap:1 }}>
