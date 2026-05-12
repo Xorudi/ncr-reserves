@@ -169,7 +169,7 @@ export function NotesSheet({ open, bizId, date, authorName, onClose }: {
 
   // Friendly weekday label for the header
   const DAYS = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
-  const MONTHS = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+  const MONTHS = ['gen','feb','mar','abr','maig','jun','jul','ago','set','oct','nov','des'];
   const dayLabel = `${DAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`;
 
   return (

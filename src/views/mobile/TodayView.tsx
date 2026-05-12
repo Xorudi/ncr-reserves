@@ -353,7 +353,7 @@ function buildTableLine(res: Reservation, plan: FloorPlan | undefined): { icon: 
 
 const DAYS_CA   = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
 const MONTHS_CA = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
-const MONTHS_SHORT = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+const MONTHS_SHORT = ['gen','feb','mar','abr','maig','jun','jul','ago','set','oct','nov','des'];
 
 function parseH(t: string) { return parseInt(t.split(':')[0], 10); }
 

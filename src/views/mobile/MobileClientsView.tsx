@@ -182,7 +182,7 @@ export default function MobileClientsView() {
               display:'flex', color:'var(--ink-400)',
             }}><Icon d={I.search} size={16} /></div>
             <input value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Cercar per nom o telèfon"
+              placeholder="Cerca per nom o telèfon"
               style={{
                 flex:1, border:'none', outline:'none', background:'transparent',
                 fontFamily:'inherit', fontSize:14, color:'var(--ink-900)',
@@ -300,7 +300,7 @@ function relLastVisit(lastVisit: string | undefined): string | null {
     if (diffDays < 30)   return `fa ${Math.floor(diffDays / 7)} s`;
     // Older than a month: show the actual date — "fa 47 d" is unreadable.
     const d = new Date(lastVisit);
-    const months = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+    const months = ['gen','feb','mar','abr','maig','jun','jul','ago','set','oct','nov','des'];
     const sameYear = d.getFullYear() === new Date().getFullYear();
     return sameYear
       ? `${d.getDate()} ${months[d.getMonth()]}`

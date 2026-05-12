@@ -244,7 +244,7 @@ function ScheduleEditor({ bizId }: { bizId: string }) {
   const baseDate  = new Date(_now); baseDate.setDate(_now.getDate() - (_d === 0 ? 6 : _d - 1)); baseDate.setHours(0,0,0,0);
   const weekStart = new Date(baseDate); weekStart.setDate(baseDate.getDate() + weekOffset * 7);
   const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
-  const fmtD      = (d: Date) => `${d.getDate()} ${['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'][d.getMonth()]}`;
+  const fmtD      = (d: Date) => `${d.getDate()} ${['gen','feb','mar','abr','maig','jun','jul','ago','set','oct','nov','des'][d.getMonth()]}`;
 
   // Group shifts by empId+dow
   const shiftsByEmpDow: Record<string, EmployeeShift[]> = {};

@@ -4,8 +4,10 @@ const CA_MONTHS = [
   "gener", "febrer", "març", "abril", "maig", "juny",
   "juliol", "agost", "setembre", "octubre", "novembre", "desembre"
 ];
+// 3-letter abbreviations except "maig" (May) — kept full to avoid clashing
+// with the Catalan word "mai" ("never").
 const CA_MONTHS_SHORT = [
-  "gen", "feb", "mar", "abr", "mai", "jun",
+  "gen", "feb", "mar", "abr", "maig", "jun",
   "jul", "ago", "set", "oct", "nov", "des"
 ];
 

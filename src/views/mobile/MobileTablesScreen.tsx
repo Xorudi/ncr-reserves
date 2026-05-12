@@ -162,7 +162,7 @@ export default function MobileTablesScreen() {
   // Format selected date for display
   const d = selectedDate;
   const DAY_NAMES = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
-  const MONTHS    = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+  const MONTHS    = ['gen','feb','mar','abr','maig','jun','jul','ago','set','oct','nov','des'];
   const dateLabel = `${DAY_NAMES[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
   const isToday   = isoDate(new Date()) === dateStr;
 

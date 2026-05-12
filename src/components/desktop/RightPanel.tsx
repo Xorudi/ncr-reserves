@@ -122,7 +122,7 @@ function AlertsPanel({ biz }: { biz: Business }) {
   function fmtEventDate(iso: string) {
     const d = new Date(iso + 'T00:00:00');
     const DAYS = ['Dg.','Dl.','Dm.','Dc.','Dj.','Dv.','Ds.'];
-    const MONS = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+    const MONS = ['gen','feb','mar','abr','maig','jun','jul','ago','set','oct','nov','des'];
     return `${DAYS[d.getDay()]} ${d.getDate()} ${MONS[d.getMonth()]}`;
   }
 

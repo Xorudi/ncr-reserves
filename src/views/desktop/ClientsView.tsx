@@ -9,7 +9,7 @@ import { rankCustomers, computeCustomerStats, type CustomerStats, type Level } f
 
 function fmtDate(iso: string) {
   const [y,m,d] = iso.split('-');
-  const mon = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'][Number(m)-1];
+  const mon = ['gen','feb','mar','abr','maig','jun','jul','ago','set','oct','nov','des'][Number(m)-1];
   return `${Number(d)} ${mon} ${y.slice(2)}`;
 }
 
