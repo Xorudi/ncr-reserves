@@ -1237,9 +1237,16 @@ function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizI
 
 // ─── Detail bottom sheet ──────────────────────────────────────────────────────
 function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservation | null; onClose: () => void }) {
-  const { updateReservationStatus, deleteReservation, assignTablesToReservation, floorPlans } = useAppStore();
+  const {
+    updateReservationStatus, updateReservation, deleteReservation,
+    assignTablesToReservation, floorPlans, customers, addCustomer,
+  } = useAppStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showTableSel, setShowTableSel] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<{
+    name: string; phone: string; time: string; pax: number; notes: string;
+  } | null>(null);
   // Snapshot: preserve last reservation so content stays visible during close animation
   const [snap, setSnap] = useState(res);
   if (res && res !== snap) setSnap(res);
@@ -1250,6 +1257,67 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
     .map(id => plan?.tables.find(t => t.id === id)?.name ?? id)
     .join(' + ');
 
+  // Reset edit state when switching to a different reservation
+  useEffect(() => {
+    setEditing(false);
+    setDraft(null);
+  }, [r?.id]);
+
+  // Detect if the client is already in the cartera
+  const existingCustomer = useMemo(() => {
+    if (!r) return undefined;
+    const phone = (r.phone ?? '').replace(/\s/g, '');
+    const bizClients = customers.filter(c => c.biz.includes(r.bizId));
+    if (phone.length >= 6) {
+      const m = bizClients.find(c => (c.phone || '').replace(/\s/g, '') === phone);
+      if (m) return m;
+    }
+    return bizClients.find(c => c.name.toLowerCase() === r.name.toLowerCase());
+  }, [r, customers]);
+
+  function startEdit() {
+    if (!r) return;
+    setDraft({
+      name:  r.name,
+      phone: r.phone ?? '',
+      time:  r.time,
+      pax:   r.pax,
+      notes: r.notes ?? '',
+    });
+    setEditing(true);
+  }
+  function cancelEdit() { setEditing(false); setDraft(null); }
+  function saveEdit() {
+    if (!r || !draft) return;
+    const name = draft.name.trim();
+    if (!name) return;
+    updateReservation(r.id, {
+      name,
+      phone: draft.phone.trim() || undefined,
+      time:  draft.time,
+      pax:   Math.max(1, draft.pax),
+      notes: draft.notes.trim() || undefined,
+    });
+    toast(`${name} · Reserva actualitzada`, { icon: 'check', tone: 'olive' });
+    setEditing(false);
+    setDraft(null);
+  }
+  function addToCartera() {
+    if (!r) return;
+    addCustomer({
+      name:      r.name,
+      phone:     r.phone ?? '',
+      email:     '',
+      visits:    1,
+      lastVisit: r.date,
+      spend:     0,
+      tags:      r.allergens && r.allergens.length > 0 ? ['allergy'] : [],
+      biz:       [r.bizId],
+      notes:     r.notes ?? '',
+    });
+    toast(`${r.name} afegit a la cartera`, { icon: 'check', tone: 'olive' });
+  }
+
   function handleDelete() {
     if (!r) return;
     deleteReservation(r.id);
@@ -1257,6 +1325,19 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
   }
 
   if (!r) return null;
+
+  const inp: React.CSSProperties = {
+    width:'100%', padding:'8px 10px',
+    border:'1px solid rgba(60,40,20,.14)',
+    borderRadius:8, fontFamily:'inherit', fontSize:14,
+    color:'var(--ink-900)', background:'var(--cream)',
+    outline:'none', boxSizing:'border-box',
+  };
+  const fieldLbl: React.CSSProperties = {
+    fontSize:10, fontWeight:700, color:'var(--ink-500)',
+    letterSpacing:.08, textTransform:'uppercase',
+    marginBottom:5, display:'block',
+  };
 
   return (
     <AnimatedSheet open={open} onClose={onClose} zIndex={100}>
@@ -1267,56 +1348,216 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
         paddingBottom:'max(env(safe-area-inset-bottom, 0px), 16px)',
       }}>
         <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
+
+        {/* ── Header ─────────────────────────────────────────── */}
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
           <span className={`avatar lg av-${avIdx(r.name)}`}>{initials(r.name)}</span>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--ink-900)' }}>{r.name}</div>
-            <div style={{ fontSize:12.5, color:'var(--ink-600)', marginTop:2 }}>
-              {r.time} · {r.pax} pax{r.source ? ` · ${r.source}` : ''}
-            </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            {editing && draft ? (
+              <input value={draft.name}
+                onChange={e => setDraft({ ...draft, name: e.target.value })}
+                placeholder="Nom"
+                style={{ ...inp, fontSize:15, fontWeight:650 }} />
+            ) : (
+              <>
+                <div style={{ fontSize:16, fontWeight:700, color:'var(--ink-900)' }}>{r.name}</div>
+                <div style={{ fontSize:12.5, color:'var(--ink-600)', marginTop:2 }}>
+                  {r.time} · {r.pax} pax{r.source ? ` · ${r.source}` : ''}
+                </div>
+              </>
+            )}
           </div>
-          <ResStatePill state={r.status} />
-          <button onClick={onClose} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:4 }}>
-            <Icon d={I.x} size={18} />
-          </button>
-        </div>
-        {r.notes && (
-          <div style={{ background:'rgba(250,230,120,.2)', borderRadius:8, padding:'8px 11px', fontSize:13, color:'#5a4a1a', marginBottom:12, border:'1px solid rgba(200,170,50,.25)' }}>
-            {r.notes}
-          </div>
-        )}
-        {r.phone && (
-          <div style={{ fontSize:12.5, color:'var(--ink-600)', marginBottom:12, display:'flex', alignItems:'center', gap:6 }}>
-            <Icon d={I.phone} size={13} /> {r.phone}
-          </div>
-        )}
-        <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-          {r.phone && (
-            <a href={`tel:${r.phone}`}
-              style={{ flex:1, padding:'10px', textAlign:'center', background:'var(--ink-100)', borderRadius:11, textDecoration:'none', fontSize:13, fontWeight:600, color:'var(--ink-800)', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-              <Icon d={I.phone} size={14} /> Trucar
-            </a>
-          )}
-          {r.status !== 'seated' && (
-            <button onClick={() => { updateReservationStatus(r.id, 'seated'); onClose(); }}
-              style={{ flex:2, padding:'10px', background:'var(--ink-900)', color:'var(--cream)', border:'none', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600 }}>
-              A taula →
+          {!editing && <ResStatePill state={r.status} />}
+          {!editing ? (
+            <>
+              <button onClick={startEdit} aria-label="Editar" className="press"
+                style={{
+                  width:34, height:34, borderRadius:999,
+                  background:'var(--cream)', border:'1px solid rgba(60,40,20,.10)',
+                  cursor:'pointer', color:'var(--ink-700)',
+                  display:'grid', placeItems:'center', flexShrink:0,
+                }}>
+                <Icon d={I.pencil} size={14} stroke={1.9} />
+              </button>
+              <button onClick={onClose}
+                style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:4 }}>
+                <Icon d={I.x} size={18} />
+              </button>
+            </>
+          ) : (
+            <button onClick={cancelEdit} aria-label="Cancel·lar" className="press"
+              style={{
+                width:34, height:34, borderRadius:999,
+                background:'var(--cream)', border:'1px solid rgba(60,40,20,.10)',
+                cursor:'pointer', color:'var(--ink-600)',
+                display:'grid', placeItems:'center', flexShrink:0,
+              }}>
+              <Icon d={I.x} size={15} />
             </button>
           )}
         </div>
-        {/* ── Table assignment row ─────────────────────────────── */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderTop:'var(--hair)', marginBottom:8 }}>
-          <Icon d={I.tableIco} size={14} />
-          <span style={{ flex:1, fontSize:13, color: r.tableIds && r.tableIds.length > 0 ? 'var(--ink-900)' : 'var(--ink-500)', fontStyle: r.tableIds && r.tableIds.length > 0 ? 'normal' : 'italic', fontWeight: r.tableIds && r.tableIds.length > 0 ? 600 : 400 }}>
-            {r.tableIds && r.tableIds.length > 0 ? assignedTableNames : 'Sense taula assignada'}
-          </span>
-          <button onClick={() => setShowTableSel(true)}
-            style={{ padding:'4px 10px', fontSize:12, background:'transparent', border:'1px solid rgba(60,40,20,.15)', borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontWeight:600, color:'var(--ink-700)' }}>
-            {r.tableIds && r.tableIds.length > 0 ? 'Canviar' : 'Assignar taula'}
-          </button>
-        </div>
 
-        <HoldToDelete onConfirm={handleDelete} />
+        {/* ── Body ───────────────────────────────────────────── */}
+        {editing && draft ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:10 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:9 }}>
+              <div>
+                <label style={fieldLbl}>Hora</label>
+                <input type="time" value={draft.time}
+                  onChange={e => setDraft({ ...draft, time: e.target.value })}
+                  style={inp} />
+              </div>
+              <div>
+                <label style={fieldLbl}>Pax</label>
+                <input type="number" min={1} max={99} value={draft.pax}
+                  onChange={e => setDraft({ ...draft, pax: parseInt(e.target.value || '1', 10) })}
+                  style={{ ...inp, fontFamily:'var(--font-serif)', fontSize:15 }} />
+              </div>
+            </div>
+            <div>
+              <label style={fieldLbl}>Telèfon</label>
+              <input type="tel" value={draft.phone}
+                onChange={e => setDraft({ ...draft, phone: e.target.value })}
+                placeholder="+34 600 000 000"
+                style={{ ...inp, fontFamily:'var(--font-mono)' }} />
+            </div>
+            <div>
+              <label style={fieldLbl}>Notes</label>
+              <textarea value={draft.notes} rows={2}
+                onChange={e => setDraft({ ...draft, notes: e.target.value })}
+                placeholder="Al·lèrgies, ocasió especial…"
+                style={{ ...inp, resize:'none', lineHeight:1.4 }} />
+            </div>
+            <div style={{ display:'flex', gap:8, marginTop:2 }}>
+              <button onClick={cancelEdit} className="press"
+                style={{
+                  flex:1, padding:'11px', borderRadius:10,
+                  border:'1px solid rgba(60,40,20,.12)', background:'transparent',
+                  color:'var(--ink-700)', fontFamily:'inherit',
+                  fontSize:13.5, fontWeight:600, cursor:'pointer',
+                }}>
+                Cancel·la
+              </button>
+              <button onClick={saveEdit} disabled={!draft.name.trim()} className="press"
+                style={{
+                  flex:2, padding:'11px', borderRadius:10, border:'none',
+                  background: draft.name.trim()
+                    ? 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)'
+                    : 'rgba(168,74,42,.30)',
+                  color:'#fff', fontFamily:'inherit', fontSize:13.5, fontWeight:700,
+                  cursor: draft.name.trim() ? 'pointer' : 'not-allowed',
+                  boxShadow: draft.name.trim() ? '0 2px 6px rgba(168,74,42,.28)' : 'none',
+                }}>
+                Desar canvis
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {r.notes && (
+              <div style={{
+                background:'rgba(250,230,120,.2)', borderRadius:8,
+                padding:'8px 11px', fontSize:13, color:'#5a4a1a', marginBottom:12,
+                border:'1px solid rgba(200,170,50,.25)',
+              }}>
+                {r.notes}
+              </div>
+            )}
+            {r.phone && (
+              <div style={{
+                fontSize:12.5, color:'var(--ink-600)', marginBottom:12,
+                display:'flex', alignItems:'center', gap:6,
+              }}>
+                <Icon d={I.phone} size={13} />
+                <span style={{ fontFamily:'var(--font-mono)' }}>{r.phone}</span>
+              </div>
+            )}
+
+            {/* Cartera status — Ja en cartera o CTA Desar com a client */}
+            {(r.phone || r.name) && (
+              existingCustomer ? (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:8,
+                  padding:'8px 11px', borderRadius:9, marginBottom:12,
+                  background:'var(--olive-50)',
+                  border:'1px solid rgba(116,133,74,.20)',
+                  fontSize:12.5, color:'var(--olive-700)', fontWeight:600,
+                }}>
+                  <Icon d={I.check} size={13} stroke={2.4} />
+                  Ja és a la cartera ({existingCustomer.visits} visites)
+                </div>
+              ) : (
+                <button onClick={addToCartera} className="press"
+                  style={{
+                    display:'flex', alignItems:'center', gap:9,
+                    padding:'9px 12px', borderRadius:10, marginBottom:12,
+                    background:'transparent',
+                    border:'1px dashed rgba(116,133,74,.40)',
+                    cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+                    width:'100%', color:'var(--olive-700)',
+                    fontSize:13, fontWeight:650,
+                  }}>
+                  <Icon d={I.users} size={14} stroke={1.9} />
+                  <span style={{ flex:1 }}>Desar com a client a la cartera</span>
+                  <Icon d={I.plus} size={12} stroke={2.4} />
+                </button>
+              )
+            )}
+
+            <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+              {r.phone && (
+                <a href={`tel:${r.phone}`}
+                  style={{
+                    flex:1, padding:'10px', textAlign:'center',
+                    background:'var(--ink-100)', borderRadius:11,
+                    textDecoration:'none', fontSize:13, fontWeight:600,
+                    color:'var(--ink-800)',
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                  }}>
+                  <Icon d={I.phone} size={14} /> Trucar
+                </a>
+              )}
+              {r.status !== 'seated' && (
+                <button onClick={() => { updateReservationStatus(r.id, 'seated'); onClose(); }}
+                  style={{
+                    flex:2, padding:'10px',
+                    background:'var(--ink-900)', color:'var(--cream)',
+                    border:'none', borderRadius:11, cursor:'pointer',
+                    fontFamily:'inherit', fontSize:13, fontWeight:600,
+                  }}>
+                  A taula →
+                </button>
+              )}
+            </div>
+
+            {/* ── Table assignment row ─────────────────────── */}
+            <div style={{
+              display:'flex', alignItems:'center', gap:8,
+              padding:'8px 0', borderTop:'var(--hair)', marginBottom:8,
+            }}>
+              <Icon d={I.tableIco} size={14} />
+              <span style={{
+                flex:1, fontSize:13,
+                color: r.tableIds && r.tableIds.length > 0 ? 'var(--ink-900)' : 'var(--ink-500)',
+                fontStyle: r.tableIds && r.tableIds.length > 0 ? 'normal' : 'italic',
+                fontWeight: r.tableIds && r.tableIds.length > 0 ? 600 : 400,
+              }}>
+                {r.tableIds && r.tableIds.length > 0 ? assignedTableNames : 'Sense taula assignada'}
+              </span>
+              <button onClick={() => setShowTableSel(true)}
+                style={{
+                  padding:'4px 10px', fontSize:12, background:'transparent',
+                  border:'1px solid rgba(60,40,20,.15)',
+                  borderRadius:7, cursor:'pointer', fontFamily:'inherit',
+                  fontWeight:600, color:'var(--ink-700)',
+                }}>
+                {r.tableIds && r.tableIds.length > 0 ? 'Canviar' : 'Assignar taula'}
+              </button>
+            </div>
+
+            <HoldToDelete onConfirm={handleDelete} />
+          </>
+        )}
       </div>
 
       {/* ── Confirm delete ───────────────────────────────────────── */}
