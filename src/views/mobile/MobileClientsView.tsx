@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { Tag } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate } from '@/data/mockData';
@@ -27,7 +27,19 @@ const FILTER_LIST: { id: ClientFilter; label: string; tone?: string }[] = [
 export default function MobileClientsView() {
   const { selectedBusiness, customers, reservations } = useAppStore();
   const [query,    setQuery]    = useState('');
-  const [filter,   setFilter]   = useState<ClientFilter>('all');
+  // Persist the filter across navigations within the same session — operators
+  // get frustrated re-selecting "Ranking" every time they pop back from a
+  // client detail.
+  const [filter,   setFilter]   = useState<ClientFilter>(() => {
+    try {
+      const saved = sessionStorage.getItem('ncr.clientsFilter');
+      if (saved === 'all' || saved === 'ranking' || saved === 'vip' || saved === 'regular' || saved === 'allergy' || saved === 'birthday') return saved;
+    } catch { /* private mode */ }
+    return 'all';
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('ncr.clientsFilter', filter); } catch { /* ignore */ }
+  }, [filter]);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editId,   setEditId]   = useState<string | null>(null);
   const [showNew,  setShowNew]  = useState(false);
@@ -275,7 +287,7 @@ export default function MobileClientsView() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** "fa 3d" / "fa 2s" / "fa 1m" / "fa 2a" — short relative time in Catalan. */
+/** Short relative time. Recent → "ahir / fa 3 d / fa 2 s". Older → actual date. */
 function relLastVisit(lastVisit: string | undefined): string | null {
   if (!lastVisit) return null;
   try {
@@ -286,8 +298,13 @@ function relLastVisit(lastVisit: string | undefined): string | null {
     if (diffDays === 1)  return 'ahir';
     if (diffDays < 7)    return `fa ${diffDays} d`;
     if (diffDays < 30)   return `fa ${Math.floor(diffDays / 7)} s`;
-    if (diffDays < 365)  return `fa ${Math.floor(diffDays / 30)} m`;
-    return `fa ${Math.floor(diffDays / 365)} a`;
+    // Older than a month: show the actual date — "fa 47 d" is unreadable.
+    const d = new Date(lastVisit);
+    const months = ['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'];
+    const sameYear = d.getFullYear() === new Date().getFullYear();
+    return sameYear
+      ? `${d.getDate()} ${months[d.getMonth()]}`
+      : `${d.getDate()} ${months[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
   } catch { return null; }
 }
 
@@ -759,9 +776,29 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
     }));
   }
 
+  // Validation helpers. Phone is normalized to digits-only for the check so
+  // formatting (+34, spaces, dots) doesn't trip the rule.
+  function phoneError(): string | null {
+    const v = form.phone.trim();
+    if (!v) return null;  // optional
+    const digits = v.replace(/[^\d]/g, '');
+    if (digits.length < 9) return 'Telèfon massa curt';
+    if (digits.length > 15) return 'Telèfon massa llarg';
+    return null;
+  }
+  function emailError(): string | null {
+    const v = form.email.trim();
+    if (!v) return null;  // optional
+    // Minimal but practical email check.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Email no vàlid';
+    return null;
+  }
+
   function save() {
     setTouched(true);
     if (!form.name.trim()) return;
+    if (phoneError()) return;
+    if (emailError()) return;
     if (isNew) {
       addCustomer(form);
     } else {
@@ -820,12 +857,20 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
             <div>
               <label style={lbl}>Telèfon</label>
               <input type="tel" placeholder="+34 600…" value={form.phone}
-                onChange={e => upd('phone', e.target.value)} style={inp} />
+                onChange={e => upd('phone', e.target.value)}
+                style={{ ...inp, borderColor: touched && phoneError() ? 'var(--terracotta-500)' : undefined }} />
+              {touched && phoneError() && (
+                <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>{phoneError()}</div>
+              )}
             </div>
             <div>
               <label style={lbl}>Email</label>
               <input type="email" placeholder="email@…" value={form.email}
-                onChange={e => upd('email', e.target.value)} style={inp} />
+                onChange={e => upd('email', e.target.value)}
+                style={{ ...inp, borderColor: touched && emailError() ? 'var(--terracotta-500)' : undefined }} />
+              {touched && emailError() && (
+                <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>{emailError()}</div>
+              )}
             </div>
           </div>
 

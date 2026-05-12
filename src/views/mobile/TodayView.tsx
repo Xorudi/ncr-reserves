@@ -1321,7 +1321,7 @@ function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizI
           })}
         </div>
 
-        {/* Quick buttons */}
+        {/* Quick buttons — row 1: day-by-day + jump to today */}
         <div style={{ display:'flex', gap:8, marginTop:12 }}>
           <button onClick={() => { const nd = new Date(selected); nd.setDate(nd.getDate()-1); onSelect(nd); }}
             style={{ flex:1, padding:'10px 0', borderRadius:10, border:'var(--hair)', background:'var(--cream)', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-700)', cursor:'pointer' }}>
@@ -1334,6 +1334,17 @@ function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizI
           <button onClick={() => { const nd = new Date(selected); nd.setDate(nd.getDate()+1); onSelect(nd); }}
             style={{ flex:1, padding:'10px 0', borderRadius:10, border:'var(--hair)', background:'var(--cream)', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-700)', cursor:'pointer' }}>
             Demà →
+          </button>
+        </div>
+        {/* Quick buttons — row 2: week-sized jumps for longer-range planning */}
+        <div style={{ display:'flex', gap:8, marginTop:8 }}>
+          <button onClick={() => { const nd = new Date(selected); nd.setDate(nd.getDate()-7); onSelect(nd); }}
+            style={{ flex:1, padding:'9px 0', borderRadius:10, border:'var(--hair)', background:'transparent', fontFamily:'inherit', fontSize:12, fontWeight:600, color:'var(--ink-600)', cursor:'pointer' }}>
+            ‹‹ −7 dies
+          </button>
+          <button onClick={() => { const nd = new Date(selected); nd.setDate(nd.getDate()+7); onSelect(nd); }}
+            style={{ flex:1, padding:'9px 0', borderRadius:10, border:'var(--hair)', background:'transparent', fontFamily:'inherit', fontSize:12, fontWeight:600, color:'var(--ink-600)', cursor:'pointer' }}>
+            +7 dies ››
           </button>
         </div>
       </div>

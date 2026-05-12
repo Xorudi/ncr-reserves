@@ -430,7 +430,7 @@ function TrendBlock() {
   const { selectedBusiness, reservations, selectedDate } = useAppStore();
   const todayIso = isoDate(selectedDate);
 
-  const { days, maxCount, bestDow, peakHour } = useMemo(() => {
+  const { days, maxCount, bestDow, peakHour, peakLunch, peakDinner } = useMemo(() => {
     const isos = rangeDays(todayIso, 30);
     const days: DayBucket[] = isos.map(iso => {
       const dr = reservations.filter(r => r.bizId === selectedBusiness && r.date === iso && r.status !== 'cancelled');
@@ -457,6 +457,9 @@ function TrendBlock() {
     const dowNames = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres','Dissabte'];
     const bestDow = { name: dowNames[bestDowIdx], avg: dowAvgs[bestDowIdx] };
 
+    // Bucket reservations by hour over the last 30 days, then split into
+    // lunch (12-16h) and dinner (19-24h) services so a restaurant with two
+    // distinct shifts sees both peaks instead of just whichever is busier.
     const hourBuckets: Record<number, number> = {};
     const tStart = new Date(todayIso + 'T00:00:00').getTime() - 30 * 86400000;
     reservations.forEach(r => {
@@ -465,16 +468,34 @@ function TrendBlock() {
       const h = parseInt(r.time.split(':')[0], 10);
       hourBuckets[h] = (hourBuckets[h] || 0) + 1;
     });
+    const peakIn = (from: number, to: number) => {
+      let best: { hour: number; count: number } | null = null;
+      for (const [hStr, c] of Object.entries(hourBuckets)) {
+        const h = parseInt(hStr, 10);
+        if (h < from || h >= to) continue;
+        if (!best || c > best.count) best = { hour: h, count: c };
+      }
+      return best;
+    };
+    const peakLunch  = peakIn(12, 17);  // migdia
+    const peakDinner = peakIn(19, 24);  // nit
+    // Fallback: if a restaurant has no clear two-service rhythm, fall back to
+    // the single all-day peak so the card still reads sensibly.
     const peakEntry = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0];
     const peakHour = peakEntry ? { hour: parseInt(peakEntry[0], 10), count: peakEntry[1] } : null;
 
-    return { days, maxCount, bestDow, peakHour };
+    return { days, maxCount, bestDow, peakLunch, peakDinner, peakHour };
   }, [reservations, selectedBusiness, todayIso]);
 
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="var(--olive-700)">📊 Últims 30 dies</SectionLabel>
       <div style={{ padding: '14px 14px 10px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+        {/* Y-axis hint — shows the scale max so the bar heights are readable. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10, color: 'var(--ink-500)', marginBottom: 4 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>màx {maxCount}</span>
+          <span style={{ fontFamily: 'var(--font-mono)' }}>reserves/dia</span>
+        </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 90, paddingBottom: 4 }}>
           {days.map((d, i) => {
             const h = (d.count / maxCount) * 100;
@@ -502,7 +523,17 @@ function TrendBlock() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
         <InsightCard icon="📅" label="Millor dia" value={bestDow.name} sub={`${bestDow.avg.toFixed(1)} reserves/dia`} />
-        <InsightCard icon="⏰" label="Hora punta" value={peakHour ? `${peakHour.hour}:00` : '—'} sub={peakHour ? `${peakHour.count} reserves` : 'Sense dades'} />
+        {/* Show lunch + dinner peaks separately when both exist; fall back to
+            the single all-day peak when the restaurant only does one service. */}
+        {peakLunch && peakDinner ? (
+          <InsightCard icon="⏰" label="Hores punta"
+            value={`${peakLunch.hour}:00 · ${peakDinner.hour}:00`}
+            sub={`${peakLunch.count} migdia · ${peakDinner.count} nit`} />
+        ) : (
+          <InsightCard icon="⏰" label="Hora punta"
+            value={peakHour ? `${peakHour.hour}:00` : '—'}
+            sub={peakHour ? `${peakHour.count} reserves` : 'Sense dades'} />
+        )}
       </div>
     </div>
   );

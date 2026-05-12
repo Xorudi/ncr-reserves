@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip, Tag } from '@/components/shared/StatusChip';
 import { BUSINESSES, initials, avIdx } from '@/data/mockData';
@@ -16,7 +16,14 @@ function fmtDate(iso: string) {
 export default function ClientsView() {
   const { selectedBusiness, customers, addCustomer, reservations } = useAppStore();
   const [query, setQuery]   = useState('');
-  const [filter, setFilter] = useState('all');
+  // Persist filter across sessions — same UX rationale as the mobile view.
+  const [filter, setFilter] = useState<string>(() => {
+    try { return sessionStorage.getItem('ncr.clientsFilter.desktop') ?? 'all'; }
+    catch { return 'all'; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('ncr.clientsFilter.desktop', filter); } catch { /* ignore */ }
+  }, [filter]);
   const [showNewClient, setShowNewClient] = useState(false);
   const { selectedCustomer, setSelectedCustomer } = useAppStore();
 
@@ -345,7 +352,16 @@ function NewClientModal({ open, onClose, onSave }: {
   function handleSave() {
     const errs: Record<string,string> = {};
     if (!name.trim())  errs.name  = 'El nom és obligatori';
-    if (!phone.trim()) errs.phone = 'El telèfon és obligatori';
+    if (!phone.trim()) {
+      errs.phone = 'El telèfon és obligatori';
+    } else {
+      const digits = phone.replace(/[^\d]/g, '');
+      if (digits.length < 9)       errs.phone = 'Telèfon massa curt';
+      else if (digits.length > 15) errs.phone = 'Telèfon massa llarg';
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errs.email = 'Email no vàlid';
+    }
     if (biz.length === 0) errs.biz = 'Selecciona almenys un negoci';
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -401,7 +417,8 @@ function NewClientModal({ open, onClose, onSave }: {
           <FieldLabel>Email</FieldLabel>
           <input value={email} onChange={e => setEmail(e.target.value)}
             placeholder="correu@exemple.com" type="email"
-            style={inputStyle()} />
+            style={inputStyle(errors.email)} />
+          {errors.email && <ErrMsg>{errors.email}</ErrMsg>}
         </div>
       </div>
 

@@ -253,12 +253,18 @@ body::before {
   background: var(--ink-100); flex: none; letter-spacing: 0;
 }
 .avatar.lg { width: 40px; height: 40px; font-size: 14px; }
-.av-0 { background: #f3d7bf; color: #8a4a1e; }
-.av-1 { background: #dce6c1; color: #4e6024; }
-.av-2 { background: #d4e7ee; color: #2a6d8a; }
-.av-3 { background: #ecd8e3; color: #6b3e5c; }
-.av-4 { background: #f3dca6; color: #7a5a10; }
-.av-5 { background: #e6d6c1; color: #6b4a24; }
+.av-0  { background: #f3d7bf; color: #8a4a1e; }
+.av-1  { background: #dce6c1; color: #4e6024; }
+.av-2  { background: #d4e7ee; color: #2a6d8a; }
+.av-3  { background: #ecd8e3; color: #6b3e5c; }
+.av-4  { background: #f3dca6; color: #7a5a10; }
+.av-5  { background: #e6d6c1; color: #6b4a24; }
+.av-6  { background: #f5cfc4; color: #963826; }
+.av-7  { background: #cee5d4; color: #2f6243; }
+.av-8  { background: #e0d8ef; color: #4d3c75; }
+.av-9  { background: #f0e2bf; color: #6e5818; }
+.av-10 { background: #cfd9e6; color: #34526d; }
+.av-11 { background: #e7d2c0; color: #6a3f1e; }
 
 /* ─── Utility ─── */
 .mono   { font-family: var(--font-mono); }

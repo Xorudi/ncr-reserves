@@ -308,9 +308,12 @@ export function initials(name: string) {
 }
 
 export function avIdx(name: string) {
+  // 12-color palette (defined in index.css as .av-0..av-11). The hash mixes
+  // every character so two names with the same first letter still spread
+  // across the palette.
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
-  return Math.abs(h) % 6;
+  return Math.abs(h) % 12;
 }
 
 export const STATE_LABELS: Record<string, string> = {
