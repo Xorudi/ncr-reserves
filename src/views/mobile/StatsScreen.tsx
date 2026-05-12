@@ -4,6 +4,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate, BUSINESSES } from '@/data/mockData';
 import { rankCustomers, LEVELS, computeCustomerStats, type LevelId } from '@/utils/loyalty';
+import { getDailyServiceCapacity, getEffectiveCapacity } from '@/utils/businessConfig';
 import type { Reservation } from '@/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -179,7 +180,7 @@ function GeneralTab() {
 }
 
 function AutoInsightsBlock() {
-  const { selectedBusiness, reservations, selectedDate } = useAppStore();
+  const { selectedBusiness, reservations, selectedDate, businessConfigs } = useAppStore();
   const todayIso = isoDate(selectedDate);
 
   const insights = useMemo(() => {
@@ -244,7 +245,6 @@ function AutoInsightsBlock() {
     }
 
     // 4. Occupancy spike today vs 7-day avg
-    const biz = BUSINESSES.find(b => b.id === selectedBusiness)!;
     const todayPax = reservations.filter(r => r.bizId === selectedBusiness && r.date === todayIso && r.status !== 'cancelled' && r.status !== 'noshow')
       .reduce((s, r) => s + r.pax, 0);
     const avgPax7d = rangeDays(new Date(t - 86400000).toISOString().slice(0, 10), 7).reduce((acc, iso) => {
@@ -252,14 +252,14 @@ function AutoInsightsBlock() {
     }, 0) / 7;
     if (todayPax > 0 && avgPax7d > 0) {
       const delta = pctDelta(todayPax, avgPax7d);
-      const cap = biz.capacity || 0;
+      const cap = getDailyServiceCapacity(selectedBusiness, businessConfigs);
       const occPct = cap > 0 ? Math.round((todayPax / cap) * 100) : 0;
       if (occPct >= 90) out.push({ icon: '🔥', text: `Avui ple: ocupació al ${occPct}%`, tone: 'terracotta' });
       else if (delta !== null && delta >= 25) out.push({ icon: '🚀', text: `Avui ${delta}% més pax que la mitjana setmanal`, tone: 'olive' });
     }
 
     return out;
-  }, [reservations, selectedBusiness, todayIso]);
+  }, [reservations, selectedBusiness, todayIso, businessConfigs]);
 
   if (insights.length === 0) return null;
 
@@ -293,8 +293,7 @@ function AutoInsightsBlock() {
 }
 
 function KPIsTodayBlock() {
-  const { selectedBusiness, reservations, selectedDate } = useAppStore();
-  const biz = BUSINESSES.find(b => b.id === selectedBusiness)!;
+  const { selectedBusiness, reservations, selectedDate, businessConfigs } = useAppStore();
   const todayIso = isoDate(selectedDate);
 
   const data = useMemo(() => {
@@ -302,7 +301,7 @@ function KPIsTodayBlock() {
     const activeToday = todayRes.filter(r => r.status !== 'cancelled' && r.status !== 'noshow');
     const pax = activeToday.reduce((s, r) => s + r.pax, 0);
     const noshow = todayRes.filter(r => r.status === 'noshow').length;
-    const cap = biz.capacity || 1;
+    const cap = getDailyServiceCapacity(selectedBusiness, businessConfigs);
     const occupancy = Math.min(100, Math.round((pax / cap) * 100));
 
     const t = new Date(todayIso + 'T00:00:00').getTime();
@@ -322,7 +321,7 @@ function KPIsTodayBlock() {
       diffRes: activeToday.length - avgRes,
       diffPax: pax - avgPax,
     };
-  }, [reservations, selectedBusiness, todayIso, biz]);
+  }, [reservations, selectedBusiness, todayIso, businessConfigs]);
 
   return (
     <div style={{ marginBottom: 22 }}>
@@ -755,15 +754,15 @@ function OcupacioTab() {
 }
 
 function LiveStateBlock() {
-  const { selectedBusiness, reservations, floorPlans, selectedDate } = useAppStore();
-  const biz = BUSINESSES.find(b => b.id === selectedBusiness)!;
+  const { selectedBusiness, reservations, floorPlans, selectedDate, businessConfigs } = useAppStore();
   const todayIso = isoDate(selectedDate);
 
   const data = useMemo(() => {
     const todayRes = reservations.filter(r => r.bizId === selectedBusiness && r.date === todayIso);
     const seated = todayRes.filter(r => r.status === 'seated');
     const seatedPax = seated.reduce((s, r) => s + r.pax, 0);
-    const cap = biz.capacity || 1;
+    // Live snapshot: just-seated pax against the room's base capacity (no turnover factor).
+    const cap = getEffectiveCapacity(selectedBusiness, businessConfigs);
     const occupancyNow = Math.min(100, Math.round((seatedPax / cap) * 100));
 
     // Reserves pendents d'arribar (confirmed/pending in next 90 min)
@@ -794,7 +793,7 @@ function LiveStateBlock() {
     const totalTables = plan ? plan.tables.length : 0;
 
     return { seatedCount: seated.length, seatedPax, occupancyNow, pendingArrivals, delays, activeTables, totalTables };
-  }, [reservations, floorPlans, selectedBusiness, todayIso, biz]);
+  }, [reservations, floorPlans, selectedBusiness, todayIso, businessConfigs]);
 
   return (
     <div style={{ marginBottom: 22 }}>

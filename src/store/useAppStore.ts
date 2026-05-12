@@ -345,14 +345,19 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     const touchedBizIds = new Set<string>();
 
     set((s) => {
-      // 1. Mark each stale reservation as completed (or noshow if it was
-      //    only pending — never seated and the day is over)
+      // 1. Mark each stale reservation based on what happened during service:
+      //    - seated:    the client was at the table  → completed
+      //    - confirmed: confirmed but never seated   → noshow (they confirmed but didn't show)
+      //    - pending:   never even confirmed         → completed
+      //                 (assume the operator forgot to update — don't penalize the client)
+      //    Manual no-show via swipe-left remains the authoritative signal during service.
       const reservations = s.reservations.map(r => {
         if (!stale.find(x => x.id === r.id)) return r;
         touchedBizIds.add(r.bizId);
-        const newStatus = r.status === 'seated' || r.status === 'confirmed'
-          ? 'completed' as const
-          : 'noshow' as const;
+        const newStatus =
+          r.status === 'seated'    ? 'completed' as const :
+          r.status === 'confirmed' ? 'noshow'    as const :
+          /* pending */              'completed' as const;
         return { ...r, status: newStatus };
       });
 

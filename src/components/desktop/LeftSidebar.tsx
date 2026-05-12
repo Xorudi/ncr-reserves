@@ -90,13 +90,13 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
       {/* Nav */}
       <nav style={{ padding:'8px 12px',display:'flex',flexDirection:'column',gap:1 }}>
         {([
-          { id:'today',   ico:I.calendar, label:'Avui', count:stats?.totalRes },
-          { id:'floor',   ico:I.tableIco, label:'Plànol de taules' },
-          { id:'clients',  ico:I.users,    label:'Clients' },
-          { id:'history',  ico:I.logs,     label:'Historial' },
-          { id:'staff',    ico:I.users,    label:'Equip' },
-          { id:'calendar', ico:I.calendar, label:'Calendari' },
-          { id:'settings', ico:I.settings, label:'Configuració' },
+          { id:'today',     ico:I.calendar, label:'Avui', count:stats?.totalRes },
+          { id:'floor',     ico:I.tableIco, label:'Plànol de taules' },
+          { id:'clients',   ico:I.users,    label:'Clients' },
+          { id:'calendar',  ico:I.calendar, label:'Calendari' },
+          { id:'stats',     ico:I.barChart, label:'Estadístiques' },
+          { id:'staff',     ico:I.users,    label:'Equip' },
+          { id:'settings',  ico:I.settings, label:'Configuració' },
         ] as const).map(n => {
           const active = (n as {id:string}).id === activePage;
           return (

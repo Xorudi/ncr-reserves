@@ -1,9 +1,12 @@
 import type { Business, Reservation, Customer, FloorPlan, BusinessStats, BusinessId, ShiftNote, AppEvent, BusinessConfig, BusinessHours, BizShift, Employee, EmployeeRole, NotifConfig, WeekScheduleData, EmployeeShift } from '@/types';
 
 export const BUSINESSES: Business[] = [
-  { id: 'ganxo',   name: 'El Ganxo',   kind: 'Pub',                        hue: '#a84a2a', hueSoft: '#f7e2d2', monogram: 'EG', address: 'Passeig Marítim 14',       capacity: 64 },
-  { id: 'pista',   name: 'La Pista',   kind: 'Bar restaurant',             hue: '#5a6b35', hueSoft: '#e4ead1', monogram: 'LP', address: 'Carrer del Poliesportiu 3', capacity: 48 },
-  { id: 'esquitx', name: "L'Esquitx", kind: 'Bar restaurant',              hue: '#2a6d8a', hueSoft: '#d4e7ee', monogram: 'LE', address: 'Plaça Vella 7',             capacity: 32 },
+  // capacity here is the static fallback; the runtime source of truth is
+  // store.businessConfigs[id].capacity (editable via Settings).
+  // Kept in sync with BUSINESS_CONFIGS defaults below.
+  { id: 'ganxo',   name: 'El Ganxo',   kind: 'Pub',                        hue: '#a84a2a', hueSoft: '#f7e2d2', monogram: 'EG', address: 'Passeig Marítim 14',       capacity: 80  },
+  { id: 'pista',   name: 'La Pista',   kind: 'Bar restaurant',             hue: '#5a6b35', hueSoft: '#e4ead1', monogram: 'LP', address: 'Carrer del Poliesportiu 3', capacity: 120 },
+  { id: 'esquitx', name: "L'Esquitx", kind: 'Bar restaurant',              hue: '#2a6d8a', hueSoft: '#d4e7ee', monogram: 'LE', address: 'Plaça Vella 7',             capacity: 45  },
 ];
 
 function r(bizId: BusinessId, time: string, name: string, pax: number, status: Reservation['status'], extras: Partial<Reservation> = {}): Reservation {

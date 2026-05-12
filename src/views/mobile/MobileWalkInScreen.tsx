@@ -4,21 +4,24 @@ import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
 import type { MobileTab } from './MobileShell';
 import type { FloorTable } from '@/types';
+import { resLabel } from '@/utils/statusLabels';
 
 const PAX_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
 
+// Labels come from the centralized statusLabels util — keep all screens in sync.
 const STATUS_LABEL: Record<string, string> = {
-  pending:   'Pendent',
-  confirmed: 'Confirmada',
-  seated:    'Ocupada',
-  completed: 'Completada',
+  pending:   resLabel('pending'),
+  confirmed: resLabel('confirmed'),
+  seated:    resLabel('seated'),     // "A taula" (was "Ocupada")
+  completed: resLabel('completed'),  // "Acabada" (was "Completada")
 };
 
+// Colors aligned with the rest of the app (was hardcoded hex).
 const STATUS_COLOR: Record<string, string> = {
-  pending:   '#b05a00',
-  confirmed: '#1a4ea0',
-  seated:    '#b52b22',
-  completed: '#2e7040',
+  pending:   'var(--clay-700)',
+  confirmed: 'var(--olive-700)',
+  seated:    'var(--terracotta-700)',
+  completed: 'var(--ink-600)',
 };
 
 export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab: MobileTab) => void }) {

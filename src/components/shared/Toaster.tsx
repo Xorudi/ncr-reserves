@@ -17,6 +17,11 @@ import { Icon, I } from '@/components/shared/Icons';
 export type ToastTone = 'olive' | 'terracotta' | 'clay' | 'rose' | 'ink';
 export type ToastIcon = 'check' | 'x' | 'info' | 'alert';
 
+export interface ToastAction {
+  label:   string;
+  onClick: () => void;
+}
+
 export interface ToastMsg {
   id:    number;
   text:  string;
@@ -24,6 +29,8 @@ export interface ToastMsg {
   icon?: ToastIcon;
   /** Override duration in ms. */
   ms?:   number;
+  /** Optional inline action (e.g. "Desfer"). Dismisses on click. */
+  action?: ToastAction;
 }
 
 let nextId = 1;
@@ -66,9 +73,18 @@ export default function Toaster() {
       }, ms);
       timers.current.set(m.id, t);
     };
+    const onDismiss = (e: Event) => {
+      const ce = e as CustomEvent<number>;
+      const id = ce.detail;
+      setList(prev => prev.filter(x => x.id !== id));
+      const t = timers.current.get(id);
+      if (t) { window.clearTimeout(t); timers.current.delete(id); }
+    };
     window.addEventListener('app:toast', onToast);
+    window.addEventListener('app:toast:dismiss', onDismiss);
     return () => {
       window.removeEventListener('app:toast', onToast);
+      window.removeEventListener('app:toast:dismiss', onDismiss);
       timers.current.forEach(t => window.clearTimeout(t));
       timers.current.clear();
     };
@@ -160,6 +176,29 @@ function ToastPill({ m, tone, stackDepth, isTop }: {
       }}>
         {m.text}
       </span>
+      {m.action && (
+        <button
+          onClick={() => {
+            m.action!.onClick();
+            // Notify Toaster to remove this toast immediately on action click.
+            window.dispatchEvent(new CustomEvent('app:toast:dismiss', { detail: m.id }));
+          }}
+          style={{
+            marginLeft: 4,
+            padding: '4px 10px',
+            borderRadius: 999,
+            border: `1px solid ${tone.ring}`,
+            background: 'rgba(255,255,255,.6)',
+            color: tone.fg,
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            fontWeight: 700,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}>
+          {m.action.label}
+        </button>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { ALLERGENS, allergenById } from '@/utils/allergens';
 import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
 import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/loyalty';
+import { getDailyServiceCapacity } from '@/utils/businessConfig';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
 interface LoyaltyLookup {
@@ -371,7 +372,7 @@ export default function MobileTodayView({
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
     addReservation, floorPlans, updateReservationStatus,
-    shiftNotes, customers,
+    shiftNotes, customers, businessConfigs,
   } = useAppStore();
 
   // Precompute loyalty lookup once per (customers, reservations, biz) so each
@@ -413,8 +414,17 @@ export default function MobileTodayView({
   }
 
   function markNoShow(r: Reservation) {
+    const prevStatus = r.status;
     updateReservationStatus(r.id, 'noshow');
-    toast(`${r.name} · No-show`, { icon: 'alert', tone: 'rose' });
+    toast(`${r.name} · No-show`, {
+      icon: 'alert',
+      tone: 'rose',
+      ms: 5000,  // Extra time to react
+      action: {
+        label: 'Desfer',
+        onClick: () => updateReservationStatus(r.id, prevStatus),
+      },
+    });
   }
   function swipeMetaFor(r: Reservation): {
     label: string; bg: string; fg: string; ring: string; disabled: boolean;
@@ -655,8 +665,7 @@ export default function MobileTodayView({
 
       {/* ── Hero stat card — replaces the three flat stat boxes ────────── */}
       {activeList.length > 0 && (() => {
-        const biz = BUSINESSES.find(b => b.id === selectedBusiness);
-        const cap = biz?.capacity ?? 80;
+        const cap = getDailyServiceCapacity(selectedBusiness, businessConfigs);
         const confirmed = activeList.filter(r => r.status === 'confirmed').length;
         const pending   = activeList.filter(r => r.status === 'pending').length;
         const seated    = activeList.filter(r => r.status === 'seated').length;

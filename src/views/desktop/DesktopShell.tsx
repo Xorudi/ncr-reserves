@@ -9,6 +9,7 @@ import ClientsView from './ClientsView';
 import StaffView from './StaffView';
 import CalendarView from './CalendarView';
 import SettingsView from './SettingsView';
+import StatsScreen from '@/views/mobile/StatsScreen';
 import { ConfirmReservationModal, CancelReservationModal, WaitlistModal, BlockTableModal, MergeTablesModal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, getStats } from '@/data/mockData';
@@ -46,12 +47,13 @@ export default function DesktopShell() {
     if (page === 'staff')    return <StaffView />;
     if (page === 'calendar') return <CalendarView />;
     if (page === 'settings') return <SettingsView />;
+    if (page === 'stats')    return <StatsScreen onBack={() => setPage('today')} />;
     return <DailyView />;
   }
 
   const hideRightPanel = showWalkin || showForm
     || page === 'clients' || page === 'floor'
-    || page === 'staff'
+    || page === 'staff' || page === 'stats'
     || (page === 'calendar' && !selectedReservation)
     || page === 'settings';
 
