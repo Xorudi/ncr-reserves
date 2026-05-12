@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate, BUSINESSES } from '@/data/mockData';
@@ -53,12 +54,11 @@ export default function StatsScreen({ onBack }: { onBack: () => void }) {
     const style = document.createElement('style');
     style.id = 'stats-print-style';
     style.textContent = `
-      .stats-print { display: none; }
+      .stats-print-portal { display: none; }
       @media print {
-        body * { visibility: hidden; }
-        #stats-print-root .stats-print, #stats-print-root .stats-print * { visibility: visible; }
-        #stats-print-root .stats-print { display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 18px 24px; background: white; }
-        #stats-print-root .stats-screen { display: none !important; }
+        /* Hide everything in the document tree, then show only the portal. */
+        body > * { display: none !important; }
+        body > .stats-print-portal { display: block !important; background: white; padding: 0; }
         @page { margin: 14mm; size: A4; }
       }
     `;
@@ -139,10 +139,11 @@ export default function StatsScreen({ onBack }: { onBack: () => void }) {
       </div>
       </div>
 
-      {/* Print-only region — all tabs stacked. Mounted only while printing
-          so we don't pay the rendering cost on every screen render. */}
-      {printing && (
-        <div className="stats-print">
+      {/* Print-only region — mounted to document.body via portal so the
+          system print engine sees it as a top-level flow element and lays
+          out across as many pages as needed. */}
+      {printing && createPortal(
+        <div className="stats-print-portal" style={{ padding: '18px 24px' }}>
           <div style={{ fontFamily: 'Georgia, serif', borderBottom: '1px solid #ddd', paddingBottom: 12, marginBottom: 18 }}>
             <div style={{ fontSize: 24, fontWeight: 600, color: '#3c2814' }}>Informe Estadístiques</div>
             <div style={{ fontSize: 12, color: '#766251', marginTop: 4 }}>Generat el {generatedAt}</div>
@@ -155,7 +156,8 @@ export default function StatsScreen({ onBack }: { onBack: () => void }) {
           <OcupacioTab />
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#3c2814', marginTop: 24, marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 4, pageBreakBefore: 'always' }}>4 · Fidelització</h2>
           <FidelitzacioTab />
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
