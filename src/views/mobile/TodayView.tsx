@@ -6,7 +6,7 @@ import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
 import { toast } from '@/components/shared/Toaster';
-import type { Reservation, BusinessId, ReservationStatus, FloorPlan } from '@/types';
+import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq } from '@/types';
 import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/loyalty';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 
@@ -1112,6 +1112,10 @@ function ResRow({ res: r, selected, onSel, plan, loyalty }: {
           {r.tags?.includes('birthday') && (
             <span style={{ fontSize:13, lineHeight:1 }} aria-label="Aniversari">🎂</span>
           )}
+          {r.seriesId && (
+            <span title="Part d'una reserva recurrent"
+              style={{ fontSize:11, lineHeight:1, opacity:.7 }} aria-label="Recurrent">🔁</span>
+          )}
         </div>
 
         {/* Meta line: time · phone · source */}
@@ -1609,7 +1613,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   editRes?: Reservation;
 }) {
   const biz = BUSINESSES.find(b => b.id === bizId)!;
-  const { customers, floorPlans, addCustomer, updateReservation } = useAppStore();
+  const { customers, floorPlans, addCustomer, updateReservation, addReservationSeries } = useAppStore();
   const plan = floorPlans[bizId];
   const isEdit = !!editRes;
 
@@ -1649,6 +1653,10 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   // when there's no name+phone yet, or when picked from cartera, or when
   // a customer with that exact phone already exists.
   const [saveToCartera,     setSaveToCartera]     = useState(true);
+  // Recurring series — only available when creating (not editing).
+  const [recurring,         setRecurring]         = useState(false);
+  const [recurFreq,         setRecurFreq]         = useState<RecurFreq>('weekly');
+  const [recurOccurrences,  setRecurOccurrences]  = useState(8);
 
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
@@ -1755,6 +1763,13 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
     };
     if (isEdit && editRes) {
       updateReservation(editRes.id, payload);
+    } else if (recurring && recurOccurrences > 1) {
+      // Strip date from template — the series action assigns it per occurrence.
+      const { date: _ignored, ...rest } = payload;
+      addReservationSeries(rest, payload.date, {
+        freq: recurFreq,
+        occurrences: recurOccurrences,
+      });
     } else {
       addReservation(payload);
     }
@@ -1915,6 +1930,136 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
               </label>
             </div>
           </section>
+
+          {/* ───── Recurring series — only when creating, never when editing ───── */}
+          {!isEdit && (
+            <section>
+              <div style={sectionTitle}>
+                <span style={sectionDot} />Repetir
+                {recurring && (
+                  <span style={{
+                    marginLeft:'auto', fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
+                    color:'var(--terracotta-700)', lineHeight:1,
+                  }}>{recurOccurrences}×</span>
+                )}
+              </div>
+              <div style={card}>
+                {/* Toggle row */}
+                <div style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  paddingBottom: recurring ? 10 : 0,
+                  borderBottom: recurring ? '1px dashed rgba(60,40,20,.10)' : 'none',
+                }}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)' }}>Reserva recurrent</div>
+                    <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:2 }}>
+                      Genera múltiples reserves d'un cop (mateix dia de la setmana, hora i taula)
+                    </div>
+                  </div>
+                  <button onClick={() => setRecurring(v => !v)} className="press"
+                    aria-label={recurring ? 'Desactivar' : 'Activar'}
+                    style={{
+                      width:46, height:28, borderRadius:999, flexShrink:0,
+                      border:'none', cursor:'pointer',
+                      background: recurring ? 'var(--terracotta-600)' : 'var(--ink-200)',
+                      position:'relative',
+                      transition:'background 180ms var(--ease-ios)',
+                    }}>
+                    <span style={{
+                      position:'absolute', top:2, left: recurring ? 20 : 2,
+                      width:24, height:24, borderRadius:'50%', background:'#fff',
+                      boxShadow:'0 1px 3px rgba(0,0,0,.18)',
+                      transition:'left 200ms var(--ease-ios)',
+                    }} />
+                  </button>
+                </div>
+
+                {recurring && (
+                  <>
+                    {/* Frequency picker */}
+                    <div style={{ marginTop:12 }}>
+                      <div style={{ fontSize:10.5, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, textTransform:'uppercase', marginBottom:6 }}>
+                        Freqüència
+                      </div>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6 }}>
+                        {([
+                          ['weekly',   'Setmanal',   'cada 7 dies'],
+                          ['biweekly', 'Quinzenal',  'cada 14 dies'],
+                          ['monthly',  'Mensual',    'cada mes'],
+                        ] as const).map(([id, label, sub]) => {
+                          const active = recurFreq === id;
+                          return (
+                            <button key={id} onClick={() => setRecurFreq(id)} className="press"
+                              style={{
+                                padding:'9px 6px', borderRadius:10,
+                                border: active ? '1.5px solid var(--terracotta-600)' : '1px solid rgba(60,40,20,.10)',
+                                background: active ? 'var(--terracotta-50)' : 'var(--paper)',
+                                color: active ? 'var(--terracotta-700)' : 'var(--ink-700)',
+                                fontFamily:'inherit', cursor:'pointer',
+                                display:'flex', flexDirection:'column', alignItems:'center', gap:1,
+                                transition:'background 140ms var(--ease-ios), border-color 140ms var(--ease-ios)',
+                              }}>
+                              <span style={{ fontSize:13, fontWeight:650 }}>{label}</span>
+                              <span style={{ fontSize:10, opacity:.7 }}>{sub}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Occurrences */}
+                    <div style={{ marginTop:14 }}>
+                      <div style={{ fontSize:10.5, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, textTransform:'uppercase', marginBottom:6 }}>
+                        Repeticions
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <button onClick={() => setRecurOccurrences(n => Math.max(2, n - 1))} className="press"
+                          style={{
+                            width:36, height:36, borderRadius:10,
+                            border:'1px solid rgba(60,40,20,.10)', background:'var(--paper)',
+                            color:'var(--ink-700)', cursor:'pointer',
+                            display:'grid', placeItems:'center',
+                          }}>
+                          <Icon d={I.chevL} size={14} stroke={2.4} />
+                        </button>
+                        <div style={{ flex:1, textAlign:'center' }}>
+                          <span style={{ fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500, color:'var(--ink-900)' }}>
+                            {recurOccurrences}
+                          </span>
+                          <span style={{ fontSize:12, color:'var(--ink-500)', marginLeft:4 }}>
+                            reserves
+                          </span>
+                        </div>
+                        <button onClick={() => setRecurOccurrences(n => Math.min(52, n + 1))} className="press"
+                          style={{
+                            width:36, height:36, borderRadius:10,
+                            border:'1px solid rgba(60,40,20,.10)', background:'var(--paper)',
+                            color:'var(--ink-700)', cursor:'pointer',
+                            display:'grid', placeItems:'center',
+                          }}>
+                          <Icon d={I.chevR} size={14} stroke={2.4} />
+                        </button>
+                      </div>
+                      {/* Preview: last date in the series */}
+                      <div style={{
+                        marginTop:8, fontSize:11.5, color:'var(--ink-500)', textAlign:'center',
+                        fontFamily:'var(--font-mono)', letterSpacing:.04,
+                      }}>
+                        última: {(() => {
+                          const start = new Date(form.date + 'T00:00:00');
+                          const end = new Date(start);
+                          if (recurFreq === 'weekly')   end.setDate(end.getDate() + (recurOccurrences - 1) * 7);
+                          else if (recurFreq === 'biweekly') end.setDate(end.getDate() + (recurOccurrences - 1) * 14);
+                          else                                end.setMonth(end.getMonth() + (recurOccurrences - 1));
+                          return end.toLocaleDateString('ca-ES', { day:'numeric', month:'short', year: end.getFullYear() !== start.getFullYear() ? 'numeric' : undefined });
+                        })()}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* ───── Group 2: Persones — pill grid amb wrap, sense overflow ───── */}
           <section>
@@ -2317,9 +2462,9 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
               {saved ? (
                 <>
                   <Icon d={I.check} size={18} stroke={2.5} />
-                  {isEdit ? 'Canvis desats' : 'Reserva creada'}
+                  {isEdit ? 'Canvis desats' : (recurring && recurOccurrences > 1 ? `${recurOccurrences} reserves creades` : 'Reserva creada')}
                 </>
-              ) : (isEdit ? 'Desar canvis' : 'Crear reserva')}
+              ) : (isEdit ? 'Desar canvis' : (recurring && recurOccurrences > 1 ? `Crear ${recurOccurrences} reserves` : 'Crear reserva'))}
             </span>
           </button>
         </div>

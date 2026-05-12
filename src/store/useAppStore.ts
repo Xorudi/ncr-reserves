@@ -5,6 +5,7 @@ import type {
   ShiftNote, AppEvent, FloorPlan, FloorTable, FloorZone,
   BusinessConfig, BusinessHours, BizShift,
   Employee, EmployeeRole, NotifConfig, WeekScheduleData, EmployeeShift,
+  RecurrencePattern,
 } from '@/types';
 import {
   RESERVATIONS, CUSTOMERS, SHIFT_NOTES, APP_EVENTS, FLOOR_PLANS,
@@ -67,6 +68,15 @@ interface AppState {
   updateReservationStatus: (id: string, status: ReservationStatus) => void;
   updateReservation: (id: string, updates: Partial<Reservation>) => void;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
+  /**
+   * Generate a series of reservations from a template + recurrence pattern.
+   * All siblings share a freshly minted seriesId. Returns the seriesId.
+   */
+  addReservationSeries: (
+    template: Omit<Reservation, 'id' | 'date' | 'seriesId'>,
+    startDate: string,
+    pattern: RecurrencePattern,
+  ) => string;
   deleteReservation: (id: string) => void;
   assignTablesToReservation: (resId: string, tableIds: string[]) => void;
 
@@ -249,6 +259,41 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     const newRes: Reservation = { ...res, id: `${res.bizId}-${res.time}-${Date.now()}` };
     set((s) => ({ reservations: [...s.reservations, newRes] }));
     cloud.upsertReservation(newRes);
+  },
+
+  addReservationSeries: (template, startDate, pattern) => {
+    // Series id is reused as a prefix for the generated reservation ids so
+    // siblings are easy to spot in logs and DB scans.
+    const seriesId = `series-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const stepDays = pattern.freq === 'weekly' ? 7 : pattern.freq === 'biweekly' ? 14 : null;
+
+    const dates: string[] = [];
+    const start = new Date(startDate + 'T00:00:00');
+    for (let i = 0; i < pattern.occurrences; i++) {
+      const d = new Date(start);
+      if (stepDays !== null) {
+        d.setDate(d.getDate() + i * stepDays);
+      } else {
+        // monthly — same day-of-month each step
+        d.setMonth(d.getMonth() + i);
+      }
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dates.push(`${y}-${m}-${dd}`);
+    }
+
+    const newRes: Reservation[] = dates.map((date, i) => ({
+      ...template,
+      date,
+      seriesId,
+      // Distinct ids per occurrence; suffix with the index for ordering.
+      id: `${template.bizId}-${template.time}-${seriesId}-${i}`,
+    }));
+
+    set((s) => ({ reservations: [...s.reservations, ...newRes] }));
+    newRes.forEach(r => cloud.upsertReservation(r));
+    return seriesId;
   },
 
   assignTablesToReservation: (resId, tableIds) => {

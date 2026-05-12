@@ -28,6 +28,15 @@ export interface Reservation {
   tags?: string[];
   tableIds?: string[];   // IDs of assigned FloorTable entries
   allergens?: string[];  // e.g. ['gluten','lactosa','marisc']
+  seriesId?: string;     // If part of a recurring series, all siblings share this id
+}
+
+/** Recurrence frequency for a reservation series. */
+export type RecurFreq = 'weekly' | 'biweekly' | 'monthly';
+
+export interface RecurrencePattern {
+  freq:        RecurFreq;
+  occurrences: number;   // total number of generated reservations (incl. the first)
 }
 
 export interface Customer {
