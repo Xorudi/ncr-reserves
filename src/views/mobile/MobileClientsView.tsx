@@ -4,6 +4,7 @@ import { Tag } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId, ReservationStatus } from '@/types';
+import { rankCustomers, computeCustomerStats, type CustomerStats } from '@/utils/loyalty';
 
 const ALL_TAGS = ['vip','regular','allergy','birthday','conflictiu','terrassa'] as const;
 const TAG_LABEL: Record<string, string> = {
@@ -11,10 +12,11 @@ const TAG_LABEL: Record<string, string> = {
   birthday:'Aniversari', conflictiu:'Conflictiu', terrassa:'Terrassa',
 };
 
-// Filter ids — match Customer.tags entries (plus 'all' for no filter)
-type ClientFilter = 'all' | 'vip' | 'regular' | 'allergy' | 'birthday';
+// Filter ids — match Customer.tags entries (plus 'all' for no filter, 'ranking' for points sort)
+type ClientFilter = 'all' | 'ranking' | 'vip' | 'regular' | 'allergy' | 'birthday';
 const FILTER_LIST: { id: ClientFilter; label: string; tone?: string }[] = [
   { id: 'all',      label: 'Tots'        },
+  { id: 'ranking',  label: '🏆 Ranking'  },
   { id: 'vip',      label: 'VIP'         },
   { id: 'regular',  label: 'Habituals'   },
   { id: 'allergy',  label: 'Al·lèrgies'  },
@@ -36,22 +38,36 @@ export default function MobileClientsView() {
     [customers, selectedBusiness],
   );
 
+  // Per-business ranking — computed once, queried via rankMap by customer id.
+  const ranked = useMemo(
+    () => rankCustomers(customers, reservations, selectedBusiness as BusinessId),
+    [customers, reservations, selectedBusiness],
+  );
+  const rankMap = useMemo(() => {
+    const m = new Map<string, { stats: CustomerStats; rank: number }>();
+    for (const r of ranked) m.set(r.customer.id, { stats: r.stats, rank: r.rank });
+    return m;
+  }, [ranked]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return bizClients
-      .filter(c => {
-        if (q && !c.name.toLowerCase().includes(q) && !c.phone.includes(query)) return false;
-        if (filter !== 'all' && !c.tags.includes(filter)) return false;
-        return true;
-      })
-      .sort((a, b) => b.visits - a.visits);
-  }, [bizClients, query, filter]);
+    const base = bizClients.filter(c => {
+      if (q && !c.name.toLowerCase().includes(q) && !c.phone.includes(query)) return false;
+      if (filter === 'ranking' || filter === 'all') return true;
+      if (!c.tags.includes(filter)) return false;
+      return true;
+    });
+    if (filter === 'ranking') {
+      return base.sort((a, b) => (rankMap.get(a.id)?.rank ?? 9999) - (rankMap.get(b.id)?.rank ?? 9999));
+    }
+    return base.sort((a, b) => b.visits - a.visits);
+  }, [bizClients, query, filter, rankMap]);
 
   // Header stats — totals + today's expected visitors (fuzzy first-name match)
   const todayIso = isoDate(new Date());
   const stats = useMemo(() => {
     const totals: Record<ClientFilter, number> = {
-      all: bizClients.length, vip: 0, regular: 0, allergy: 0, birthday: 0,
+      all: bizClients.length, ranking: bizClients.length, vip: 0, regular: 0, allergy: 0, birthday: 0,
     };
     bizClients.forEach(c => {
       if (c.tags.includes('vip'))      totals.vip++;
@@ -215,7 +231,7 @@ export default function MobileClientsView() {
           <div key={c.id}
             className="row-stagger"
             style={{ ['--row-i' as string]: Math.min(i, 7) }}>
-            <ClientRow client={c} onTap={() => setDetailId(c.id)} />
+            <ClientRow client={c} rankInfo={rankMap.get(c.id)} showRank={filter === 'ranking'} onTap={() => setDetailId(c.id)} />
           </div>
         ))}
         {filtered.length === 0 && (
@@ -322,12 +338,19 @@ function ClientsEmpty({ query, filter }: { query: string; filter: ClientFilter }
 }
 
 // ─── Client row — richer layout with last-visit, allergens, serif spend ──────
-function ClientRow({ client: c, onTap }: { client: Customer; onTap: () => void }) {
+function ClientRow({ client: c, onTap, rankInfo, showRank }: {
+  client: Customer; onTap: () => void;
+  rankInfo?: { stats: CustomerStats; rank: number };
+  showRank?: boolean;
+}) {
   const lastSeen = relLastVisit(c.lastVisit);
   const isVip      = c.tags.includes('vip');
   const hasAllergy = c.tags.includes('allergy');
   const isBirthday = c.tags.includes('birthday');
   const palette    = avIdx(c.name);
+  const podiumIcon = showRank && rankInfo?.rank === 1 ? '🥇'
+                   : showRank && rankInfo?.rank === 2 ? '🥈'
+                   : showRank && rankInfo?.rank === 3 ? '🥉' : null;
   return (
     <button onClick={onTap} className="press"
       style={{
@@ -340,6 +363,15 @@ function ClientRow({ client: c, onTap }: { client: Customer; onTap: () => void }
         fontFamily:'inherit', textAlign:'left',
         transition:'background 200ms var(--ease-out)',
       }}>
+      {/* Rank position (only on ranking filter) */}
+      {showRank && (
+        <span style={{
+          flexShrink:0, width:28, textAlign:'center',
+          fontFamily:'var(--font-mono)', fontSize: podiumIcon ? 18 : 13,
+          fontWeight:700,
+          color: rankInfo && rankInfo.rank <= 3 ? 'var(--ink-900)' : 'var(--ink-400)',
+        }}>{podiumIcon ?? rankInfo?.rank ?? '—'}</span>
+      )}
       {/* Avatar — palette-coloured serif initials, with subtle gold ring on VIPs */}
       <span className={`avatar av-${palette}`}
         style={{
@@ -375,6 +407,20 @@ function ClientRow({ client: c, onTap }: { client: Customer; onTap: () => void }
           )}
           {isBirthday && (
             <span style={{ fontSize:13, lineHeight:1 }} aria-label="Aniversari">🎂</span>
+          )}
+          {rankInfo && (
+            <span title={`${rankInfo.stats.points} punts`} style={{
+              fontSize:10, fontWeight:700,
+              padding:'2px 7px', borderRadius:999,
+              background: rankInfo.stats.level.bg,
+              color: rankInfo.stats.level.color,
+              border: `1px solid ${rankInfo.stats.level.color}33`,
+              display:'inline-flex', alignItems:'center', gap:3,
+              letterSpacing:.2,
+            }}>
+              <span style={{ fontSize:11 }}>{rankInfo.stats.level.icon}</span>
+              <span>{rankInfo.stats.level.name}</span>
+            </span>
           )}
         </div>
 
@@ -433,6 +479,7 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
 }) {
   const { deleteCustomer, reservations, addReservation } = useAppStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const fidelity = useMemo(() => computeCustomerStats(c, reservations), [c, reservations]);
 
   // Fuzzy match: reservations that share the client's first name in the same biz
   const history = useMemo(() =>
@@ -481,6 +528,55 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
             <button onClick={onClose} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:4, flexShrink:0 }}>
               <Icon d={I.x} size={18} />
             </button>
+          </div>
+
+          {/* Fidelitat */}
+          <div style={{
+            marginBottom:12,
+            padding:'12px 14px',
+            borderRadius:12,
+            background: fidelity.level.bg + '66',
+            border: `1px solid ${fidelity.level.color}22`,
+          }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:24 }}>{fidelity.level.icon}</span>
+                <div>
+                  <div style={{ fontFamily:'var(--font-serif)', fontSize:16, fontWeight:600, color:fidelity.level.color, lineHeight:1.1 }}>
+                    {fidelity.level.name}
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--ink-500)', marginTop:2 }}>
+                    {fidelity.points} punts · {fidelity.completed} visites{fidelity.noshows > 0 ? ` · ${fidelity.noshows} no-show` : ''}
+                  </div>
+                </div>
+              </div>
+              {fidelity.nextLevel && (
+                <div style={{ textAlign:'right', fontSize:11, color:'var(--ink-600)' }}>
+                  <div style={{ fontWeight:700 }}>{fidelity.nextLevel.min - Math.max(0, fidelity.points)} pt</div>
+                  <div style={{ opacity:.7 }}>fins {fidelity.nextLevel.name}</div>
+                </div>
+              )}
+            </div>
+            <div style={{ height:6, borderRadius:3, background:'rgba(255,255,255,.6)', overflow:'hidden' }}>
+              <div style={{ height:'100%', width:`${fidelity.progressPct}%`, background: fidelity.level.color, transition:'width 320ms ease' }} />
+            </div>
+            <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:10 }}>
+              {fidelity.badges.map(b => (
+                <span key={b.id} title={b.description}
+                  style={{
+                    display:'inline-flex', alignItems:'center', gap:4,
+                    padding:'3px 8px', borderRadius:999,
+                    background: b.earned ? 'var(--paper)' : 'transparent',
+                    color: b.earned ? 'var(--ink-800)' : 'var(--ink-400)',
+                    border:'1px solid rgba(60,40,20,.12)',
+                    fontSize:10.5, fontWeight:600,
+                    opacity: b.earned ? 1 : .5,
+                    filter: b.earned ? 'none' : 'grayscale(1)',
+                  }}>
+                  <span>{b.icon}</span><span>{b.label}</span>
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Contact info */}
