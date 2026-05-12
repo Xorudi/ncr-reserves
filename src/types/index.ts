@@ -31,6 +31,19 @@ export interface Reservation {
   seriesId?: string;     // If part of a recurring series, all siblings share this id
 }
 
+/** Waitlist (live queue for parties waiting in the door). */
+export interface WaitlistEntry {
+  id:         string;
+  bizId:      BusinessId;
+  name:       string;
+  pax:        number;
+  phone?:     string;
+  notes?:     string;
+  addedAt:    number;                 // epoch ms — drives the "X min" display
+  notifiedAt?: number;                // when "Avisar" was tapped
+  status:     'waiting' | 'notified' | 'seated' | 'left';
+}
+
 /** Recurrence frequency for a reservation series. */
 export type RecurFreq = 'weekly' | 'biweekly' | 'monthly';
 

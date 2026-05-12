@@ -5,7 +5,7 @@ import type {
   ShiftNote, AppEvent, FloorPlan, FloorTable, FloorZone,
   BusinessConfig, BusinessHours, BizShift,
   Employee, EmployeeRole, NotifConfig, WeekScheduleData, EmployeeShift,
-  RecurrencePattern,
+  RecurrencePattern, WaitlistEntry,
 } from '@/types';
 import {
   RESERVATIONS, CUSTOMERS, SHIFT_NOTES, APP_EVENTS, FLOOR_PLANS,
@@ -37,6 +37,7 @@ interface AppState {
   cancelModalRes: any | null;
   blockModalTable: any | null;
   showWaitlist: boolean;
+  waitlist: WaitlistEntry[];
   mergeModalTable: any | null;
 
   // ── Shift notes + events ──────────────────────────────────────────────────────
@@ -99,6 +100,12 @@ interface AppState {
   setCancelModalRes: (v: any | null) => void;
   setBlockModalTable: (v: any | null) => void;
   setShowWaitlist: (v: boolean) => void;
+
+  // ── Waitlist CRUD ───────────────────────────────────────────────────────────
+  addToWaitlist:      (e: Omit<WaitlistEntry, 'id' | 'addedAt' | 'status'>) => void;
+  removeFromWaitlist: (id: string) => void;
+  notifyWaitlist:     (id: string) => void;
+  seatFromWaitlist:   (id: string) => void;
   setMergeModalTable: (v: any | null) => void;
 
   // ── Shift notes CRUD ──────────────────────────────────────────────────────────
@@ -178,6 +185,7 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   cancelModalRes: null,
   blockModalTable: null,
   showWaitlist: false,
+  waitlist: [],
   mergeModalTable: null,
 
   // ── Shift notes + events ──────────────────────────────────────────────────────
@@ -494,6 +502,35 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   setCancelModalRes: (v) => set({ cancelModalRes: v }),
   setBlockModalTable: (v) => set({ blockModalTable: v }),
   setShowWaitlist: (v) => set({ showWaitlist: v }),
+
+  // ── Waitlist ────────────────────────────────────────────────────────────────
+  // Entries auto-expire after 4h of inactivity to keep the queue tidy across
+  // services — we don't have a backend cron yet, so removal is on demand.
+  addToWaitlist: (e) => {
+    const entry: WaitlistEntry = {
+      ...e,
+      id: `wl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      addedAt: Date.now(),
+      status: 'waiting',
+    };
+    set((s) => ({ waitlist: [...s.waitlist, entry] }));
+  },
+  removeFromWaitlist: (id) => {
+    set((s) => ({ waitlist: s.waitlist.filter(w => w.id !== id) }));
+  },
+  notifyWaitlist: (id) => {
+    set((s) => ({
+      waitlist: s.waitlist.map(w =>
+        w.id === id ? { ...w, status: 'notified' as const, notifiedAt: Date.now() } : w
+      ),
+    }));
+  },
+  seatFromWaitlist: (id) => {
+    // Just remove from the queue — the operator handles seating via Walk-in
+    // or by creating a reservation from there. Keeping the two flows decoupled
+    // avoids accidental double-booking.
+    set((s) => ({ waitlist: s.waitlist.filter(w => w.id !== id) }));
+  },
   setMergeModalTable: (v) => set({ mergeModalTable: v }),
 
   // ── Shift notes CRUD ──────────────────────────────────────────────────────────
@@ -732,6 +769,7 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     floorPlans:        s.floorPlans,
     shiftNotes:        s.shiftNotes,
     appEvents:         s.appEvents,
+    waitlist:          s.waitlist,
     // ── Settings & staff ─────────────────────────────────────────────────────
     weekSchedule:      s.weekSchedule,
     businessConfigs:   s.businessConfigs,

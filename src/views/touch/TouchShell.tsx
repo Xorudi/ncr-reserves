@@ -19,6 +19,7 @@ import { useDevice } from '@/hooks/useDevice';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import Toaster, { toast } from '@/components/shared/Toaster';
 import SearchSheet from '@/components/shared/SearchSheet';
+import WaitlistSheet from '@/components/shared/WaitlistSheet';
 import { NotesSheet } from '@/views/touch/NotesSystem';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
@@ -89,6 +90,7 @@ export default function TouchShell() {
     selectedDate, setSelectedDate,
     reservations,
     closeOutPastDays,
+    showWaitlist, setShowWaitlist,
   } = useAppStore();
 
   // Close out yesterday automatically — runs once on mount, when the tab
@@ -577,6 +579,10 @@ export default function TouchShell() {
           onClose={() => setShowSearch(false)}
           onNavigate={t => setTab(t)}
         />
+        <WaitlistSheet
+          open={showWaitlist}
+          onClose={() => setShowWaitlist(false)}
+        />
         <Toaster />
       </div>
     );
@@ -749,6 +755,10 @@ export default function TouchShell() {
         open={showSearch}
         onClose={() => setShowSearch(false)}
         onNavigate={t => setTab(t)}
+      />
+      <WaitlistSheet
+        open={showWaitlist}
+        onClose={() => setShowWaitlist(false)}
       />
       <Toaster />
     </div>

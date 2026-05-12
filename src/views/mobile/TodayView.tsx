@@ -373,6 +373,7 @@ export default function MobileTodayView({
     selectedBusiness, reservations, selectedDate, setSelectedDate,
     addReservation, floorPlans, updateReservationStatus,
     shiftNotes, customers, businessConfigs,
+    waitlist, setShowWaitlist,
   } = useAppStore();
 
   // Precompute loyalty lookup once per (customers, reservations, biz) so each
@@ -860,6 +861,45 @@ export default function MobileTodayView({
               )}
             </div>
           </div>
+        );
+      })()}
+
+      {/* ── Waitlist banner — shown when there are parties waiting at the door ── */}
+      {(() => {
+        const queue = waitlist.filter(w => w.bizId === selectedBusiness);
+        if (queue.length === 0) return null;
+        const totalPax = queue.reduce((s, w) => s + w.pax, 0);
+        const oldest = queue.reduce((min, w) => Math.min(min, w.addedAt), Date.now());
+        const oldestMin = Math.max(0, Math.floor((Date.now() - oldest) / 60_000));
+        return (
+          <button onClick={() => setShowWaitlist(true)} className="press"
+            style={{
+              margin: '0 14px 10px', padding: '11px 14px', borderRadius: 12,
+              background: 'linear-gradient(180deg, var(--terracotta-50) 0%, var(--paper) 70%)',
+              border: '1px solid rgba(168,74,42,.22)',
+              boxShadow: '0 1px 2px rgba(168,74,42,.06)',
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              width: 'calc(100% - 28px)',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+            <span style={{
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+              background: 'var(--terracotta-100)', color: 'var(--terracotta-700)',
+              display: 'grid', placeItems: 'center', fontSize: 18,
+            }}>🚶</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink-900)', letterSpacing: -.005 }}>
+                {queue.length} {queue.length === 1 ? 'grup' : 'grups'} a la cua · {totalPax} pax
+              </div>
+              <div style={{
+                fontSize: 11, color: oldestMin >= 15 ? 'var(--rose-700)' : 'var(--ink-500)',
+                marginTop: 2, fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: .04,
+              }}>
+                espera més antiga: {oldestMin === 0 ? 'ara mateix' : `${oldestMin} min`}
+              </div>
+            </div>
+            <Icon d={I.chevR} size={14} stroke={2} />
+          </button>
         );
       })()}
 

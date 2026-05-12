@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip } from '@/components/shared/StatusChip';
-import { WAITLIST } from '@/data/mockData';
-import type { FloorTable, Reservation } from '@/types';
+import { useAppStore } from '@/store/useAppStore';
+import { toast } from '@/components/shared/Toaster';
+import type { FloorTable, Reservation, WaitlistEntry } from '@/types';
 
 // ─── Base Modal ──────────────────────────────────────────────
 interface ModalProps {
@@ -123,37 +124,125 @@ export function BlockTableModal({ open, table, onClose, onConfirm }: { open:bool
 
 // ─── Waitlist ────────────────────────────────────────────────
 export function WaitlistModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
-  const [name, setName] = useState('');
-  const [pax, setPax] = useState(2);
+  const {
+    selectedBusiness, waitlist,
+    addToWaitlist, removeFromWaitlist, notifyWaitlist, seatFromWaitlist,
+  } = useAppStore();
+  const [name, setName]   = useState('');
+  const [pax, setPax]     = useState(2);
   const [phone, setPhone] = useState('');
+
+  // Refresh wait-time counters every 30s while open.
+  const [, force] = useState(0);
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setInterval(() => force(n => n + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) { setName(''); setPax(2); setPhone(''); }
+  }, [open]);
+
+  const queue = waitlist
+    .filter(w => w.bizId === selectedBusiness)
+    .sort((a, b) => a.addedAt - b.addedAt);
+
+  function handleAdd() {
+    if (!name.trim()) return;
+    addToWaitlist({ bizId: selectedBusiness, name: name.trim(), pax, phone: phone.trim() || undefined });
+    toast(`${name.trim()} a la cua`, { icon: 'check', tone: 'olive' });
+    setName(''); setPhone(''); setPax(2);
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="Llista d'espera" subtitle={`${WAITLIST.length} grups esperant ara`} width={580}
+    <Modal open={open} onClose={onClose} title="Llista d'espera"
+      subtitle={queue.length === 0 ? 'cap grup esperant ara' : `${queue.length} ${queue.length === 1 ? 'grup esperant' : 'grups esperant'} ara`}
+      width={580}
       footer={<button onClick={onClose} style={{ padding:'7px 14px',background:'transparent',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:550,color:'var(--ink-800)' }}>Tancar</button>}>
       <div style={{ marginBottom:16 }}>
         <div style={{ fontSize:10.5,fontWeight:700,letterSpacing:.06,color:'var(--ink-500)',textTransform:'uppercase',marginBottom:8 }}>Esperant ara</div>
-        <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
-          {WAITLIST.map(w=>(
-            <div key={w.id} style={{ display:'grid',gridTemplateColumns:'1fr auto auto',gap:10,alignItems:'center',padding:'10px 12px',background:'var(--paper)',borderRadius:10,border:'var(--hair)' }}>
-              <div>
-                <div style={{ fontSize:13.5,fontWeight:600,color:'var(--ink-900)' }}>{w.name} · {w.pax} pax</div>
-                <div style={{ fontSize:11.5,color:'var(--ink-600)',marginTop:1 }}>des de {w.since} · <b style={{ color:w.wait>15?'var(--rose-700)':'var(--ink-800)' }}>{w.wait} min</b></div>
-              </div>
-              <button style={{ padding:'5px 10px',background:'transparent',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:12.5,color:'var(--ink-800)',display:'flex',alignItems:'center',gap:5 }}><Icon d={I.phone} size={12}/> Avisar</button>
-              <button style={{ padding:'5px 10px',background:'var(--terracotta-600)',color:'white',border:'none',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:12.5,fontWeight:550 }}>Asseure</button>
-            </div>
-          ))}
-        </div>
+        {queue.length === 0 ? (
+          <div style={{ padding:'18px 12px', textAlign:'center', color:'var(--ink-500)', fontSize:13, fontStyle:'italic' }}>
+            Cua buida. Quan estigui ple, afegeix-hi grups amb el formulari de sota.
+          </div>
+        ) : (
+          <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+            {queue.map(w => <DesktopQueueRow key={w.id} w={w}
+              onNotify={() => { notifyWaitlist(w.id); toast(`Avisat: ${w.name}`, { icon: 'check', tone: 'olive' }); }}
+              onSeat={() => { seatFromWaitlist(w.id); toast(`${w.name} a taula`, { icon: 'check', tone: 'terracotta' }); }}
+              onRemove={() => {
+                const snap = { bizId: w.bizId, name: w.name, pax: w.pax, phone: w.phone, notes: w.notes };
+                removeFromWaitlist(w.id);
+                toast(`${w.name} eliminat`, {
+                  icon: 'x', tone: 'ink', ms: 5000,
+                  action: { label: 'Desfer', onClick: () => addToWaitlist(snap) },
+                });
+              }}
+            />)}
+          </div>
+        )}
       </div>
       <div style={{ borderTop:'var(--hair)',paddingTop:14 }}>
         <div style={{ fontSize:10.5,fontWeight:700,letterSpacing:.06,color:'var(--ink-500)',textTransform:'uppercase',marginBottom:8 }}>Afegir grup</div>
-        <div style={{ display:'grid',gridTemplateColumns:'2fr 1fr 1.5fr auto',gap:8 }}>
+        <div style={{ display:'grid',gridTemplateColumns:'2fr 80px 1.5fr auto',gap:8 }}>
           <input value={name} onChange={e=>setName(e.target.value)} placeholder="Nom" style={{ padding:'8px 12px',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,fontFamily:'inherit',fontSize:13,background:'var(--paper)',outline:'none' }} />
-          <input value={pax} type="number" onChange={e=>setPax(+e.target.value)} placeholder="Pax" style={{ padding:'8px 12px',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,fontFamily:'inherit',fontSize:13,background:'var(--paper)',outline:'none' }} />
+          <input value={pax} type="number" min={1} max={20} onChange={e=>setPax(Math.max(1, Math.min(20, +e.target.value || 1)))} placeholder="Pax" style={{ padding:'8px 12px',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,fontFamily:'inherit',fontSize:13,background:'var(--paper)',outline:'none' }} />
           <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="Telèfon (opcional)" style={{ padding:'8px 12px',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,fontFamily:'inherit',fontSize:13,background:'var(--paper)',outline:'none' }} />
-          <button style={{ padding:'8px 14px',background:'var(--terracotta-600)',color:'white',border:'none',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:13,fontWeight:550,display:'flex',alignItems:'center',gap:5 }}><Icon d={I.plus} size={13}/> Afegir</button>
+          <button onClick={handleAdd} disabled={!name.trim()} style={{ padding:'8px 14px',background:name.trim()?'var(--terracotta-600)':'var(--ink-200)',color:'white',border:'none',borderRadius:8,cursor:name.trim()?'pointer':'not-allowed',fontFamily:'inherit',fontSize:13,fontWeight:550,display:'flex',alignItems:'center',gap:5 }}><Icon d={I.plus} size={13}/> Afegir</button>
         </div>
       </div>
     </Modal>
+  );
+}
+
+function DesktopQueueRow({ w, onNotify, onSeat, onRemove }: {
+  w: WaitlistEntry;
+  onNotify: () => void;
+  onSeat: () => void;
+  onRemove: () => void;
+}) {
+  const waitMin = Math.max(0, Math.floor((Date.now() - w.addedAt) / 60_000));
+  const isLong = waitMin >= 15;
+  const isNotified = w.status === 'notified';
+  return (
+    <div style={{
+      display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:10,
+      alignItems:'center', padding:'10px 12px',
+      background: isNotified ? 'var(--olive-50)' : 'var(--paper)',
+      borderRadius:10, border: isNotified ? '1px solid rgba(116,133,74,.28)' : 'var(--hair)',
+    }}>
+      <div>
+        <div style={{ fontSize:13.5,fontWeight:600,color:'var(--ink-900)' }}>
+          {w.name} · {w.pax} pax {isNotified && <span style={{ fontSize:12, marginLeft:4 }} title="Avisat">📞</span>}
+        </div>
+        <div style={{ fontSize:11.5,color:'var(--ink-600)',marginTop:1 }}>
+          {w.phone ? <>{w.phone} · </> : null}
+          <b style={{ color: isLong ? 'var(--rose-700)' : 'var(--ink-800)' }}>
+            {waitMin === 0 ? 'ara' : `${waitMin} min`}
+          </b>
+        </div>
+      </div>
+      <button onClick={onNotify} disabled={isNotified}
+        style={{
+          padding:'5px 10px',background:'transparent',border:'1px solid rgba(60,40,20,.14)',
+          borderRadius:8, cursor: isNotified ? 'default' : 'pointer',
+          fontFamily:'inherit',fontSize:12.5,
+          color: isNotified ? 'var(--ink-400)' : 'var(--ink-800)',
+          opacity: isNotified ? .6 : 1,
+          display:'flex',alignItems:'center',gap:5,
+        }}>
+        <Icon d={I.phone} size={12}/> {isNotified ? 'Avisat' : 'Avisar'}
+      </button>
+      <button onClick={onSeat}
+        style={{ padding:'5px 10px',background:'var(--terracotta-600)',color:'white',border:'none',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:12.5,fontWeight:550 }}>
+        Asseure
+      </button>
+      <button onClick={onRemove} aria-label="Eliminar"
+        style={{ padding:'5px 8px', background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', display:'grid', placeItems:'center' }}>
+        <Icon d={I.x} size={13}/>
+      </button>
+    </div>
   );
 }
 

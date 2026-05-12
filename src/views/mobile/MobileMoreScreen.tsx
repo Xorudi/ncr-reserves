@@ -42,6 +42,7 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
   const {
     selectedBusiness, employees, employeeRoles, activeEmployeeId,
     reservations, shiftNotes, appEvents, selectedDate,
+    waitlist, setShowWaitlist,
   } = useAppStore();
   const biz     = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const emp     = employees.find(e => e.id === activeEmployeeId) ?? null;
@@ -56,6 +57,7 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
     e.bizId === selectedBusiness && e.date === todayIso).length;
   const notesCount   = shiftNotes.filter(n =>
     n.bizId === selectedBusiness && n.date === todayIso).length;
+  const waitlistCount = waitlist.filter(w => w.bizId === selectedBusiness).length;
   const alertsCount  = pendingCount + eventsCount;
 
   type MenuItem = {
@@ -83,6 +85,13 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
       ico:   I.calendar,
       action: () => onSub('calendar'),
       tone: 'sky',
+    },
+    {
+      label: 'Llista d\'espera',
+      desc:  'Cua de grups esperant taula',
+      ico:   I.users,
+      action: () => setShowWaitlist(true),
+      badge: waitlistCount, tone: 'terracotta',
     },
     {
       label: 'Estadístiques',
