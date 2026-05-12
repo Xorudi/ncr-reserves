@@ -358,6 +358,8 @@ export default function MobileTodayView({
 
   const [sel, setSel]         = useState<Reservation | null>(null);
   const [showNew, setShowNew] = useState(false);
+  // When set, NewResSheet opens in edit mode pre-filled with this reservation
+  const [editingRes, setEditingRes] = useState<Reservation | null>(null);
   const [showCal, setShowCal] = useState(false);
   const [shift, setShift]     = useState<'M' | 'N'>(() => new Date().getHours() >= 18 ? 'N' : 'M');
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
@@ -889,16 +891,18 @@ export default function MobileTodayView({
 
       {/* ── Sheets — AnimatedSheet handles slide-up/down with backdrop ── */}
       <ResDetailSheet
-        open={!!(sel && !showNew && !showCal)}
+        open={!!(sel && !showNew && !showCal && !editingRes)}
         res={sel}
         onClose={() => setSel(null)}
+        onEditFull={(r) => { setEditingRes(r); setSel(null); }}
       />
       <NewResSheet
-        open={showNew}
+        open={showNew || !!editingRes}
         bizId={selectedBusiness}
         defaultDate={dateStr}
         addReservation={addReservation}
-        onClose={() => setShowNew(false)}
+        editRes={editingRes ?? undefined}
+        onClose={() => { setShowNew(false); setEditingRes(null); }}
       />
       <DatePickerSheet
         open={showCal}
@@ -1236,17 +1240,18 @@ function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizI
 }
 
 // ─── Detail bottom sheet ──────────────────────────────────────────────────────
-function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservation | null; onClose: () => void }) {
+function ResDetailSheet({ open, res, onClose, onEditFull }: {
+  open: boolean;
+  res: Reservation | null;
+  onClose: () => void;
+  onEditFull?: (r: Reservation) => void;
+}) {
   const {
-    updateReservationStatus, updateReservation, deleteReservation,
+    updateReservationStatus, deleteReservation,
     assignTablesToReservation, floorPlans, customers, addCustomer,
   } = useAppStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showTableSel, setShowTableSel] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<{
-    name: string; phone: string; time: string; pax: number; notes: string;
-  } | null>(null);
   // Snapshot: preserve last reservation so content stays visible during close animation
   const [snap, setSnap] = useState(res);
   if (res && res !== snap) setSnap(res);
@@ -1256,12 +1261,6 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
   const assignedTableNames = (r?.tableIds ?? [])
     .map(id => plan?.tables.find(t => t.id === id)?.name ?? id)
     .join(' + ');
-
-  // Reset edit state when switching to a different reservation
-  useEffect(() => {
-    setEditing(false);
-    setDraft(null);
-  }, [r?.id]);
 
   // Detect if the client is already in the cartera
   const existingCustomer = useMemo(() => {
@@ -1275,33 +1274,6 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
     return bizClients.find(c => c.name.toLowerCase() === r.name.toLowerCase());
   }, [r, customers]);
 
-  function startEdit() {
-    if (!r) return;
-    setDraft({
-      name:  r.name,
-      phone: r.phone ?? '',
-      time:  r.time,
-      pax:   r.pax,
-      notes: r.notes ?? '',
-    });
-    setEditing(true);
-  }
-  function cancelEdit() { setEditing(false); setDraft(null); }
-  function saveEdit() {
-    if (!r || !draft) return;
-    const name = draft.name.trim();
-    if (!name) return;
-    updateReservation(r.id, {
-      name,
-      phone: draft.phone.trim() || undefined,
-      time:  draft.time,
-      pax:   Math.max(1, draft.pax),
-      notes: draft.notes.trim() || undefined,
-    });
-    toast(`${name} · Reserva actualitzada`, { icon: 'check', tone: 'olive' });
-    setEditing(false);
-    setDraft(null);
-  }
   function addToCartera() {
     if (!r) return;
     addCustomer({
@@ -1326,19 +1298,6 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
 
   if (!r) return null;
 
-  const inp: React.CSSProperties = {
-    width:'100%', padding:'8px 10px',
-    border:'1px solid rgba(60,40,20,.14)',
-    borderRadius:8, fontFamily:'inherit', fontSize:14,
-    color:'var(--ink-900)', background:'var(--cream)',
-    outline:'none', boxSizing:'border-box',
-  };
-  const fieldLbl: React.CSSProperties = {
-    fontSize:10, fontWeight:700, color:'var(--ink-500)',
-    letterSpacing:.08, textTransform:'uppercase',
-    marginBottom:5, display:'block',
-  };
-
   return (
     <AnimatedSheet open={open} onClose={onClose} zIndex={100}>
       <div style={{
@@ -1353,107 +1312,30 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
           <span className={`avatar lg av-${avIdx(r.name)}`}>{initials(r.name)}</span>
           <div style={{ flex:1, minWidth:0 }}>
-            {editing && draft ? (
-              <input value={draft.name}
-                onChange={e => setDraft({ ...draft, name: e.target.value })}
-                placeholder="Nom"
-                style={{ ...inp, fontSize:15, fontWeight:650 }} />
-            ) : (
-              <>
-                <div style={{ fontSize:16, fontWeight:700, color:'var(--ink-900)' }}>{r.name}</div>
-                <div style={{ fontSize:12.5, color:'var(--ink-600)', marginTop:2 }}>
-                  {r.time} · {r.pax} pax{r.source ? ` · ${r.source}` : ''}
-                </div>
-              </>
-            )}
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--ink-900)' }}>{r.name}</div>
+            <div style={{ fontSize:12.5, color:'var(--ink-600)', marginTop:2 }}>
+              {r.time} · {r.pax} pax{r.source ? ` · ${r.source}` : ''}
+            </div>
           </div>
-          {!editing && <ResStatePill state={r.status} />}
-          {!editing ? (
-            <>
-              <button onClick={startEdit} aria-label="Editar" className="press"
-                style={{
-                  width:34, height:34, borderRadius:999,
-                  background:'var(--cream)', border:'1px solid rgba(60,40,20,.10)',
-                  cursor:'pointer', color:'var(--ink-700)',
-                  display:'grid', placeItems:'center', flexShrink:0,
-                }}>
-                <Icon d={I.pencil} size={14} stroke={1.9} />
-              </button>
-              <button onClick={onClose}
-                style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:4 }}>
-                <Icon d={I.x} size={18} />
-              </button>
-            </>
-          ) : (
-            <button onClick={cancelEdit} aria-label="Cancel·lar" className="press"
+          <ResStatePill state={r.status} />
+          {onEditFull && (
+            <button onClick={() => onEditFull(r)} aria-label="Editar" className="press"
               style={{
                 width:34, height:34, borderRadius:999,
                 background:'var(--cream)', border:'1px solid rgba(60,40,20,.10)',
-                cursor:'pointer', color:'var(--ink-600)',
+                cursor:'pointer', color:'var(--ink-700)',
                 display:'grid', placeItems:'center', flexShrink:0,
               }}>
-              <Icon d={I.x} size={15} />
+              <Icon d={I.pencil} size={14} stroke={1.9} />
             </button>
           )}
+          <button onClick={onClose}
+            style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--ink-400)', padding:4 }}>
+            <Icon d={I.x} size={18} />
+          </button>
         </div>
 
-        {/* ── Body ───────────────────────────────────────────── */}
-        {editing && draft ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:10 }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:9 }}>
-              <div>
-                <label style={fieldLbl}>Hora</label>
-                <input type="time" value={draft.time}
-                  onChange={e => setDraft({ ...draft, time: e.target.value })}
-                  style={inp} />
-              </div>
-              <div>
-                <label style={fieldLbl}>Pax</label>
-                <input type="number" min={1} max={99} value={draft.pax}
-                  onChange={e => setDraft({ ...draft, pax: parseInt(e.target.value || '1', 10) })}
-                  style={{ ...inp, fontFamily:'var(--font-serif)', fontSize:15 }} />
-              </div>
-            </div>
-            <div>
-              <label style={fieldLbl}>Telèfon</label>
-              <input type="tel" value={draft.phone}
-                onChange={e => setDraft({ ...draft, phone: e.target.value })}
-                placeholder="+34 600 000 000"
-                style={{ ...inp, fontFamily:'var(--font-mono)' }} />
-            </div>
-            <div>
-              <label style={fieldLbl}>Notes</label>
-              <textarea value={draft.notes} rows={2}
-                onChange={e => setDraft({ ...draft, notes: e.target.value })}
-                placeholder="Al·lèrgies, ocasió especial…"
-                style={{ ...inp, resize:'none', lineHeight:1.4 }} />
-            </div>
-            <div style={{ display:'flex', gap:8, marginTop:2 }}>
-              <button onClick={cancelEdit} className="press"
-                style={{
-                  flex:1, padding:'11px', borderRadius:10,
-                  border:'1px solid rgba(60,40,20,.12)', background:'transparent',
-                  color:'var(--ink-700)', fontFamily:'inherit',
-                  fontSize:13.5, fontWeight:600, cursor:'pointer',
-                }}>
-                Cancel·la
-              </button>
-              <button onClick={saveEdit} disabled={!draft.name.trim()} className="press"
-                style={{
-                  flex:2, padding:'11px', borderRadius:10, border:'none',
-                  background: draft.name.trim()
-                    ? 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)'
-                    : 'rgba(168,74,42,.30)',
-                  color:'#fff', fontFamily:'inherit', fontSize:13.5, fontWeight:700,
-                  cursor: draft.name.trim() ? 'pointer' : 'not-allowed',
-                  boxShadow: draft.name.trim() ? '0 2px 6px rgba(168,74,42,.28)' : 'none',
-                }}>
-                Desar canvis
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
+        <>
             {r.notes && (
               <div style={{
                 background:'rgba(250,230,120,.2)', borderRadius:8,
@@ -1556,8 +1438,7 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
             </div>
 
             <HoldToDelete onConfirm={handleDelete} />
-          </>
-        )}
+        </>
       </div>
 
       {/* ── Confirm delete ───────────────────────────────────────── */}
@@ -1599,16 +1480,20 @@ function ResDetailSheet({ open, res, onClose }: { open: boolean; res: Reservatio
 }
 
 // ─── New reservation bottom sheet ─────────────────────────────────────────────
-function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
+function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRes }: {
   open: boolean;
   bizId: BusinessId;
   defaultDate: string;
   addReservation: (r: Omit<Reservation, 'id'>) => void;
   onClose: () => void;
+  /** When provided, the sheet enters edit mode: form is pre-filled, the
+   *  title says "Editar reserva", and Crear becomes Desar canvis. */
+  editRes?: Reservation;
 }) {
   const biz = BUSINESSES.find(b => b.id === bizId)!;
-  const { customers, floorPlans, addCustomer } = useAppStore();
+  const { customers, floorPlans, addCustomer, updateReservation } = useAppStore();
   const plan = floorPlans[bizId];
+  const isEdit = !!editRes;
 
   // Sempre obre el formulari amb data + hora del moment exacte
   const nowDate = () => {
@@ -1650,17 +1535,34 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
     if (!open) return;
-    setForm({ date: nowDate(), time: nowTime(), name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe', allergens: [] });
+    if (editRes) {
+      // Edit mode — pre-fill from the reservation being edited
+      setForm({
+        date:      editRes.date,
+        time:      editRes.time,
+        name:      editRes.name,
+        phone:     editRes.phone ?? '',
+        pax:       editRes.pax,
+        notes:     editRes.notes ?? '',
+        status:    editRes.status,
+        source:    editRes.source ?? 'directe',
+        allergens: editRes.allergens ?? [],
+      });
+      setSelectedTableIds(editRes.tableIds ?? []);
+      setPickedFromCartera(true);  // hide cartera toggle while editing
+    } else {
+      setForm({ date: nowDate(), time: nowTime(), name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe', allergens: [] });
+      setSelectedTableIds([]);
+      setPickedFromCartera(false);
+    }
     setSaved(false);
     setTouched(false);
     setClientQuery('');
     setShowDropdown(false);
     setEditingPax(false);
-    setSelectedTableIds([]);
     setShowTableSel(false);
-    setPickedFromCartera(false);
     setSaveToCartera(true);
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, editRes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Computed: names of selected tables
   const allTables = plan ? plan.tables : [];
@@ -1720,7 +1622,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
   function handleSave() {
     setTouched(true);
     if (!form.name.trim()) return;
-    addReservation({
+    const payload = {
       bizId,
       date:      form.date,
       time:      form.time,
@@ -1732,7 +1634,12 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
       source:    form.source,
       tableIds:  selectedTableIds.length > 0 ? selectedTableIds : undefined,
       allergens: form.allergens.length > 0 ? form.allergens : undefined,
-    });
+    };
+    if (isEdit && editRes) {
+      updateReservation(editRes.id, payload);
+    } else {
+      addReservation(payload);
+    }
     // Optionally add the client to the cartera so the next reservation can
     // pick them with one tap from the search dropdown.
     if (showCarteraToggle && saveToCartera) {
@@ -1802,7 +1709,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500,
                             color:'var(--ink-900)', lineHeight:1.1, letterSpacing:-.005 }}>
-                Nova reserva
+                {isEdit ? 'Editar reserva' : 'Nova reserva'}
               </div>
               <div style={{ fontSize:11.5, color:'var(--ink-500)', marginTop:3,
                             textTransform:'uppercase', letterSpacing:.08, fontWeight:600 }}>
@@ -2292,9 +2199,9 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose }: {
               {saved ? (
                 <>
                   <Icon d={I.check} size={18} stroke={2.5} />
-                  Reserva creada
+                  {isEdit ? 'Canvis desats' : 'Reserva creada'}
                 </>
-              ) : 'Crear reserva'}
+              ) : (isEdit ? 'Desar canvis' : 'Crear reserva')}
             </span>
           </button>
         </div>
