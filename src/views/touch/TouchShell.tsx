@@ -17,7 +17,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useDevice } from '@/hooks/useDevice';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
-import Toaster from '@/components/shared/Toaster';
+import Toaster, { toast } from '@/components/shared/Toaster';
 import { NotesSheet } from '@/views/touch/NotesSystem';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
@@ -140,21 +140,34 @@ export default function TouchShell() {
   const operatorShift: 'M' | 'N' | null = activeShift?.id ?? null;
 
   // ── Pull-to-refresh ─────────────────────────────────────────────────────
-  // Triggers a custom 'app:refresh' event so any screen that wants to
-  // re-fetch can listen. The visual feedback is what the user perceives;
-  // when real network data is wired, the listeners can resolve a Promise
-  // and the indicator will spin until they finish.
+  // Honest pull-to-refresh: while no cloud round-trip is wired in, the gesture
+  // still re-evaluates derived data (auto-close past days) and shows a toast
+  // so the user knows their action was acknowledged. When real cloud sync
+  // exists, this is the natural place to await it and surface errors.
   const handleRefresh = async () => {
     window.dispatchEvent(new CustomEvent('app:refresh'));
-    // The hook itself enforces a minimum visible refresh time
+    closeOutPastDays();
+    toast('Tot al dia', { icon: 'check', tone: 'olive', ms: 1600 });
   };
   const pull = usePullToRefresh(handleRefresh);
 
-  // ── FAB scroll-react ────────────────────────────────────────────────────
-  // Listens (capture phase) to scroll on any descendant `.scroll` container,
-  // tracks scrollTop direction with hysteresis, and toggles `fabHidden` so
-  // the FAB shrinks/fades on scroll-down and returns on scroll-up or idle.
+  // ── FAB visibility ──────────────────────────────────────────────────────
+  // The FAB shrinks/fades on scroll-down (returns on scroll-up or idle) AND
+  // hides while any bottom sheet is open — sheets often have action buttons
+  // at the bottom that the FAB would otherwise obscure.
   const [fabHidden, setFabHidden] = useState(false);
+  const [openSheets, setOpenSheets] = useState(0);
+  useEffect(() => {
+    const onOpen  = () => setOpenSheets(n => n + 1);
+    const onClose = () => setOpenSheets(n => Math.max(0, n - 1));
+    window.addEventListener('app:sheet:opened', onOpen);
+    window.addEventListener('app:sheet:closed', onClose);
+    return () => {
+      window.removeEventListener('app:sheet:opened', onOpen);
+      window.removeEventListener('app:sheet:closed', onClose);
+    };
+  }, []);
+  const fabSuppressed = fabHidden || openSheets > 0;
   useEffect(() => {
     let lastY = 0;
     let idleTimer: number | null = null;
@@ -513,7 +526,7 @@ export default function TouchShell() {
           {/* FAB bottom-right — opens new reservation */}
           <button
             onClick={openNewReservation}
-            className={`press fab-tablet ${fabHidden ? 'fab-hidden' : ''}`}
+            className={`press fab-tablet ${fabSuppressed ? 'fab-hidden' : ''}`}
             aria-label="Nova reserva"
             style={{
               position: 'absolute',
@@ -667,7 +680,7 @@ export default function TouchShell() {
       {/* ── FAB — absolute, overlaps the center of the tab bar ─────── */}
       <button
         onClick={openNewReservation}
-        className={`press fab-mobile ${fabHidden ? 'fab-hidden' : ''}`}
+        className={`press fab-mobile ${fabSuppressed ? 'fab-hidden' : ''}`}
         aria-label="Nova reserva"
         style={{
           position: 'absolute',

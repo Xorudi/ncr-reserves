@@ -32,17 +32,22 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
       setMounted(true);
       // Double rAF: first frame applies initial CSS (translateY(100%), opacity 0),
       // second frame flips to .vis so the CSS transition fires correctly.
-      const r1 = requestAnimationFrame(() => {
-        const r2 = requestAnimationFrame(() => setVis(true));
-        return () => cancelAnimationFrame(r2);
-      });
+      const r1 = requestAnimationFrame(() => requestAnimationFrame(() => setVis(true)));
       return () => cancelAnimationFrame(r1);
     } else {
       setVis(false);
-      // Keep mounted long enough for the exit transition to finish (--dur-sheet-exit ≈ 270ms)
       const t = setTimeout(() => setMounted(false), 400);
       return () => clearTimeout(t);
     }
+  }, [open]);
+
+  // Separate effect: notify chrome (FAB, bottom-nav) about open/close so it
+  // can move out of the way. Using a dedicated effect with paired open/close
+  // dispatches via cleanup keeps the counter balanced under rapid toggles.
+  useEffect(() => {
+    if (!open) return;
+    window.dispatchEvent(new CustomEvent('app:sheet:opened'));
+    return () => { window.dispatchEvent(new CustomEvent('app:sheet:closed')); };
   }, [open]);
 
   if (!mounted) return null;

@@ -16,6 +16,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
+import { toast } from '@/components/shared/Toaster';
 import type { BusinessId, ShiftNote } from '@/types';
 
 function localIso(d: Date) {
@@ -308,7 +309,15 @@ export function NotesSheet({ open, bizId, date, authorName, onClose }: {
                           <Icon d={I.pencil} size={12} stroke={2} />
                         </button>
                       )}
-                      <button onClick={() => deleteShiftNote(n.id)} className="press"
+                      <button onClick={() => {
+                        // Snapshot so the toast undo can restore the note as-is.
+                        const snap = { bizId: n.bizId, date: n.date, author: n.author, body: n.body, createdAt: n.createdAt };
+                        deleteShiftNote(n.id);
+                        toast('Nota eliminada', {
+                          icon: 'check', tone: 'ink', ms: 5000,
+                          action: { label: 'Desfer', onClick: () => addShiftNote(snap) },
+                        });
+                      }} className="press"
                         style={{ ...iconBtn, color: '#a83020' }}>
                         <Icon d={I.trash} size={12} stroke={2} />
                       </button>

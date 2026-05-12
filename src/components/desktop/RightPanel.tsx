@@ -4,6 +4,7 @@ import { StatusChip, Tag } from '@/components/shared/StatusChip';
 import { initials, avIdx, STATE_LABELS, isoDate, timeAgo, BUSINESSES } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
+import { toast } from '@/components/shared/Toaster';
 import type { Business, Reservation, ReservationStatus, ShiftNote, AppEvent } from '@/types';
 
 interface Props {
@@ -181,7 +182,14 @@ function AlertsPanel({ biz }: { biz: Business }) {
           {dayNotes.map(n => (
             <NoteCard key={n.id} note={n}
               onEdit={() => startEditNote(n)}
-              onDelete={() => deleteShiftNote(n.id)} />
+              onDelete={() => {
+                const snap = { bizId: n.bizId, date: n.date, author: n.author, body: n.body, createdAt: n.createdAt };
+                deleteShiftNote(n.id);
+                toast('Nota eliminada', {
+                  icon: 'check', tone: 'ink', ms: 5000,
+                  action: { label: 'Desfer', onClick: () => addShiftNote(snap) },
+                });
+              }} />
           ))}
         </Section>
 
@@ -223,7 +231,14 @@ function AlertsPanel({ biz }: { biz: Business }) {
           )}
           {upcomingEvents.map(e => (
             <EventCard key={e.id} event={e} fmtDate={fmtEventDate}
-              onDelete={() => deleteAppEvent(e.id)} />
+              onDelete={() => {
+                const snap = { bizId: e.bizId, date: e.date, title: e.title, time: e.time, description: e.description, kind: e.kind };
+                deleteAppEvent(e.id);
+                toast('Esdeveniment eliminat', {
+                  icon: 'check', tone: 'ink', ms: 5000,
+                  action: { label: 'Desfer', onClick: () => addAppEvent(snap) },
+                });
+              }} />
           ))}
         </Section>
       </div>
