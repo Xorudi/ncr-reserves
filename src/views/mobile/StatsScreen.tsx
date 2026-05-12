@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate, BUSINESSES } from '@/data/mockData';
@@ -45,16 +45,54 @@ function rangeDays(endIso: string, days: number): string[] {
 
 export default function StatsScreen({ onBack }: { onBack: () => void }) {
   const [tab, setTab] = useState<StatsTab>('general');
+  const [printing, setPrinting] = useState(false);
+
+  // Inject the @media print stylesheet once.
+  useEffect(() => {
+    if (document.getElementById('stats-print-style')) return;
+    const style = document.createElement('style');
+    style.id = 'stats-print-style';
+    style.textContent = `
+      .stats-print { display: none; }
+      @media print {
+        body * { visibility: hidden; }
+        #stats-print-root .stats-print, #stats-print-root .stats-print * { visibility: visible; }
+        #stats-print-root .stats-print { display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 18px 24px; background: white; }
+        #stats-print-root .stats-screen { display: none !important; }
+        @page { margin: 14mm; size: A4; }
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  // Trigger the system print dialog right after the print-only DOM mounts.
+  useEffect(() => {
+    if (!printing) return;
+    const cleanup = () => setPrinting(false);
+    window.addEventListener('afterprint', cleanup);
+    const id = window.setTimeout(() => window.print(), 80);
+    // Fallback in case afterprint never fires (some browsers).
+    const fallback = window.setTimeout(cleanup, 60000);
+    return () => {
+      window.removeEventListener('afterprint', cleanup);
+      window.clearTimeout(id);
+      window.clearTimeout(fallback);
+    };
+  }, [printing]);
+
+  const now = new Date();
+  const generatedAt = `${now.toLocaleDateString('ca-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' })} a les ${now.toLocaleTimeString('ca-ES', { hour:'2-digit', minute:'2-digit' })}`;
 
   return (
     <div id="stats-print-root" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="stats-screen" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
-      <div data-print-hide style={{ padding: '12px 14px 11px', background: 'var(--paper)', borderBottom: 'var(--hair)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '12px 14px 11px', background: 'var(--paper)', borderBottom: 'var(--hair)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
         <button onClick={onBack} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink-600)', display: 'grid', placeItems: 'center' }}>
           <Icon d={I.chevL} size={20} stroke={2} />
         </button>
         <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', flex: 1 }}>Estadístiques</span>
-        <button onClick={() => printStatsForBoss()}
+        <button onClick={() => setPrinting(true)}
           className="press"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -99,6 +137,26 @@ export default function StatsScreen({ onBack }: { onBack: () => void }) {
         {tab === 'ocupacio'     && <OcupacioTab />}
         {tab === 'fidelitzacio' && <FidelitzacioTab />}
       </div>
+      </div>
+
+      {/* Print-only region — all tabs stacked. Mounted only while printing
+          so we don't pay the rendering cost on every screen render. */}
+      {printing && (
+        <div className="stats-print">
+          <div style={{ fontFamily: 'Georgia, serif', borderBottom: '1px solid #ddd', paddingBottom: 12, marginBottom: 18 }}>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#3c2814' }}>Informe Estadístiques</div>
+            <div style={{ fontSize: 12, color: '#766251', marginTop: 4 }}>Generat el {generatedAt}</div>
+          </div>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#3c2814', marginTop: 8, marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 4 }}>1 · General</h2>
+          <GeneralTab />
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#3c2814', marginTop: 24, marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 4, pageBreakBefore: 'always' }}>2 · Clients</h2>
+          <ClientsTab />
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#3c2814', marginTop: 24, marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 4, pageBreakBefore: 'always' }}>3 · Ocupació</h2>
+          <OcupacioTab />
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#3c2814', marginTop: 24, marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 4, pageBreakBefore: 'always' }}>4 · Fidelització</h2>
+          <FidelitzacioTab />
+        </div>
+      )}
     </div>
   );
 }
@@ -1151,68 +1209,4 @@ function InsightCard({ icon, label, value, sub }: { icon: string; label: string;
       <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3 }}>{sub}</div>
     </div>
   );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Export for the boss — opens browser's print dialog (Save as PDF works)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function printStatsForBoss() {
-  // The print stylesheet (added once) makes the report look clean: all 4 tabs
-  // stacked, header retained, app shell + tab buttons + back button hidden.
-  if (!document.getElementById('stats-print-style')) {
-    const style = document.createElement('style');
-    style.id = 'stats-print-style';
-    style.textContent = `
-      @media print {
-        body * { visibility: hidden; }
-        #stats-print-root, #stats-print-root * { visibility: visible; }
-        #stats-print-root { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; }
-        #stats-print-root [data-print-hide] { display: none !important; }
-        #stats-print-root .scroll { overflow: visible !important; height: auto !important; }
-        @page { margin: 16mm; size: A4; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Render every tab so all sections appear in the print output. We do this
-  // by sequentially clicking each tab button before printing — but simpler:
-  // open a new window with a fully-rendered HTML snapshot.
-  const snap = document.getElementById('stats-print-root')?.outerHTML ?? '';
-  const win = window.open('', '_blank', 'width=900,height=1200');
-  if (!win) {
-    // Fallback: print current view
-    window.print();
-    return;
-  }
-  const stylesheets = Array.from(document.styleSheets).map(s => {
-    try {
-      return Array.from((s as CSSStyleSheet).cssRules).map(r => r.cssText).join('\n');
-    } catch { return ''; }
-  }).join('\n');
-  const now = new Date();
-  const header = `
-    <div style="font-family:Georgia,serif; padding:20px 30px; border-bottom:1px solid #ddd; margin-bottom:16px;">
-      <div style="font-size:24px; font-weight:600; color:#3c2814;">Informe Estadístiques</div>
-      <div style="font-size:12px; color:#766251; margin-top:4px;">
-        Generat el ${now.toLocaleDateString('ca-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' })} a les ${now.toLocaleTimeString('ca-ES', { hour:'2-digit', minute:'2-digit' })}
-      </div>
-    </div>
-  `;
-  win.document.write(`
-    <!DOCTYPE html>
-    <html><head><meta charset="utf-8" /><title>Estadístiques NCR Reserves</title>
-    <style>${stylesheets}
-      body { background: #fdf9ef; margin: 0; }
-      [data-print-hide] { display: none !important; }
-      .scroll { overflow: visible !important; height: auto !important; padding: 0 24px !important; }
-    </style>
-    </head><body>
-    ${header}
-    ${snap}
-    </body></html>
-  `);
-  win.document.close();
-  setTimeout(() => { win.focus(); win.print(); }, 400);
 }
