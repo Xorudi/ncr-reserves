@@ -530,17 +530,25 @@ function InsightCard({ ins }: { ins: OperationalInsight }) {
 }
 
 function DetailCard({ label, value, tone = 'ink' }: { label: string; value: string; tone?: 'ink' | 'sky' | 'rose' }) {
+  // Paper-elevated card with tone driven by a left accent + value color.
+  // Matches the KPI cards in StatsScreen and the rest of the new visual lang.
   const palette = {
-    ink:  { bg: 'var(--ink-100)',  fg: 'var(--ink-700)' },
-    sky:  { bg: 'var(--sky-50)',   fg: 'var(--sky-700)' },
-    rose: { bg: 'var(--rose-50)',  fg: 'var(--rose-700)' },
+    ink:  { fg: 'var(--ink-900)',  accent: 'var(--ink-300)' },
+    sky:  { fg: 'var(--sky-700)',  accent: 'var(--sky-500)' },
+    rose: { fg: 'var(--rose-700)', accent: 'var(--rose-600)' },
   }[tone];
   return (
     <div style={{
+      position: 'relative',
       padding: '14px 16px', borderRadius: 14,
-      background: palette.bg, border: `1px solid ${palette.fg}22`,
-      boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4)',
+      background: 'var(--surface-elevated)',
+      boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+      overflow: 'hidden',
     }}>
+      <span aria-hidden style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: 3, background: palette.accent,
+      }} />
       <div style={{
         fontSize: 10.5, fontWeight: 700, color: 'var(--ink-500)',
         letterSpacing: .08, textTransform: 'uppercase',

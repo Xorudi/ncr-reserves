@@ -568,9 +568,12 @@ function WeekView({ anchor, onReservation, lookupLoyalty }: {
         const totalPax = list.reduce((s, r) => s + r.pax, 0);
         return (
           <div key={iso} style={{
-            background: isToday ? 'var(--terracotta-50)' : 'var(--paper)',
-            border: isToday ? '1.5px solid var(--terracotta-500)' : '1px solid rgba(60,40,20,.07)',
-            borderRadius: 10, padding: 6, minHeight: 220,
+            background: isToday ? 'var(--terracotta-50)' : 'var(--surface-elevated)',
+            border: 'none',
+            boxShadow: isToday
+              ? '0 0 0 1.5px var(--terracotta-500), var(--shadow-md), var(--shadow-inset-top)'
+              : 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+            borderRadius: 12, padding: 6, minHeight: 220,
             display: 'flex', flexDirection: 'column', gap: 4,
           }}>
             <div style={{ textAlign: 'center', paddingBottom: 4, borderBottom: '1px solid rgba(60,40,20,.06)' }}>
@@ -739,17 +742,31 @@ function ReservationRow({ r, loyalty, onClick }: {
   r: Reservation; loyalty?: LoyaltyEntry; onClick: () => void;
 }) {
   const pal = resPalette(r.status);
+  // Status accent — same colors used in TodayView's ResRow so a reservation
+  // looks the same wherever it shows up in the app.
+  const accentColor =
+    r.status === 'seated'    ? 'var(--terracotta-500)' :
+    r.status === 'confirmed' ? 'var(--olive-500)'      :
+    r.status === 'pending'   ? 'var(--clay-500)'       :
+    r.status === 'noshow'    ? 'var(--rose-600)'       :
+    'transparent';
   return (
     <button onClick={onClick} className="press"
       style={{
+        position: 'relative',
         width: '100%', textAlign: 'left',
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '10px 13px', borderRadius: 11,
-        background: 'var(--paper)',
-        border: '1px solid rgba(60,40,20,.07)',
-        boxShadow: '0 1px 2px rgba(60,40,20,.03)',
+        padding: '10px 13px 10px 14px', borderRadius: 12,
+        background: 'var(--surface-elevated)',
+        border: 'none',
+        boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
         cursor: 'pointer', fontFamily: 'inherit',
+        overflow: 'hidden',
       }}>
+      <span aria-hidden style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: 3, background: accentColor,
+      }} />
       <span style={{
         fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700,
         color: 'var(--ink-700)', flexShrink: 0, minWidth: 38,

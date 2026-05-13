@@ -1476,12 +1476,15 @@ function KPICard({ value, label, delta, tone }: {
   value: number | string; label: string; delta?: number;
   tone: 'terracotta' | 'olive' | 'sky' | 'rose' | 'ink';
 }) {
+  // Tone now drives just the value color + accent bar — card itself is
+  // paper-elevated, matching the rest of the app. The previous tint-flooded
+  // background made the stats screen feel like a different app.
   const palette = {
-    terracotta: { bg: 'var(--terracotta-50)', fg: 'var(--terracotta-700)' },
-    olive:      { bg: 'var(--olive-50)',      fg: 'var(--olive-700)' },
-    sky:        { bg: 'var(--sky-50)',        fg: 'var(--sky-700)' },
-    rose:       { bg: 'var(--rose-50)',       fg: 'var(--rose-700)' },
-    ink:        { bg: 'var(--ink-100)',       fg: 'var(--ink-700)' },
+    terracotta: { fg: 'var(--terracotta-700)', accent: 'var(--terracotta-500)' },
+    olive:      { fg: 'var(--olive-700)',      accent: 'var(--olive-500)'      },
+    sky:        { fg: 'var(--sky-700)',        accent: 'var(--sky-500)'        },
+    rose:       { fg: 'var(--rose-700)',       accent: 'var(--rose-600)'       },
+    ink:        { fg: 'var(--ink-900)',        accent: 'var(--ink-300)'        },
   }[tone];
   const deltaStr = delta !== undefined
     ? (delta > 0.5 ? `▲ +${delta.toFixed(0)}` : delta < -0.5 ? `▼ ${delta.toFixed(0)}` : '= mitjana')
@@ -1489,13 +1492,20 @@ function KPICard({ value, label, delta, tone }: {
   const deltaCol = delta === undefined ? 'var(--ink-500)' : delta > 0.5 ? 'var(--olive-700)' : delta < -0.5 ? 'var(--rose-700)' : 'var(--ink-500)';
   return (
     <div style={{
-      padding: '13px 14px', borderRadius: 13,
-      background: palette.bg, border: `1px solid ${palette.fg}22`,
+      position: 'relative',
+      padding: '14px 16px', borderRadius: 14,
+      background: 'var(--surface-elevated)',
+      boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+      overflow: 'hidden',
     }}>
-      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 500, color: palette.fg, lineHeight: 1, letterSpacing: -.01 }}>
+      <span aria-hidden style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: 3, background: palette.accent,
+      }} />
+      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 500, color: palette.fg, lineHeight: 1, letterSpacing: -.015 }}>
         {value}
       </div>
-      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase', marginTop: 6 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase', marginTop: 7 }}>
         {label}
       </div>
       {deltaStr && (
@@ -1509,11 +1519,15 @@ function KPICard({ value, label, delta, tone }: {
 
 function InsightCard({ icon, label, value, sub }: { icon: string; label: string; value: string; sub: string }) {
   return (
-    <div style={{ padding: '12px 13px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+    <div style={{
+      padding: '13px 15px', borderRadius: 14,
+      background: 'var(--surface-elevated)',
+      boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase' }}>
         <span style={{ fontSize: 14 }}>{icon}</span> {label}
       </div>
-      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500, color: 'var(--ink-900)', marginTop: 4, lineHeight: 1.1 }}>
+      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500, color: 'var(--ink-900)', marginTop: 4, lineHeight: 1.1, letterSpacing: -.005 }}>
         {value}
       </div>
       <div style={{ fontSize: 11, color: 'var(--ink-500)', marginTop: 3 }}>{sub}</div>
