@@ -13,8 +13,8 @@ import AnimatedSheet from './AnimatedSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
 import {
-  fetchForecast, conditionLabel, operationalAlert, DEFAULT_COORDS,
-  type WeatherForecast, type WxCondition, type HourlySlot,
+  fetchForecast, conditionLabel, operationalInsights, DEFAULT_COORDS,
+  type WeatherForecast, type WxCondition, type HourlySlot, type OperationalInsight,
 } from '@/lib/weather';
 
 // ─── Emoji per condition — used as the icon glyph in the pill and the sheet ──
@@ -143,7 +143,7 @@ function WxBackgroundAnimation({ condition }: { condition: WxCondition }) {
 function WeatherDetailSheet({ open, onClose, forecast, date }: {
   open: boolean; onClose: () => void; forecast: WeatherForecast; date: Date;
 }) {
-  const alert = useMemo(() => operationalAlert(forecast), [forecast]);
+  const insights = useMemo(() => operationalInsights(forecast), [forecast]);
   const dateLabel = date.toLocaleDateString('ca-ES', { weekday:'long', day:'numeric', month:'long' });
 
   return (
@@ -222,19 +222,17 @@ function WeatherDetailSheet({ open, onClose, forecast, date }: {
           </>
         )}
 
-        {/* Operational alert */}
-        {alert && (
-          <div style={{
-            margin: '20px 22px 4px', padding: '14px 16px', borderRadius: 14,
-            background: 'linear-gradient(180deg, var(--terracotta-50) 0%, rgba(251,238,225,.5) 100%)',
-            border: '1px solid rgba(168,74,42,.24)',
-            boxShadow: '0 2px 8px rgba(168,74,42,.06)',
-            display:'flex', alignItems:'flex-start', gap: 11,
-          }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
-            <span style={{ fontSize: 13.5, fontWeight: 600, color:'var(--terracotta-700)', lineHeight: 1.45 }}>
-              {alert}
-            </span>
+        {/* Operational insights — each alert/warning/info gets its own card.
+            Highest severity is rendered first (handled by the lib). */}
+        {insights.length > 0 && (
+          <div style={{ padding: '22px 22px 4px' }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700, color: 'var(--ink-500)',
+              letterSpacing: .08, textTransform: 'uppercase', marginBottom: 10,
+            }}>Què cal tenir en compte</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {insights.map(it => <InsightCard key={it.id} ins={it} />)}
+            </div>
           </div>
         )}
 
@@ -488,6 +486,37 @@ function hourEmoji(c: WxCondition): string {
     case 'snow':     return '❄';
     default:         return '·';
   }
+}
+
+function InsightCard({ ins }: { ins: OperationalInsight }) {
+  // Severity → color treatment. Alert is terracotta (action needed), warn is
+  // clay (heads up), info is sky (good-news / neutral).
+  const palette =
+    ins.severity === 'alert' ? { bg: 'var(--terracotta-50)', fg: 'var(--terracotta-700)', border: 'rgba(168,74,42,.24)' } :
+    ins.severity === 'warn'  ? { bg: 'var(--clay-50)',       fg: 'var(--clay-700)',        border: 'rgba(176,118,54,.24)' } :
+                                { bg: 'var(--sky-50)',        fg: 'var(--sky-700)',         border: 'rgba(58,134,165,.22)' };
+  return (
+    <div style={{
+      padding: '12px 14px', borderRadius: 14,
+      background: `linear-gradient(180deg, ${palette.bg} 0%, rgba(255,255,255,.4) 100%)`,
+      border: `1px solid ${palette.border}`,
+      boxShadow: '0 2px 8px rgba(60,40,20,.04), inset 0 1px 0 rgba(255,255,255,.5)',
+      display: 'flex', alignItems: 'flex-start', gap: 10,
+    }}>
+      <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{ins.icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 13.5, fontWeight: 600, color: palette.fg, lineHeight: 1.4,
+        }}>{ins.text}</div>
+        {ins.when && (
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: palette.fg, opacity: .7,
+            marginTop: 3, fontFamily: 'var(--font-mono)', letterSpacing: .04,
+          }}>{ins.when}</div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function DetailCard({ label, value, tone = 'ink' }: { label: string; value: string; tone?: 'ink' | 'sky' | 'rose' }) {

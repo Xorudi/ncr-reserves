@@ -304,11 +304,22 @@ body::before {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .38);
+  /* Softer dim + light blur of whatever is behind. The combination of a
+     slight tint and a real blur is the "glassmorphism" touch — the user
+     reads the sheet against a frosted version of the previous screen,
+     which gives a strong sense of two distinct visual planes. */
+  background: rgba(30, 22, 16, .32);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out);
 }
 .sheet-backdrop.vis { opacity: 1; }
+/* Safari pre-14 (and any browser without backdrop-filter): fall back to a
+   slightly stronger dim so the contrast difference still reads. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .sheet-backdrop { background: rgba(30, 22, 16, .48); }
+}
 
 /* ── Sheet panel — iOS-like drawer easing (Vaul / Sonner reference) ───── */
 .sheet-panel {
@@ -677,4 +688,70 @@ body::before {
   .empty-glow, .empty-breath, .empty-text-in, .empty-text-in-2, .live-dot {
     animation: none !important;
   }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Premium depth — additional shadow tiers + card primitives
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Extra elevation steps for hero / floating / featured surfaces. The keys
+   keep going from --sh-1..3; --sh-4 is a true "card lifted" feel, --sh-5
+   is a "floating panel" feel (popovers, attention-grabbing).
+   Each is a layered shadow: a tight near-shadow for the contact line plus
+   a wider diffuse one for the ambient glow. */
+:root {
+  --sh-4: 0 12px 32px rgba(60,40,20,.10),
+          0 4px 10px  rgba(60,40,20,.06),
+          0 1px 2px   rgba(60,40,20,.04);
+  --sh-5: 0 24px 56px rgba(60,40,20,.14),
+          0 8px 18px  rgba(60,40,20,.08),
+          0 2px 4px   rgba(60,40,20,.04);
+  /* Inset highlight that mimics light coming from above, used on raised
+     cards over a cream background. */
+  --sh-inset-top: inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+/* Card primitives — drop these classes on a div to get a consistent
+   "premium" feel without re-declaring shadows in every component. */
+.card-flat {
+  background: var(--paper);
+  border-radius: 14px;
+  /* No border, just a paper-thin shadow + the inset highlight for grain */
+  box-shadow: var(--sh-1), var(--sh-inset-top);
+}
+.card-raised {
+  background: var(--paper);
+  border-radius: 16px;
+  box-shadow: var(--sh-2), var(--sh-inset-top);
+}
+.card-hero {
+  background: linear-gradient(180deg, var(--paper) 0%, var(--cream) 100%);
+  border-radius: 18px;
+  box-shadow: var(--sh-4), var(--sh-inset-top);
+}
+
+/* Hover-on-mouse devices only — touch shouldn't change shadow */
+@media (hover: hover) {
+  .card-flat:hover    { box-shadow: var(--sh-2), var(--sh-inset-top); transition: box-shadow 200ms var(--ease-out); }
+  .card-raised:hover  { box-shadow: var(--sh-3), var(--sh-inset-top); transition: box-shadow 200ms var(--ease-out); }
+}
+
+/* Glass surface — translucent paper with a real backdrop blur. Use on
+   popovers and floating panels that sit ABOVE main content. Falls back
+   gracefully when backdrop-filter isn't supported. */
+.glass {
+  background: rgba(255,255,255,.72);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255,255,255,.5);
+  box-shadow: var(--sh-3);
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass { background: var(--paper); }
+}
+
+/* Sheet panel gets a subtle inset highlight at the top edge — reinforces
+   that the panel sits ABOVE the dimmed/blurred backdrop. */
+.sheet-panel {
+  box-shadow: 0 -6px 32px rgba(60,40,20,.14), inset 0 1px 0 rgba(255,255,255,.6);
 }
