@@ -691,7 +691,11 @@ export default function MobileTodayView({
           }}>
             <div style={{
               display:'inline-flex', padding:3,
-              background:'rgba(60,40,20,.06)',
+              // Slightly warmer track than the canvas so the pill segments
+              // feel "set into" a tray. The active segment will pop with
+              // proper elevation.
+              background:'rgba(60,40,20,.045)',
+              boxShadow: 'inset 0 1px 2px rgba(40,28,16,.05)',
               borderRadius:999, gap:2,
             }}>
               {[
@@ -703,11 +707,14 @@ export default function MobileTodayView({
                   <button key={o.v} onClick={() => setShift(o.v as 'M' | 'N')}
                     className="press"
                     style={{
-                      padding:'7px 13px', borderRadius:999, border:'none',
-                      background: a ? 'var(--paper)' : 'transparent',
+                      padding:'7px 14px', borderRadius:999, border:'none',
+                      background: a ? 'var(--surface-elevated)' : 'transparent',
                       color: a ? 'var(--ink-900)' : 'var(--ink-500)',
                       fontSize:13, fontWeight:650, cursor:'pointer', fontFamily:'inherit',
-                      boxShadow: a ? 'var(--sh-1)' : 'none',
+                      // Active pill pops out of the track via real elevation
+                      boxShadow: a
+                        ? 'var(--shadow-md), var(--shadow-ring), var(--shadow-inset-top)'
+                        : 'none',
                       transition:'background 200ms var(--ease-out), box-shadow 200ms var(--ease-out)',
                       display:'inline-flex', alignItems:'center', gap:6,
                     }}>
@@ -867,8 +874,8 @@ export default function MobileTodayView({
               }}>
                 <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
                   <span key={`r-${activeList.length}`} className="number-tween" style={{
-                    fontFamily:'var(--font-serif)', fontSize:28, fontWeight:500,
-                    color:'var(--ink-900)', letterSpacing:-.005, lineHeight:1,
+                    fontFamily:'var(--font-serif)', fontSize:32, fontWeight:500,
+                    color:'var(--ink-900)', letterSpacing:-.015, lineHeight:1,
                   }}>{activeList.length}</span>
                   <span style={{
                     fontSize:11, fontWeight:700, letterSpacing:.08,
@@ -878,8 +885,8 @@ export default function MobileTodayView({
                 </div>
                 <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
                   <span key={`p-${activePax}`} className="number-tween" style={{
-                    fontFamily:'var(--font-serif)', fontSize:24, fontWeight:500,
-                    color:'var(--ink-900)', letterSpacing:-.005, lineHeight:1,
+                    fontFamily:'var(--font-serif)', fontSize:28, fontWeight:500,
+                    color:'var(--ink-900)', letterSpacing:-.01, lineHeight:1,
                   }}>{activePax}</span>
                   <span style={{
                     fontSize:11, fontWeight:700, letterSpacing:.08,
@@ -1203,13 +1210,16 @@ export default function MobileTodayView({
 
 // ─── Status pill (mobile style — no dot, just coloured label) ────────────────
 function ResStatePill({ state }: { state: ReservationStatus }) {
-  const map: Record<string, { bg: string; fg: string; label: string }> = {
-    pending:   { bg:'var(--clay-50)',        fg:'var(--clay-700)',        label:'Pendent'    },
-    confirmed: { bg:'var(--olive-50)',       fg:'var(--olive-700)',       label:'Confirmada' },
-    seated:    { bg:'var(--terracotta-50)',  fg:'var(--terracotta-700)',  label:'A taula'    },
-    completed: { bg:'var(--ink-100)',        fg:'var(--ink-600)',         label:'Acabada'    },
-    cancelled: { bg:'#f2ebe4',              fg:'var(--ink-500)',         label:'Cancel·lada' },
-    noshow:    { bg:'var(--rose-50)',        fg:'var(--rose-700)',        label:'No-show'    },
+  // Each state gets a bg + fg + a "dot" color for the leading indicator.
+  // The dot is the same hue as the foreground but at a more saturated mid
+  // tone, mirroring how Linear/Stripe render status chips.
+  const map: Record<string, { bg: string; fg: string; dot: string; label: string }> = {
+    pending:   { bg:'var(--clay-50)',        fg:'var(--clay-700)',        dot: 'var(--clay-500)',       label:'Pendent'    },
+    confirmed: { bg:'var(--olive-50)',       fg:'var(--olive-700)',       dot: 'var(--olive-500)',      label:'Confirmada' },
+    seated:    { bg:'var(--terracotta-50)',  fg:'var(--terracotta-700)',  dot: 'var(--terracotta-500)', label:'A taula'    },
+    completed: { bg:'var(--ink-100)',        fg:'var(--ink-600)',         dot: 'var(--ink-400)',        label:'Acabada'    },
+    cancelled: { bg:'#f2ebe4',              fg:'var(--ink-500)',         dot: 'var(--ink-400)',        label:'Cancel·lada' },
+    noshow:    { bg:'var(--rose-50)',        fg:'var(--rose-700)',        dot: 'var(--rose-600)',       label:'No-show'    },
   };
   const s = map[state] ?? map.pending;
 
@@ -1232,14 +1242,20 @@ function ResStatePill({ state }: { state: ReservationStatus }) {
       key={state}
       className={morphing ? 'status-morph' : undefined}
       style={{
-        display:'inline-flex', alignItems:'center',
-        padding:'3px 9px', borderRadius:999,
+        display:'inline-flex', alignItems:'center', gap: 5,
+        padding:'3px 10px 3px 8px', borderRadius:999,
         background:s.bg, color:s.fg,
         fontSize:11.5, fontWeight:600, whiteSpace:'nowrap',
         transition:'background 220ms var(--ease-in-out), color 220ms var(--ease-in-out)',
         ...(state === 'cancelled' ? { textDecoration:'line-through' } : {}),
       }}
-    >{s.label}</span>
+    >
+      <span aria-hidden style={{
+        width: 6, height: 6, borderRadius: '50%',
+        background: s.dot, flexShrink: 0,
+      }} />
+      {s.label}
+    </span>
   );
 }
 

@@ -547,15 +547,25 @@ export default function TouchShell() {
           {/* Banner de servei en marxa — només quan toca, discret però visible */}
           {activeShift && (
             <div style={{
+              position: 'relative',
               flexShrink: 0,
-              margin: '8px 22px 0',
-              padding: '8px 14px',
-              borderRadius: 10,
-              background: activeShift.tint,
-              border: `1px solid ${activeShift.id === 'M' ? 'rgba(204,144,73,.22)' : 'rgba(138,79,118,.22)'}`,
+              margin: '10px 22px 0',
+              padding: '9px 14px 9px 16px',
+              borderRadius: 12,
+              // Paper surface + subtle tint wash + colored left accent —
+              // matches the new visual language used by insight chips and
+              // the waitlist banner. The previous full tint fill was loud.
+              background: `linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 65%), ${activeShift.tint}`,
+              boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
               display: 'flex', alignItems: 'center', gap: 10,
               fontSize: 12.5,
+              overflow: 'hidden',
             }}>
+              {/* Shift accent bar — clay for migdia, plum for nit */}
+              <span aria-hidden style={{
+                position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+                background: activeShift.id === 'M' ? 'var(--clay-500)' : 'var(--plum-600)',
+              }} />
               <span style={{ fontSize: 15, lineHeight: 1 }}>{activeShift.emoji}</span>
               <span style={{
                 fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500,
