@@ -49,6 +49,16 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
     return () => { cancelled = true; };
   }, [dateIso]);
 
+  // Listen for app-wide requests to open the weather detail (e.g. a smart
+  // insight chip dispatching `app:open-weather`). Only the *first mounted*
+  // widget handles it — both compact and full variants would otherwise
+  // both pop a sheet.
+  useEffect(() => {
+    const handler = () => { if (forecast) setShowDetail(true); };
+    window.addEventListener('app:open-weather', handler);
+    return () => window.removeEventListener('app:open-weather', handler);
+  }, [forecast]);
+
   // Hide entirely (rather than show a stub) when no data — date too far out,
   // offline, etc. Keeps the header chrome clean.
   if (!forecast && !loading) return null;

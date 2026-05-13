@@ -14,12 +14,28 @@ import { rankCustomers, type CustomerStats } from '@/utils/loyalty';
 
 export type InsightTone = 'positive' | 'warning' | 'alert' | 'neutral';
 
+/** What a tap on the insight chip should do. */
+export type InsightAction =
+  | { kind: 'open-weather' }
+  | { kind: 'open-waitlist' }
+  | { kind: 'open-stats-comparative' }
+  | { kind: 'show-reservations'; filter: ReservationFilter; title: string }
+  | { kind: 'scroll-to-hour'; hour: number };
+
+/** A predicate name the UI knows how to evaluate against the day's reservations. */
+export type ReservationFilter =
+  | { kind: 'large-groups'; minPax?: number }
+  | { kind: 'vip' }                       // Diamond+ from loyalty
+  | { kind: 'birthday' }
+  | { kind: 'hour'; hour: number };
+
 export interface SmartInsight {
   id:       string;          // stable, used as React key
   icon:     string;          // emoji
   text:     string;          // headline (one line)
   sub?:     string;          // optional secondary
   tone:     InsightTone;
+  action?:  InsightAction;   // optional — chip becomes tappable when set
 }
 
 interface GenerateOpts {
@@ -29,6 +45,65 @@ interface GenerateOpts {
   customers:       Customer[];
   waitlist:        WaitlistEntry[];
   forecast?:       WeatherForecast | null;
+}
+
+// ─── Dismiss persistence (per day) ────────────────────────────────────────────
+
+function dismissKey(dayIso: string): string {
+  return `ncr.insights.dismissed.${dayIso}`;
+}
+export function isInsightDismissed(insightId: string, dayIso: string): boolean {
+  try {
+    const stored = sessionStorage.getItem(dismissKey(dayIso));
+    if (!stored) return false;
+    return stored.split('|').includes(insightId);
+  } catch { return false; }
+}
+export function dismissInsight(insightId: string, dayIso: string) {
+  try {
+    const stored = sessionStorage.getItem(dismissKey(dayIso)) ?? '';
+    const ids = new Set(stored.split('|').filter(Boolean));
+    ids.add(insightId);
+    sessionStorage.setItem(dismissKey(dayIso), Array.from(ids).join('|'));
+  } catch { /* private mode */ }
+}
+
+// ─── Apply a ReservationFilter to a day's bookings ────────────────────────────
+// Exposed here so the UI sheet stays simple — same matching logic the engine
+// used to count + the filter that the chip carries.
+
+export interface MatchedReservation { reservation: Reservation; isVip: boolean; }
+
+export function matchReservations(
+  filter: ReservationFilter,
+  bookings: Reservation[],
+  ranked?: Map<string, CustomerStats>,
+): MatchedReservation[] {
+  switch (filter.kind) {
+    case 'large-groups': {
+      const min = filter.minPax ?? 8;
+      return bookings.filter(r => r.pax >= min).map(r => ({ reservation: r, isVip: false }));
+    }
+    case 'birthday':
+      return bookings
+        .filter(r => r.tags?.includes('birthday') || (r.notes && r.notes.toLowerCase().includes('aniversari')))
+        .map(r => ({ reservation: r, isVip: false }));
+    case 'hour':
+      return bookings
+        .filter(r => parseInt(r.time.split(':')[0], 10) === filter.hour)
+        .map(r => ({ reservation: r, isVip: false }));
+    case 'vip':
+      if (!ranked) return [];
+      return bookings
+        .filter(r => {
+          const stats = (r.phone && ranked.get(`p:${r.phone}`)) ||
+                        ranked.get(`n:${r.name.trim().toLowerCase()}`);
+          return stats && (stats.level.id === 'diamond' || stats.level.id === 'master');
+        })
+        .map(r => ({ reservation: r, isVip: true }));
+    default:
+      return [];
+  }
 }
 
 function isoDay(d: Date): string {
@@ -85,6 +160,8 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
         text: `Reserves un ${Math.round(delta)}% més que els ${dowNames[dow]}`,
         sub:  `Mitjana 4 setmanes: ${avgSameDow.toFixed(1)}`,
         tone: 'positive',
+        // Comparative insights are read-only for now — stats navigation
+        // from a nested sub-screen needs more plumbing; skip the action.
       });
     } else if (delta <= -20) {
       out.push({
@@ -128,6 +205,7 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
         : `${largeGroups.length} grups grans · ${totalPaxBig} pax`,
       sub:  'Comprova distribució de taules',
       tone: 'warning',
+      action: { kind: 'show-reservations', filter: { kind: 'large-groups', minPax: 8 }, title: 'Grups grans' },
     });
   }
 
@@ -151,6 +229,7 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
         text: `Possibles retards a les ${String(peakHour.h).padStart(2, '0')}h`,
         sub:  `${peakHour.n} reserves concentrades`,
         tone: 'warning',
+        action: { kind: 'show-reservations', filter: { kind: 'hour', hour: peakHour.h }, title: `Reserves a les ${String(peakHour.h).padStart(2, '0')}h` },
       });
     }
   }
@@ -179,6 +258,7 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
           : `${vipBookings.length} clients VIP avui`,
         sub:  'Reserva preferent',
         tone: 'positive',
+        action: { kind: 'show-reservations', filter: { kind: 'vip' }, title: 'Clients VIP' },
       });
     }
   }
@@ -198,6 +278,7 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
         : `${birthdayBookings.length} aniversaris avui`,
       sub:  'Detall extra al servei',
       tone: 'positive',
+      action: { kind: 'show-reservations', filter: { kind: 'birthday' }, title: 'Aniversaris' },
     });
   }
 
@@ -215,6 +296,7 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
         tone: w.severity === 'alert' ? 'alert' :
               w.severity === 'warn'  ? 'warning' :
               'positive',
+        action: { kind: 'open-weather' },
       });
     }
   }
@@ -233,9 +315,11 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
         text: `${queueToday.length} grups a la cua`,
         sub:  'Pressió a la sala',
         tone: 'warning',
+        action: { kind: 'open-waitlist' },
       });
     }
   }
 
-  return out;
+  // Filter out anything the operator dismissed for this day.
+  return out.filter(i => !isInsightDismissed(i.id, dayIso));
 }
