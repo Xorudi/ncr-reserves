@@ -52,22 +52,45 @@ function detectTouch(): boolean {
 }
 
 /**
+ * True when the hardware itself is a tablet, independent of viewport width.
+ *
+ * Critical for iPad in Split View / Slide Over: the visible viewport can
+ * shrink below 600 px when sharing the screen, but the user still wants
+ * the tablet shell (side rail, no bottom nav) because the device IS a tablet.
+ *
+ * Detection sources, in order of reliability:
+ *   1. Classic UA contains "iPad" (iOS < 13)
+ *   2. iPadOS 13+ reports UA as Macintosh BUT has touch (Macs don't)
+ *   3. Android UA without "Mobile" qualifier
+ */
+function detectTabletHardware(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const maxTouch = (navigator as { maxTouchPoints?: number }).maxTouchPoints ?? 0;
+  if (/iPad/i.test(ua)) return true;
+  if (/Macintosh/.test(ua) && maxTouch > 1) return true;  // iPad in desktop-UA mode
+  if (/Android/.test(ua) && !/Mobile/.test(ua)) return true;
+  return false;
+}
+
+/**
  * Device classification rules
  *
- *   any touch device  width < 600  → mobile  (phones / very small tablets)
- *   any touch device  width ≥ 600  → tablet  (iPads, Android tablets, etc.)
- *   non-touch         width < 768  → mobile  (narrow non-touch browser window)
- *   non-touch         width ≥ 1100 → desktop
- *   non-touch         768–1099     → tablet  (narrow desktop window)
+ *   tablet hardware                  → tablet  (forced — handles Split View)
+ *   any touch device  width < 600    → mobile  (phones)
+ *   any touch device  width ≥ 600    → tablet  (iPads, Android tablets)
+ *   non-touch         width < 768    → mobile  (narrow browser window)
+ *   non-touch         width ≥ 1100   → desktop
+ *   non-touch         768–1099       → tablet  (narrow desktop window)
  *
- * Key invariant: an iPad in portrait at 810×1080 (or even 768×1024 for the
- * classic models) MUST always classify as tablet. The previous rule had a
- * `w < 768` mobile fallback that ANY touch device could trigger via Safari
- * viewport quirks, flickering the tablet shell into the mobile layout.
- * Now touch devices below 600 px (phones only) are mobile; everything else
- * touch is tablet.
+ * Key invariant #1: an iPad in portrait at 810×1080 (or 768×1024 classic)
+ *   MUST always classify as tablet.
+ * Key invariant #2: an iPad in iPadOS Split View — where window.innerWidth
+ *   can drop to ~507 — STILL classifies as tablet, because the device is
+ *   a tablet and the operator wants the side-rail shell.
  */
-function classify(w: number, isTouch: boolean): DeviceType {
+function classify(w: number, isTouch: boolean, isTabletHw: boolean): DeviceType {
+  if (isTabletHw) return 'tablet';
   if (isTouch) {
     return w < 600 ? 'mobile' : 'tablet';
   }
@@ -77,10 +100,11 @@ function classify(w: number, isTouch: boolean): DeviceType {
 }
 
 function snapshot(): DeviceInfo {
-  const w       = window.innerWidth;
-  const h       = window.innerHeight;
-  const isTouch = detectTouch();
-  const device  = classify(w, isTouch);
+  const w        = window.innerWidth;
+  const h        = window.innerHeight;
+  const isTouch  = detectTouch();
+  const tabletHw = detectTabletHardware();
+  const device   = classify(w, isTouch, tabletHw);
   return {
     width:  w,
     height: h,
