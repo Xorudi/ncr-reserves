@@ -12,7 +12,7 @@ import AnimatedSheet from './AnimatedSheet';
 import { Icon, I } from './Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
-import type { WaitlistEntry, Reservation } from '@/types';
+import type { WaitlistEntry, Reservation, FloorPlan } from '@/types';
 
 interface Props {
   open: boolean;
@@ -24,9 +24,10 @@ interface Props {
 
 export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
   const {
-    selectedBusiness, waitlist,
+    selectedBusiness, waitlist, floorPlans,
     addToWaitlist, removeFromWaitlist, notifyWaitlist, seatFromWaitlist,
   } = useAppStore();
+  const plan = floorPlans[selectedBusiness];
 
   // Re-render every 30s so the "X min" counters stay fresh while the sheet
   // is open. Cheap because the list is tiny.
@@ -139,7 +140,10 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {bizQueue.map(w => <QueueRow key={w.id} w={w}
+              {bizQueue.map((w, i) => <QueueRow key={w.id} w={w}
+                rank={i + 1}
+                isNext={i === 0}
+                plan={plan}
                 onNotify={() => handleNotify(w)}
                 onSeat={() => handleSeat(w)}
                 onRemove={() => handleRemove(w)} />)}
@@ -221,30 +225,204 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
 }
 
 // ─── QueueRow ─────────────────────────────────────────────────────────────────
+//
+// Visual hierarchy: rank #1 ("Següent") is bigger, terracotta-tinted, with
+// the wait time as the most prominent secondary number. Subsequent rows are
+// compacter but still show rank + wait so the operator can scan the queue
+// in one glance.
 
-function QueueRow({ w, onNotify, onSeat, onRemove }: {
+interface QueueRowProps {
   w: WaitlistEntry;
+  rank: number;
+  isNext: boolean;
+  plan?: FloorPlan;
   onNotify: () => void;
   onSeat:   () => void;
   onRemove: () => void;
-}) {
-  const waitMin = Math.max(0, Math.floor((Date.now() - w.addedAt) / 60_000));
-  const isLong  = waitMin >= 15;
-  const isNotified = w.status === 'notified';
+}
 
+/** Pick a wait-time tone: ink (cool), clay (warm warn), rose (urgent). */
+function waitTone(min: number): { fg: string; bg: string; label?: string } {
+  if (min >= 25) return { fg: 'var(--rose-700)',  bg: 'rgba(194,74,74,.10)', label: 'massa' };
+  if (min >= 15) return { fg: 'var(--clay-700)',  bg: 'rgba(204,144,73,.12)', label: 'avís' };
+  return { fg: 'var(--ink-700)', bg: 'transparent' };
+}
+
+/** Find a compatible free table for this party size; returns a label like "4–6 pax". */
+function compatibleTableLabel(plan: FloorPlan | undefined, pax: number): string | null {
+  if (!plan) return null;
+  // Free tables whose capacity covers the party. Prefer smallest fit so we
+  // don't tie up a 10-top for a 2-party. Group consecutive caps for a range.
+  const candidates = plan.tables
+    .filter(t => t.status === 'free' && t.cap >= pax)
+    .sort((a, b) => a.cap - b.cap);
+  if (candidates.length === 0) return null;
+  const minCap = candidates[0].cap;
+  const maxCap = candidates[Math.min(2, candidates.length - 1)].cap;
+  return minCap === maxCap ? `${minCap} pax` : `${minCap}–${maxCap} pax`;
+}
+
+function QueueRow({ w, rank, isNext, plan, onNotify, onSeat, onRemove }: QueueRowProps) {
+  const waitMin = Math.max(0, Math.floor((Date.now() - w.addedAt) / 60_000));
+  const tone = waitTone(waitMin);
+  const isNotified = w.status === 'notified';
+  const tableLabel = compatibleTableLabel(plan, w.pax);
+
+  // First-in-queue card: bigger padding, terracotta tint, "Següent" pill,
+  // larger wait time, optional compatible-table hint.
+  if (isNext) {
+    return (
+      <div style={{
+        position: 'relative',
+        padding: '14px 14px 12px', borderRadius: 14,
+        background: isNotified
+          ? 'linear-gradient(180deg, var(--olive-50) 0%, var(--paper) 90%)'
+          : 'linear-gradient(180deg, var(--terracotta-50) 0%, var(--paper) 80%)',
+        border: `1.5px solid ${isNotified ? 'rgba(116,133,74,.32)' : 'rgba(168,74,42,.28)'}`,
+        boxShadow: '0 2px 8px rgba(168,74,42,.10)',
+        display: 'flex', flexDirection: 'column', gap: 11,
+      }}>
+        {/* Top stripe: rank + Següent pill + remove */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'baseline', gap: 4,
+            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
+            color: 'var(--ink-500)', letterSpacing: .04,
+          }}>
+            <span style={{ opacity: .6 }}>#</span>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500, color: 'var(--terracotta-700)' }}>{rank}</span>
+          </span>
+          <span style={{
+            fontSize: 9.5, fontWeight: 800, letterSpacing: .14,
+            textTransform: 'uppercase',
+            padding: '3px 8px', borderRadius: 999,
+            background: 'var(--terracotta-600)', color: '#fff',
+          }}>★ Següent</span>
+          {isNotified && (
+            <span title="Avisat" style={{
+              fontSize: 9.5, fontWeight: 800, letterSpacing: .14,
+              textTransform: 'uppercase',
+              padding: '3px 8px', borderRadius: 999,
+              background: 'var(--olive-700)', color: '#fff',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}>📞 Avisat</span>
+          )}
+          <span style={{ flex: 1 }} />
+          <button onClick={onRemove} aria-label="Eliminar"
+            style={{
+              width: 28, height: 28, borderRadius: 999,
+              border: 'none', background: 'transparent',
+              color: 'var(--ink-400)', cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+            }}>
+            <Icon d={I.x} size={14} />
+          </button>
+        </div>
+
+        {/* Main row: name+pax on the left, wait time prominent on the right */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 21, fontWeight: 500,
+              color: 'var(--ink-900)', lineHeight: 1.05, letterSpacing: -.005,
+            }}>
+              {w.name} <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700,
+                color: 'var(--ink-500)', marginLeft: 4,
+              }}>· {w.pax}p</span>
+            </div>
+            {w.phone && (
+              <div style={{
+                fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3,
+                fontFamily: 'var(--font-mono)', fontWeight: 600,
+              }}>{w.phone}</div>
+            )}
+          </div>
+          <div style={{
+            flexShrink: 0, textAlign: 'right',
+            padding: '6px 10px', borderRadius: 10,
+            background: tone.bg,
+          }}>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500,
+              color: tone.fg, lineHeight: 1, letterSpacing: -.01,
+            }}>{waitMin}<span style={{ fontSize: 12, marginLeft: 2 }}>min</span></div>
+            <div style={{
+              fontSize: 9.5, fontWeight: 700, color: tone.fg, opacity: .7,
+              letterSpacing: .08, textTransform: 'uppercase', marginTop: 2,
+            }}>{tone.label ?? 'esperant'}</div>
+          </div>
+        </div>
+
+        {/* Compatible-table hint when at least one free table can host them */}
+        {tableLabel && (
+          <div style={{
+            display: 'inline-flex', alignSelf: 'flex-start',
+            alignItems: 'center', gap: 6,
+            padding: '4px 9px', borderRadius: 999,
+            background: 'var(--paper)', border: '1px solid rgba(60,40,20,.10)',
+            fontSize: 11, color: 'var(--ink-700)', fontWeight: 600,
+          }}>
+            <span style={{ fontSize: 12 }}>🪑</span>
+            <span>Taula lliure compatible: {tableLabel}</span>
+          </div>
+        )}
+
+        {/* Action row */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={onNotify} disabled={isNotified} className="press"
+            style={{
+              flex: 1, padding: '10px 0', borderRadius: 10,
+              border: '1px solid rgba(60,40,20,.12)',
+              background: isNotified ? 'transparent' : 'var(--paper)',
+              color: isNotified ? 'var(--ink-400)' : 'var(--ink-800)',
+              cursor: isNotified ? 'default' : 'pointer',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 650,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              opacity: isNotified ? .6 : 1,
+            }}>
+            <Icon d={I.phone} size={13} stroke={2} />
+            {isNotified ? 'Avisat' : 'Avisar'}
+          </button>
+          <button onClick={onSeat} className="press"
+            style={{
+              flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
+              background: 'var(--terracotta-600)', color: '#fff',
+              cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              boxShadow: '0 2px 6px rgba(168,74,42,.28)',
+            }}>
+            <Icon d={I.users} size={13} stroke={2} /> Asseure
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Compact card for #2+ — rank big-ish, wait time clearly to the right,
+  // actions in a single row beneath. Notified state still shifts the bg.
   return (
     <div style={{
-      padding: '12px 14px', borderRadius: 12,
+      padding: '11px 12px', borderRadius: 12,
       background: isNotified ? 'var(--olive-50)' : 'var(--paper)',
       border: `1px solid ${isNotified ? 'rgba(116,133,74,.28)' : 'rgba(60,40,20,.08)'}`,
-      display: 'flex', flexDirection: 'column', gap: 10,
+      display: 'flex', flexDirection: 'column', gap: 8,
     }}>
-      {/* Top row: name + pax + wait time + remove */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Rank pill */}
+        <span style={{
+          flexShrink: 0,
+          width: 30, height: 30, borderRadius: 8,
+          background: 'var(--ink-50)',
+          display: 'grid', placeItems: 'center',
+          fontFamily: 'var(--font-serif)', fontSize: 15, fontWeight: 500,
+          color: 'var(--ink-700)',
+        }}>{rank}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 14.5, fontWeight: 650, color: 'var(--ink-900)',
+            fontSize: 14, fontWeight: 650, color: 'var(--ink-900)',
             letterSpacing: -.005,
           }}>
             <span>{w.name}</span>
@@ -252,54 +430,58 @@ function QueueRow({ w, onNotify, onSeat, onRemove }: {
               fontSize: 11, fontWeight: 700, color: 'var(--ink-500)',
               fontFamily: 'var(--font-mono)',
             }}>· {w.pax}p</span>
-            {isNotified && (
-              <span title="Avisat" style={{ fontSize: 12 }}>📞</span>
-            )}
+            {isNotified && <span title="Avisat" style={{ fontSize: 11 }}>📞</span>}
           </div>
-          <div style={{
-            fontSize: 11.5, color: isLong ? 'var(--rose-700)' : 'var(--ink-500)',
-            marginTop: 2, fontFamily: 'var(--font-mono)', fontWeight: 600,
-            letterSpacing: .04,
-          }}>
-            {waitMin === 0 ? 'ara mateix' : `fa ${waitMin} min`}
-            {w.phone ? ` · ${w.phone}` : ''}
-          </div>
+          {w.phone && (
+            <div style={{
+              fontSize: 11, color: 'var(--ink-500)', marginTop: 1,
+              fontFamily: 'var(--font-mono)', fontWeight: 600,
+            }}>{w.phone}</div>
+          )}
         </div>
+        <span style={{
+          flexShrink: 0,
+          fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700,
+          color: tone.fg, letterSpacing: .04,
+          padding: '4px 8px', borderRadius: 8,
+          background: tone.bg,
+        }}>
+          {waitMin === 0 ? 'ara' : `${waitMin} min`}
+        </span>
         <button onClick={onRemove} aria-label="Eliminar"
           style={{
-            width: 30, height: 30, borderRadius: 999,
+            width: 26, height: 26, borderRadius: 999,
             border: 'none', background: 'transparent',
             color: 'var(--ink-400)', cursor: 'pointer',
             display: 'grid', placeItems: 'center',
           }}>
-          <Icon d={I.x} size={14} />
+          <Icon d={I.x} size={13} />
         </button>
       </div>
-      {/* Action row */}
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={onNotify} disabled={isNotified} className="press"
           style={{
-            flex: 1, padding: '8px 0', borderRadius: 9,
+            flex: 1, padding: '7px 0', borderRadius: 9,
             border: '1px solid rgba(60,40,20,.10)',
             background: isNotified ? 'transparent' : 'var(--paper)',
             color: isNotified ? 'var(--ink-400)' : 'var(--ink-800)',
             cursor: isNotified ? 'default' : 'pointer',
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
+            fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             opacity: isNotified ? .6 : 1,
           }}>
-          <Icon d={I.phone} size={12} stroke={2} />
+          <Icon d={I.phone} size={11} stroke={2} />
           {isNotified ? 'Avisat' : 'Avisar'}
         </button>
         <button onClick={onSeat} className="press"
           style={{
-            flex: 1, padding: '8px 0', borderRadius: 9, border: 'none',
+            flex: 1, padding: '7px 0', borderRadius: 9, border: 'none',
             background: 'var(--terracotta-600)', color: '#fff',
             cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+            fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}>
-          <Icon d={I.users} size={12} stroke={2} /> Asseure
+          <Icon d={I.users} size={11} stroke={2} /> Asseure
         </button>
       </div>
     </div>
