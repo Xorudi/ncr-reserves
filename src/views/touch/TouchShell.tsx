@@ -278,7 +278,11 @@ export default function TouchShell() {
     if (tab !== 'reservations') return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    // Stricter intent: require ≥90 px of horizontal travel AND a dominant
+    // horizontal component (dx must beat dy by 1.8×). Previously a 50 px
+    // / 1.5× threshold was triggering on casual horizontal drift while
+    // the operator was actually scrolling vertically.
+    if (Math.abs(dx) < 90 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
     const next = new Date(selectedDate);
     next.setDate(next.getDate() + (dx < 0 ? 1 : -1));
     setSelectedDate(next);

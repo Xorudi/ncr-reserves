@@ -47,50 +47,76 @@ function SwipeableRow({
   const [dx, setDx]               = useState(0);
   const [animatingBack, setAnimB] = useState(false);
   const startX     = useRef(0);
+  const startY     = useRef(0);
   const startTime  = useRef(0);
-  const dragging   = useRef(false);
+  // 'idle' = no commitment yet; 'horizontal' = locked, swipe row is in play;
+  // 'vertical' = locked, scrolling — never engages the row swipe.
+  const intent     = useRef<'idle' | 'horizontal' | 'vertical'>('idle');
   const fired      = useRef(false);
-  const THRESH_PX  = 96;
+  // Higher threshold so accidental cross-motion during a vertical scroll
+  // (or a soft day-swipe at the shell level) doesn't trip a row action.
+  // Action fires at 96 px before; bumped to 110 + an "intent" stricter
+  // gate that requires the gesture to clearly commit horizontal first.
+  const TRIGGER_PX = 110;
+  const INTENT_PX  = 10;            // total displacement before we decide intent
+  const HORIZ_RATIO = 1.6;          // |dx| must beat |dy| by this much to claim horizontal
 
   function onDown(e: React.PointerEvent) {
     if (disabled && backwardDisabled) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     startX.current    = e.clientX;
+    startY.current    = e.clientY;
     startTime.current = Date.now();
-    dragging.current  = false;
+    intent.current    = 'idle';
     fired.current     = false;
     setAnimB(false);
   }
 
   function onMove(e: React.PointerEvent) {
     if (e.buttons === 0) return;
-    const delta = e.clientX - startX.current;
-    if (!dragging.current && Math.abs(delta) > 6) {
-      dragging.current = true;
-      try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); } catch {}
-    }
-    if (dragging.current) {
-      let d = delta;
-      // Right swipe (forward) — damp past threshold; resist if disabled
-      if (d > 0) {
-        if (disabled) d = d * 0.25;
-        else if (d > THRESH_PX) d = THRESH_PX + (d - THRESH_PX) * 0.4;
+    const deltaX = e.clientX - startX.current;
+    const deltaY = e.clientY - startY.current;
+
+    // Phase 1: decide intent. We need clear horizontal commitment before
+    // locking onto the row swipe; otherwise the gesture belongs to scroll.
+    if (intent.current === 'idle') {
+      const adx = Math.abs(deltaX);
+      const ady = Math.abs(deltaY);
+      if (adx < INTENT_PX && ady < INTENT_PX) return;  // not enough yet
+      if (adx > ady * HORIZ_RATIO) {
+        intent.current = 'horizontal';
+        try { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); } catch {}
+      } else {
+        intent.current = 'vertical';  // hand over to native scroll
+        return;
       }
-      // Left swipe (backward) — damp past threshold; resist if disabled
-      if (d < 0) {
-        if (backwardDisabled) d = d * 0.25;
-        else if (d < -THRESH_PX) d = -THRESH_PX + (d + THRESH_PX) * 0.4;
-      }
-      setDx(d);
     }
+
+    if (intent.current !== 'horizontal') return;
+
+    let d = deltaX;
+    // Right swipe (forward) — damp past threshold; resist hard if disabled
+    if (d > 0) {
+      if (disabled) d = d * 0.20;
+      else if (d > TRIGGER_PX) d = TRIGGER_PX + (d - TRIGGER_PX) * 0.4;
+    }
+    // Left swipe (backward) — damp past threshold; resist hard if disabled
+    if (d < 0) {
+      if (backwardDisabled) d = d * 0.20;
+      else if (d < -TRIGGER_PX) d = -TRIGGER_PX + (d + TRIGGER_PX) * 0.4;
+    }
+    setDx(d);
   }
 
   function onUp() {
-    if (!dragging.current) { setDx(0); return; }
+    if (intent.current !== 'horizontal') { setDx(0); intent.current = 'idle'; return; }
     const elapsed  = Math.max(Date.now() - startTime.current, 1);
     const velocity = dx / elapsed;
-    const shouldFwd  = !fired.current && !disabled        && (dx >=  THRESH_PX || velocity >  0.11);
-    const shouldBwd  = !fired.current && !backwardDisabled && (dx <= -THRESH_PX || velocity < -0.11);
+    // Action fires at the explicit threshold OR at higher velocity (flick).
+    // Velocity gate bumped 0.11 → 0.18 so a casual horizontal drift doesn't
+    // count as "intent to flick".
+    const shouldFwd = !fired.current && !disabled         && (dx >=  TRIGGER_PX || velocity >  0.18);
+    const shouldBwd = !fired.current && !backwardDisabled && (dx <= -TRIGGER_PX || velocity < -0.18);
     setAnimB(true);
     if (shouldFwd && onForward) {
       fired.current = true;
@@ -100,11 +126,11 @@ function SwipeableRow({
       onBackward();
     }
     setDx(0);
-    dragging.current = false;
+    intent.current = 'idle';
   }
 
-  const fwdOpacity = Math.min(Math.max( dx / THRESH_PX, 0), 1);
-  const bwdOpacity = Math.min(Math.max(-dx / THRESH_PX, 0), 1);
+  const fwdOpacity = Math.min(Math.max( dx / TRIGGER_PX, 0), 1);
+  const bwdOpacity = Math.min(Math.max(-dx / TRIGGER_PX, 0), 1);
   const bwdColor   = backwardColor ?? { bg:'var(--rose-50)', fg:'var(--rose-700)', ring:'rgba(194,74,74,.30)' };
 
   return (
