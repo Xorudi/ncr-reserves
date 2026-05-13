@@ -4,9 +4,9 @@ export const BUSINESSES: Business[] = [
   // capacity here is the static fallback; the runtime source of truth is
   // store.businessConfigs[id].capacity (editable via Settings).
   // Kept in sync with BUSINESS_CONFIGS defaults below.
-  { id: 'ganxo',   name: 'El Ganxo',   kind: 'Pub',                        hue: '#a84a2a', hueSoft: '#f7e2d2', monogram: 'EG', address: 'Passeig Marítim 14',       capacity: 80  },
-  { id: 'pista',   name: 'La Pista',   kind: 'Bar restaurant',             hue: '#5a6b35', hueSoft: '#e4ead1', monogram: 'LP', address: 'Carrer del Poliesportiu 3', capacity: 120 },
-  { id: 'esquitx', name: "L'Esquitx", kind: 'Bar restaurant',              hue: '#2a6d8a', hueSoft: '#d4e7ee', monogram: 'LE', address: 'Plaça Vella 7',             capacity: 45  },
+  { id: 'ganxo',   name: 'El Ganxo',   kind: 'Pub',                        hue: '#a84a2a', hueSoft: '#f7e2d2', monogram: 'EG', address: 'Les Masies de Voltregà, 08508', capacity: 80  },
+  { id: 'pista',   name: 'La Pista',   kind: 'Bar restaurant',             hue: '#5a6b35', hueSoft: '#e4ead1', monogram: 'LP', address: 'Les Masies de Voltregà, 08508', capacity: 120 },
+  { id: 'esquitx', name: "L'Esquitx", kind: 'Bar restaurant',              hue: '#2a6d8a', hueSoft: '#d4e7ee', monogram: 'LE', address: 'Les Masies de Voltregà, 08508', capacity: 45  },
 ];
 
 function r(bizId: BusinessId, time: string, name: string, pax: number, status: Reservation['status'], extras: Partial<Reservation> = {}): Reservation {
@@ -443,9 +443,9 @@ export function isoDate(d: Date): string {
 
 // ─── Business configs (mutable per negoci) ────────────────────────────────────
 export const BUSINESS_CONFIGS: Record<string, BusinessConfig> = {
-  ganxo:   { name:'El Ganxo',   kind:'Pub',                  address:"C/ Major, 14, Granollers",           phone:'+34 93 870 11 22', email:'reserves@elganxo.cat',  capacity:80,  active:true },
-  pista:   { name:'La Pista',   kind:'Bar restaurant',       address:'C/ Indústria, 3, Granollers',     phone:'+34 93 870 33 44', email:'info@lapista.cat',       capacity:120, active:true },
-  esquitx: { name:"L'Esquitx",  kind:'Bar restaurant',      address:'Pl. de la Porxada, 5, Granollers',  phone:'+34 93 870 55 66', email:'hola@esquitx.cat',       capacity:45,  active:true },
+  ganxo:   { name:'El Ganxo',   kind:'Pub',                  address:'Les Masies de Voltregà, 08508',   phone:'+34 93 870 11 22', email:'reserves@elganxo.cat',  capacity:80,  active:true },
+  pista:   { name:'La Pista',   kind:'Bar restaurant',       address:'Les Masies de Voltregà, 08508',   phone:'+34 93 870 33 44', email:'info@lapista.cat',       capacity:120, active:true },
+  esquitx: { name:"L'Esquitx",  kind:'Bar restaurant',      address:'Les Masies de Voltregà, 08508',   phone:'+34 93 870 55 66', email:'hola@esquitx.cat',       capacity:45,  active:true },
 };
 
 // ─── Business hours (mutable per negoci) ─────────────────────────────────────

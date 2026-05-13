@@ -176,8 +176,8 @@ export async function fetchForecast(opts: FetchOpts): Promise<WeatherForecast | 
   }
 }
 
-// ─── Granollers default coordinates ────────────────────────────────────────────
-// All 3 restaurants are within ~2 km of each other, so a single point works
+// ─── Default coordinates — Les Masies de Voltregà (Osona, 08508) ──────────────
+// All 3 venues are within ~2 km in this town, so a single point is enough
 // for the foreseeable future. If we ever split by venue, add lat/lng to
 // BUSINESSES and use those instead.
-export const DEFAULT_COORDS = { lat: 41.6083, lng: 2.288 };
+export const DEFAULT_COORDS = { lat: 42.0289, lng: 2.2336 };
