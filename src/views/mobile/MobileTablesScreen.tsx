@@ -169,8 +169,16 @@ export default function MobileTablesScreen() {
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
 
-      {/* Date header */}
-      <div style={{ padding:'8px 14px 6px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
+      {/* Date header — glass material on top of the canvas */}
+      <div style={{
+        padding:'10px 14px 8px',
+        background: 'rgba(255,255,255,.55)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        backdropFilter:       'blur(16px) saturate(140%)',
+        boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06)',
+        flexShrink:0, display:'flex', alignItems:'center', gap:8,
+        position: 'relative', zIndex: 5,
+      }}>
         <span style={{ fontSize:12.5, fontWeight:600, color:'var(--ink-700)' }}>
           {isToday ? 'Avui' : dateLabel}
         </span>
@@ -191,38 +199,64 @@ export default function MobileTablesScreen() {
         </button>
       </div>
 
-      {/* Stat boxes — 4-col Fraunces grid */}
-      <div style={{ padding:'8px 14px 6px', background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:6 }}>
+      {/* Stat boxes — 4-col Fraunces grid, paper-elevated with left accents */}
+      <div style={{ padding:'10px 14px', flexShrink:0 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
           {([
-            ['Lliures',  counts['free']     ?? 0, 'var(--olive-700)'],
-            ['Ocupades', counts['seated']   ?? 0, 'var(--terracotta-700)'],
-            ['Reserva',  (counts['confirmed'] ?? 0) + (counts['reserved'] ?? 0) + (counts['pending'] ?? 0), 'var(--clay-700)'],
-            ['Bloq.',    counts['blocked']  ?? 0, 'var(--ink-500)'],
-          ] as [string, number, string][]).map(([l, n, c]) => (
-            <div key={l} style={{ background:'var(--cream)', borderRadius:10, padding:'8px 10px', border:'var(--hair)' }}>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:18, fontWeight:500, color:c, lineHeight:1 }}>{n}</div>
-              <div style={{ fontSize:10, color:'var(--ink-500)', fontWeight:600, marginTop:3 }}>{l}</div>
+            ['Lliures',  counts['free']     ?? 0, 'var(--olive-700)',      'var(--olive-500)'     ],
+            ['Ocupades', counts['seated']   ?? 0, 'var(--terracotta-700)', 'var(--terracotta-500)'],
+            ['Reserva',  (counts['confirmed'] ?? 0) + (counts['reserved'] ?? 0) + (counts['pending'] ?? 0), 'var(--clay-700)', 'var(--clay-500)'],
+            ['Bloq.',    counts['blocked']  ?? 0, 'var(--ink-700)',        'var(--ink-400)'       ],
+          ] as [string, number, string, string][]).map(([l, n, c, accent]) => (
+            <div key={l} style={{
+              position: 'relative',
+              background: 'var(--surface-elevated)',
+              boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+              borderRadius: 12, padding: '9px 11px',
+              overflow: 'hidden',
+            }}>
+              <span aria-hidden style={{
+                position: 'absolute', left: 0, top: 0, bottom: 0,
+                width: 3, background: accent,
+              }} />
+              <div style={{ fontFamily:'var(--font-serif)', fontSize:20, fontWeight:500, color:c, lineHeight:1, letterSpacing:-.01 }}>{n}</div>
+              <div style={{ fontSize:10, color:'var(--ink-500)', fontWeight:700, marginTop:4, letterSpacing:.06, textTransform:'uppercase' }}>{l}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Zone tabs — pill style */}
-      <div style={{ background:'var(--paper)', borderBottom:'var(--hair)', flexShrink:0, overflowX:'auto', display:'flex', padding:'8px 14px', gap:6 }}>
-        {[{ id:'__all__', label:`Totes` }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => (
-          <button key={z.id} onClick={() => setZoneId(z.id)}
-            style={{
-              flexShrink:0, padding:'7px 14px', borderRadius:999, whiteSpace:'nowrap',
-              border: zoneId === z.id ? 'none' : '1px solid rgba(60,40,20,.14)',
-              background: zoneId === z.id ? 'var(--ink-900)' : 'var(--paper)',
-              color: zoneId === z.id ? 'var(--cream)' : 'var(--ink-500)',
-              fontWeight: zoneId === z.id ? 600 : 500,
-              fontSize:13, cursor:'pointer', fontFamily:'inherit',
-            }}>
-            {z.label}
-          </button>
-        ))}
+      {/* Zone tabs — pill style with a real tray treatment */}
+      <div data-swipeable="true" style={{
+        flexShrink:0, overflowX:'auto', display:'flex',
+        padding:'8px 14px 10px', gap:6,
+        boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.04)',
+        scrollbarWidth: 'none',
+      }}
+        onTouchStart={e => e.stopPropagation()}
+        onTouchMove={e => e.stopPropagation()}
+        onTouchEnd={e => e.stopPropagation()}
+      >
+        {[{ id:'__all__', label:`Totes` }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => {
+          const active = zoneId === z.id;
+          return (
+            <button key={z.id} onClick={() => setZoneId(z.id)} className="press"
+              style={{
+                flexShrink:0, padding:'7px 14px', borderRadius:999, whiteSpace:'nowrap',
+                border: 'none',
+                background: active ? 'var(--ink-900)' : 'var(--surface-elevated)',
+                color: active ? 'var(--cream)' : 'var(--ink-600)',
+                fontWeight: active ? 650 : 550,
+                fontSize:13, cursor:'pointer', fontFamily:'inherit',
+                boxShadow: active
+                  ? '0 2px 8px rgba(40,28,16,.18), inset 0 1px 0 rgba(255,255,255,.08)'
+                  : 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+                transition: 'background 180ms var(--ease-out), color 180ms var(--ease-out), box-shadow 180ms var(--ease-out)',
+              }}>
+              {z.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Table groups — flat single-zone grid, or grouped-by-zone for "Totes".
