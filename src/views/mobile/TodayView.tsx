@@ -444,14 +444,20 @@ export default function MobileTodayView({
   const [showCal, setShowCal] = useState(false);
   const [shift, setShift]     = useState<'M' | 'N'>(() => new Date().getHours() >= 18 ? 'N' : 'M');
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
-  const prevTrigger = useRef(-1);
+  // Initialize with the current trigger value so a remount (e.g. user
+  // navigates away and back to the Reserves tab) doesn't re-fire the sheet
+  // for a stale trigger from a previous FAB tap.
+  const prevTrigger = useRef(newResTrigger);
 
-  // Open new-reservation sheet when parent increments the trigger
+  // Open new-reservation sheet only when the parent ACTUALLY increments the
+  // trigger after mount — never on the first render.
   useEffect(() => {
-    if (newResTrigger > 0 && newResTrigger !== prevTrigger.current) {
+    if (newResTrigger !== prevTrigger.current) {
       prevTrigger.current = newResTrigger;
-      setSel(null);
-      setShowNew(true);
+      if (newResTrigger > 0) {
+        setSel(null);
+        setShowNew(true);
+      }
     }
   }, [newResTrigger]);
 
