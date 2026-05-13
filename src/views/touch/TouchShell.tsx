@@ -52,13 +52,21 @@ const MOB_RIGHT_TABS: { id: TouchTab; label: string; ico: React.ReactNode }[] = 
   { id: 'walkin',       label: 'Walk-in',  ico: I.walkin    },
 ];
 
-// Side-rail tabs on tablet (includes Més)
-const RAIL_TABS: { id: TouchTab; label: string; ico: React.ReactNode; special?: boolean }[] = [
-  { id: 'reservations', label: 'Reserves', ico: I.calendar },
-  { id: 'walkin',       label: 'Walk-in',  ico: I.walkin,  special: true },
-  { id: 'tables',       label: 'Taules',   ico: I.tableIco },
-  { id: 'clients',      label: 'Clients',  ico: I.users },
-  { id: 'more',         label: 'Més',      ico: I.dotsH },
+// Side-rail entries on tablet. Some entries open a sheet instead of switching
+// tabs (e.g. "Espera"); the renderer reads `kind` to decide which onClick to
+// wire. Add or reorder entries here — the rail scrolls vertically when there
+// isn't enough room to fit them all.
+type RailEntry =
+  | { kind: 'tab';   id: TouchTab; label: string; ico: React.ReactNode }
+  | { kind: 'sheet'; id: 'waitlist'; label: string; ico: React.ReactNode };
+
+const RAIL_ENTRIES: RailEntry[] = [
+  { kind: 'tab',   id: 'reservations', label: 'Reserves', ico: I.calendar },
+  { kind: 'tab',   id: 'walkin',       label: 'Walk-in',  ico: I.walkin },
+  { kind: 'sheet', id: 'waitlist',     label: 'Espera',   ico: I.clock },
+  { kind: 'tab',   id: 'clients',      label: 'Clients',  ico: I.users },
+  { kind: 'tab',   id: 'tables',       label: 'Taules',   ico: I.tableIco },
+  { kind: 'tab',   id: 'more',         label: 'Més',      ico: I.dotsH },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -349,6 +357,7 @@ export default function TouchShell() {
           {/* ── Brand block — tile gros + nom curt en mono ─────────── */}
           <button onClick={() => setShowBizPicker(true)} title={`${biz.name} — canviar negoci`}
             style={{
+              flexShrink: 0,
               margin: '0 auto 4px', width: 52, height: 52, borderRadius: 14,
               background: biz.hueSoft, color: biz.hue,
               fontWeight: 600, fontSize: 18, fontFamily: 'var(--font-serif)',
@@ -360,6 +369,7 @@ export default function TouchShell() {
             {biz.monogram}
           </button>
           <div style={{
+            flexShrink: 0,
             textAlign: 'center', fontSize: 9, fontFamily: 'var(--font-mono)',
             color: 'var(--ink-500)', fontWeight: 600, letterSpacing: .12,
             textTransform: 'uppercase', marginBottom: 18,
@@ -371,6 +381,7 @@ export default function TouchShell() {
 
           {/* ── Mini KPIs del dia (sempre visibles al rail) ─────── */}
           <div style={{
+            flexShrink: 0,
             margin: '0 10px 12px', padding: '8px 6px',
             background: 'rgba(60,40,20,.025)', borderRadius: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
@@ -384,19 +395,42 @@ export default function TouchShell() {
 
           {/* Hairline separator */}
           <div style={{
+            flexShrink: 0,
             margin: '0 14px 14px', height: 1,
             background: 'rgba(60,40,20,.07)',
           }} />
 
-          {/* ── Tab buttons ──────────────────────────────────────── */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, padding: '0 10px' }}>
-            {RAIL_TABS.map(t => {
-              const active = tab === t.id;
-              const showBadge = t.id === 'reservations' && pendingResCount > 0;
-              const buttonEl = (
-                <button key={t.id} onClick={() => setTab(t.id)} className="nav-btn press"
+          {/* ── Tab buttons — vertical-scrollable so any number fits ── */}
+          <div
+            className="scroll rail-scroll"
+            style={{
+              flex: 1, minHeight: 0,
+              display: 'flex', flexDirection: 'column', gap: 6,
+              padding: '0 10px 8px',
+              overflowY: 'auto',
+              // Smooth fade at the bottom edge as a hint that there's more
+              maskImage: 'linear-gradient(180deg, #000 0%, #000 calc(100% - 14px), transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(180deg, #000 0%, #000 calc(100% - 14px), transparent 100%)',
+            }}>
+            {RAIL_ENTRIES.map(entry => {
+              // For tab entries: active state + on-click swaps tab.
+              // For sheet entries (currently Espera): always non-active, on-click opens sheet.
+              const isTab = entry.kind === 'tab';
+              const active = isTab && tab === entry.id;
+              const onClick = isTab
+                ? () => setTab(entry.id)
+                : () => { if (entry.id === 'waitlist') setShowWaitlist(true); };
+
+              // Badge sources: pending reservations for Reserves; queue size for Espera.
+              const badge =
+                isTab && entry.id === 'reservations' ? pendingResCount :
+                !isTab && entry.id === 'waitlist'    ? waitlistCountForBiz :
+                0;
+
+              return (
+                <button key={entry.id} onClick={onClick} className="nav-btn press"
                   style={{
-                    position: 'relative',
+                    position: 'relative', flexShrink: 0,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
                     padding: '10px 4px 9px', border: 'none', borderRadius: 12,
                     background: active ? 'var(--paper)' : 'transparent',
@@ -404,13 +438,13 @@ export default function TouchShell() {
                     color: active ? 'var(--terracotta-700)' : 'var(--ink-500)',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>
-                  <Icon d={t.ico} size={22} stroke={active ? 2.1 : 1.6} />
+                  <Icon d={entry.ico} size={22} stroke={active ? 2.1 : 1.6} />
                   <span style={{
                     fontSize: 10, fontWeight: active ? 700 : 550,
                     letterSpacing: .01,
                     color: active ? 'var(--ink-900)' : 'var(--ink-500)',
-                  }}>{t.label}</span>
-                  {showBadge && (
+                  }}>{entry.label}</span>
+                  {badge > 0 && (
                     <span style={{
                       position: 'absolute', top: 6, right: 14,
                       minWidth: 16, height: 16, padding: '0 4px',
@@ -420,53 +454,15 @@ export default function TouchShell() {
                       display: 'grid', placeItems: 'center',
                       boxShadow: '0 1px 2px rgba(168,74,42,.32)',
                       border: '1.5px solid var(--cream)',
-                    }}>{pendingResCount}</span>
+                    }}>{badge}</span>
                   )}
                 </button>
               );
-              // After Clients, inject the Llista d'espera button — it opens
-              // the sheet rather than switching tabs, but visually behaves
-              // like another nav entry so the rail stays scannable.
-              if (t.id === 'clients') {
-                return (
-                  <React.Fragment key={t.id}>
-                    {buttonEl}
-                    <button onClick={() => setShowWaitlist(true)} className="nav-btn press"
-                      style={{
-                        position: 'relative',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                        padding: '10px 4px 9px', border: 'none', borderRadius: 12,
-                        background: 'transparent',
-                        color: 'var(--ink-500)',
-                        cursor: 'pointer', fontFamily: 'inherit',
-                      }}>
-                      <span style={{ fontSize: 22, lineHeight: 1 }}>🚶</span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 550,
-                        letterSpacing: .01, color: 'var(--ink-500)',
-                      }}>Espera</span>
-                      {waitlistCountForBiz > 0 && (
-                        <span style={{
-                          position: 'absolute', top: 6, right: 14,
-                          minWidth: 16, height: 16, padding: '0 4px',
-                          borderRadius: 999,
-                          background: 'var(--terracotta-600)', color: '#fff',
-                          fontSize: 9.5, fontWeight: 700,
-                          display: 'grid', placeItems: 'center',
-                          boxShadow: '0 1px 2px rgba(168,74,42,.32)',
-                          border: '1.5px solid var(--cream)',
-                        }}>{waitlistCountForBiz}</span>
-                      )}
-                    </button>
-                  </React.Fragment>
-                );
-              }
-              return buttonEl;
             })}
           </div>
 
           {/* ── Search button — sits just above the avatar ───────── */}
-          <div style={{ padding: '0 12px 10px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ flexShrink: 0, padding: '0 12px 10px', display: 'flex', justifyContent: 'center' }}>
             <button onClick={() => setShowSearch(true)} title="Cerca global"
               className="press"
               style={{
@@ -481,7 +477,7 @@ export default function TouchShell() {
           </div>
 
           {/* ── Active user avatar at bottom ───────────────────────── */}
-          <div style={{ padding: '14px 12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <div style={{ flexShrink: 0, padding: '14px 12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{
               width: '100%', height: 1,
               background: 'rgba(60,40,20,.07)', marginBottom: 10,
