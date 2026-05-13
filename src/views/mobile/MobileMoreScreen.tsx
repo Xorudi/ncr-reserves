@@ -57,7 +57,15 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
     e.bizId === selectedBusiness && e.date === todayIso).length;
   const notesCount   = shiftNotes.filter(n =>
     n.bizId === selectedBusiness && n.date === todayIso).length;
-  const waitlistCount = waitlist.filter(w => w.bizId === selectedBusiness).length;
+  // Badge reflects only the currently-viewed day's queue, matching the
+  // sheet's filtering. Otherwise stale entries from yesterday would inflate
+  // the count for today.
+  const waitlistCount = waitlist.filter(w => {
+    if (w.bizId !== selectedBusiness) return false;
+    const d = new Date(w.addedAt);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return iso === todayIso;
+  }).length;
   const alertsCount  = pendingCount + eventsCount;
 
   type MenuItem = {

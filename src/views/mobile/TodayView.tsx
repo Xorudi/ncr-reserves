@@ -864,9 +864,14 @@ export default function MobileTodayView({
         );
       })()}
 
-      {/* ── Waitlist banner — shown when there are parties waiting at the door ── */}
+      {/* ── Waitlist banner — only for entries added on the selected day ── */}
       {(() => {
-        const queue = waitlist.filter(w => w.bizId === selectedBusiness);
+        const queue = waitlist.filter(w => {
+          if (w.bizId !== selectedBusiness) return false;
+          const d = new Date(w.addedAt);
+          const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          return iso === dateStr;
+        });
         if (queue.length === 0) return null;
         const totalPax = queue.reduce((s, w) => s + w.pax, 0);
         const oldest = queue.reduce((min, w) => Math.min(min, w.addedAt), Date.now());

@@ -117,7 +117,14 @@ export default function TouchShell() {
     r.bizId === selectedBusiness && r.date === dayIso,
   );
   const pendingResCount = dayResAll.filter(r => r.status === 'pending').length;
-  const waitlistCountForBiz = waitlist.filter(w => w.bizId === selectedBusiness).length;
+  // Queue badge reflects only the currently-viewed day — queues are inherently
+  // a per-day, real-time concept.
+  const waitlistCountForBiz = waitlist.filter(w => {
+    if (w.bizId !== selectedBusiness) return false;
+    const d = new Date(w.addedAt);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return iso === dayIso;
+  }).length;
   const totalRes = dayResAll.length;
   const totalPax = dayResAll.reduce((s, r) => s + r.pax, 0);
 

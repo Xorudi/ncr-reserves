@@ -125,10 +125,18 @@ export function BlockTableModal({ open, table, onClose, onConfirm }: { open:bool
 // ─── Waitlist ────────────────────────────────────────────────
 export function WaitlistModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
   const {
-    selectedBusiness, waitlist,
+    selectedBusiness, selectedDate, waitlist,
     addToWaitlist, removeFromWaitlist, notifyWaitlist, seatFromWaitlist,
     setSelectedReservation,
   } = useAppStore();
+  // Queue is a per-day live concept; show only entries added on the day
+  // currently in focus.
+  const selDayIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+  const addedOnSelDay = (epochMs: number) => {
+    const d = new Date(epochMs);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return iso === selDayIso;
+  };
   const [name, setName]   = useState('');
   const [pax, setPax]     = useState(2);
   const [phone, setPhone] = useState('');
@@ -146,7 +154,7 @@ export function WaitlistModal({ open, onClose }: { open:boolean; onClose:()=>voi
   }, [open]);
 
   const queue = waitlist
-    .filter(w => w.bizId === selectedBusiness)
+    .filter(w => w.bizId === selectedBusiness && addedOnSelDay(w.addedAt))
     .sort((a, b) => a.addedAt - b.addedAt);
 
   function handleAdd() {

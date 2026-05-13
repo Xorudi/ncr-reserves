@@ -24,10 +24,18 @@ interface Props {
 
 export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
   const {
-    selectedBusiness, waitlist, floorPlans,
+    selectedBusiness, selectedDate, waitlist, floorPlans,
     addToWaitlist, removeFromWaitlist, notifyWaitlist, seatFromWaitlist,
   } = useAppStore();
   const plan = floorPlans[selectedBusiness];
+  // Queues are inherently a "this day" thing — an entry added Wednesday only
+  // surfaces on Wednesday, not on every subsequent day the operator browses.
+  const selDayIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+  const addedOnSelDay = (epochMs: number) => {
+    const d = new Date(epochMs);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return iso === selDayIso;
+  };
 
   // Re-render every 30s so the "X min" counters stay fresh while the sheet
   // is open. Cheap because the list is tiny.
@@ -39,7 +47,7 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
   }, [open]);
 
   const bizQueue = waitlist
-    .filter(w => w.bizId === selectedBusiness)
+    .filter(w => w.bizId === selectedBusiness && addedOnSelDay(w.addedAt))
     .sort((a, b) => a.addedAt - b.addedAt);
 
   const [name, setName]   = useState('');
@@ -151,7 +159,9 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
           )}
         </div>
 
-        {/* Add form */}
+        {/* Add form — only when viewing today; the waitlist is a real-time
+            concept and adding to past or future days doesn't make sense. */}
+        {addedOnSelDay(Date.now()) ? (
         <div style={{
           padding: '14px 14px 4px',
           borderTop: 'var(--hair)', background: 'var(--cream)',
@@ -219,6 +229,14 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
             </button>
           </div>
         </div>
+        ) : (
+          <div style={{
+            padding: '14px', borderTop: 'var(--hair)', background: 'var(--cream)',
+            fontSize: 12, color: 'var(--ink-500)', textAlign: 'center', fontStyle: 'italic',
+          }}>
+            Historial del dia · només es pot afegir a la cua quan estàs a "Avui"
+          </div>
+        )}
       </div>
     </AnimatedSheet>
   );
