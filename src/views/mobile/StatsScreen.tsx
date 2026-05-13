@@ -11,7 +11,7 @@ import type { Reservation } from '@/types';
 // Types & helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-type StatsTab = 'general' | 'clients' | 'ocupacio' | 'fidelitzacio';
+type StatsTab = 'general' | 'clients' | 'ocupacio' | 'fidelitzacio' | 'comparativa';
 
 interface DayBucket {
   iso:     string;
@@ -114,6 +114,7 @@ export default function StatsScreen({ onBack }: { onBack: () => void }) {
           ['clients',      'Clients'],
           ['ocupacio',     'Ocupació'],
           ['fidelitzacio', 'Fidelització'],
+          ['comparativa',  'Comparativa'],
         ] as const).map(([id, label]) => {
           const active = tab === id;
           return (
@@ -137,6 +138,7 @@ export default function StatsScreen({ onBack }: { onBack: () => void }) {
         {tab === 'clients'      && <ClientsTab />}
         {tab === 'ocupacio'     && <OcupacioTab />}
         {tab === 'fidelitzacio' && <FidelitzacioTab />}
+        {tab === 'comparativa'  && <ComparativaTab />}
       </div>
       </div>
 
@@ -157,6 +159,8 @@ export default function StatsScreen({ onBack }: { onBack: () => void }) {
           <OcupacioTab />
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#3c2814', marginTop: 24, marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 4, pageBreakBefore: 'always' }}>4 · Fidelització</h2>
           <FidelitzacioTab />
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#3c2814', marginTop: 24, marginBottom: 12, borderBottom: '1px solid #eee', paddingBottom: 4, pageBreakBefore: 'always' }}>5 · Comparativa</h2>
+          <ComparativaTab />
         </div>,
         document.body,
       )}
@@ -1178,6 +1182,280 @@ function BadgesPopularityBlock() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB · Comparativa  (3 negocis costat a costat)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface BizMetrics {
+  bizId:        string;
+  name:         string;
+  hue:          string;
+  hueSoft:      string;
+  monogram:     string;
+  resToday:     number;
+  paxToday:     number;
+  occupancyPct: number;
+  noshowsMonth: number;
+  noshowRate:   number;     // % over completed+noshow in last 30d
+  topClient:    { name: string; points: number; level: string; levelIcon: string } | null;
+  trend7d:      number[];   // reservation count last 7 days (oldest first)
+  maxTrend:     number;
+}
+
+function ComparativaTab() {
+  const { reservations, customers, selectedDate, businessConfigs } = useAppStore();
+  const todayIso = isoDate(selectedDate);
+
+  const metrics = useMemo<BizMetrics[]>(() => {
+    const t = new Date(todayIso + 'T00:00:00').getTime();
+    const startMonth = new Date(t - 30 * 86400000).toISOString().slice(0, 10);
+
+    return BUSINESSES.map(biz => {
+      // Today
+      const todayRes = reservations.filter(r => r.bizId === biz.id && r.date === todayIso);
+      const activeToday = todayRes.filter(r => r.status !== 'cancelled' && r.status !== 'noshow');
+      const paxToday = activeToday.reduce((s, r) => s + r.pax, 0);
+      const cap = getDailyServiceCapacity(biz.id, businessConfigs);
+      const occupancyPct = cap > 0 ? Math.min(100, Math.round((paxToday / cap) * 100)) : 0;
+
+      // Last 30d no-show rate
+      const monthRes = reservations.filter(r =>
+        r.bizId === biz.id && r.date >= startMonth && r.date <= todayIso
+      );
+      const monthFinal = monthRes.filter(r => r.status === 'completed' || r.status === 'noshow');
+      const noshowsMonth = monthRes.filter(r => r.status === 'noshow').length;
+      const noshowRate = monthFinal.length > 0
+        ? Math.round((noshowsMonth / monthFinal.length) * 100)
+        : 0;
+
+      // Top customer for this biz
+      const ranked = rankCustomers(customers, reservations, biz.id as any);
+      const top = ranked[0];
+      const topClient = top && top.stats.total > 0 ? {
+        name:      top.customer.name,
+        points:    top.stats.points,
+        level:     top.stats.level.name,
+        levelIcon: top.stats.level.icon,
+      } : null;
+
+      // 7-day trend (oldest → newest)
+      const trend7d: number[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const iso = new Date(t - i * 86400000).toISOString().slice(0, 10);
+        const dayRes = reservations.filter(r =>
+          r.bizId === biz.id && r.date === iso && r.status !== 'cancelled'
+        );
+        trend7d.push(dayRes.length);
+      }
+      const maxTrend = Math.max(1, ...trend7d);
+
+      return {
+        bizId: biz.id,
+        name:  biz.name,
+        hue:   biz.hue,
+        hueSoft: biz.hueSoft,
+        monogram: biz.monogram,
+        resToday:     activeToday.length,
+        paxToday,
+        occupancyPct,
+        noshowsMonth,
+        noshowRate,
+        topClient,
+        trend7d,
+        maxTrend,
+      };
+    });
+  }, [reservations, customers, todayIso, businessConfigs]);
+
+  // Leaders per metric — used to add a subtle 🏆 to the leader card.
+  const leaderRes  = metrics.reduce((max, m) => m.resToday    > max.resToday    ? m : max, metrics[0]);
+  const leaderPax  = metrics.reduce((max, m) => m.paxToday    > max.paxToday    ? m : max, metrics[0]);
+  const leaderOcc  = metrics.reduce((max, m) => m.occupancyPct > max.occupancyPct ? m : max, metrics[0]);
+  // For no-show, the LOWEST rate wins (with at least 3 final reservations to be meaningful).
+  const noshowCandidates = metrics.filter(m => m.noshowsMonth >= 0);
+  const leaderNoshow = noshowCandidates.length
+    ? noshowCandidates.reduce((min, m) => m.noshowRate < min.noshowRate ? m : min, noshowCandidates[0])
+    : null;
+
+  return (
+    <>
+      <div style={{ marginBottom: 14, padding: '0 2px' }}>
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
+          color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
+        }}>Avui · els 3 negocis</div>
+        <div style={{
+          fontSize: 11.5, color: 'var(--ink-500)', marginTop: 3,
+          fontFamily: 'var(--font-mono)', letterSpacing: .04,
+        }}>🏆 marca el líder de cada mètrica</div>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gap: 10,
+      }}>
+        {metrics.map(m => (
+          <BizColumn key={m.bizId}
+            m={m}
+            leaderRes={leaderRes.bizId === m.bizId && m.resToday > 0}
+            leaderPax={leaderPax.bizId === m.bizId && m.paxToday > 0}
+            leaderOcc={leaderOcc.bizId === m.bizId && m.occupancyPct > 0}
+            leaderNoshow={!!leaderNoshow && leaderNoshow.bizId === m.bizId && m.noshowsMonth === 0}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function BizColumn({ m, leaderRes, leaderPax, leaderOcc, leaderNoshow }: {
+  m: BizMetrics;
+  leaderRes: boolean; leaderPax: boolean; leaderOcc: boolean; leaderNoshow: boolean;
+}) {
+  return (
+    <div style={{
+      borderRadius: 14,
+      border: '1px solid rgba(60,40,20,.08)',
+      background: 'var(--paper)',
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
+      boxShadow: '0 1px 2px rgba(60,40,20,.04)',
+    }}>
+      {/* Header — biz monogram tile + name in biz hue */}
+      <div style={{
+        padding: '12px 12px 10px',
+        background: `linear-gradient(180deg, ${m.hueSoft} 0%, var(--paper) 100%)`,
+        borderBottom: '1px solid rgba(60,40,20,.06)',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <span style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          background: 'var(--paper)', color: m.hue,
+          display: 'grid', placeItems: 'center',
+          fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 600,
+          border: `1px solid ${m.hue}33`,
+        }}>{m.monogram}</span>
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontSize: 14.5, fontWeight: 500,
+          color: 'var(--ink-900)', letterSpacing: -.005,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{m.name}</div>
+      </div>
+
+      {/* Metric stack */}
+      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <CompareMetric label="Reserves avui"  value={m.resToday}  leader={leaderRes} />
+        <CompareMetric label="Pax avui"        value={m.paxToday}  leader={leaderPax} />
+        <CompareMetric label="Ocupació"
+          value={`${m.occupancyPct}%`}
+          leader={leaderOcc}
+          tone={m.occupancyPct >= 85 ? 'rose' : m.occupancyPct >= 50 ? 'terracotta' : 'sky'} />
+        <CompareMetric label="No-shows 30d"
+          value={`${m.noshowsMonth} · ${m.noshowRate}%`}
+          leader={leaderNoshow}
+          tone={m.noshowRate > 10 ? 'rose' : 'ink'} />
+
+        {/* 7-day mini bar chart */}
+        <div style={{ marginTop: 2 }}>
+          <div style={{
+            fontSize: 9.5, fontWeight: 700, color: 'var(--ink-500)',
+            letterSpacing: .08, textTransform: 'uppercase', marginBottom: 4,
+          }}>Últims 7 dies</div>
+          <div style={{
+            display: 'flex', alignItems: 'flex-end', gap: 2, height: 36,
+            padding: '2px 0',
+          }}>
+            {m.trend7d.map((c, i) => {
+              const h = (c / m.maxTrend) * 100;
+              const isToday = i === m.trend7d.length - 1;
+              return (
+                <div key={i} style={{
+                  flex: 1, height: '100%',
+                  display: 'flex', alignItems: 'flex-end',
+                }}>
+                  <div style={{
+                    width: '100%',
+                    height: `${h}%`, minHeight: c > 0 ? 2 : 0,
+                    background: isToday ? m.hue : `${m.hue}55`,
+                    borderRadius: '2px 2px 0 0',
+                  }} title={`${c} reserves`} />
+                </div>
+              );
+            })}
+          </div>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontSize: 9, color: 'var(--ink-400)', fontFamily: 'var(--font-mono)',
+            marginTop: 3, letterSpacing: .04,
+          }}>
+            <span>−6d</span>
+            <span>avui</span>
+          </div>
+        </div>
+
+        {/* Top client (mes) */}
+        <div style={{
+          marginTop: 2, padding: '8px 10px', borderRadius: 10,
+          background: 'var(--ink-50)', border: '1px solid rgba(60,40,20,.06)',
+        }}>
+          <div style={{
+            fontSize: 9.5, fontWeight: 700, color: 'var(--ink-500)',
+            letterSpacing: .08, textTransform: 'uppercase', marginBottom: 3,
+          }}>Top client</div>
+          {m.topClient ? (
+            <div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 12, fontWeight: 650, color: 'var(--ink-900)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                <span>{m.topClient.levelIcon}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {m.topClient.name}
+                </span>
+              </div>
+              <div style={{
+                fontSize: 10, color: 'var(--ink-500)', marginTop: 1,
+                fontFamily: 'var(--font-mono)', letterSpacing: .04,
+              }}>{m.topClient.points} pt · {m.topClient.level}</div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: 'var(--ink-400)', fontStyle: 'italic' }}>—</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompareMetric({ label, value, leader, tone = 'ink' }: {
+  label: string; value: string | number; leader?: boolean;
+  tone?: 'ink' | 'terracotta' | 'rose' | 'sky';
+}) {
+  const fg =
+    tone === 'rose'       ? 'var(--rose-700)' :
+    tone === 'terracotta' ? 'var(--terracotta-700)' :
+    tone === 'sky'        ? 'var(--sky-700)' :
+    'var(--ink-900)';
+  return (
+    <div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        fontSize: 9.5, fontWeight: 700, color: 'var(--ink-500)',
+        letterSpacing: .08, textTransform: 'uppercase',
+      }}>
+        {leader && <span style={{ fontSize: 10 }}>🏆</span>}
+        <span>{label}</span>
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
+        color: fg, marginTop: 2, lineHeight: 1.05, letterSpacing: -.01,
+      }}>{value}</div>
     </div>
   );
 }
