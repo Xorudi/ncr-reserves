@@ -25,7 +25,7 @@ import { NotesSheet } from '@/views/touch/NotesSystem';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
 // ── Touch screens — shared between mobile and tablet ─────────────────────────
-import TouchReservationsScreen from '@/views/mobile/TodayView';
+import TouchReservationsScreen, { LiveServicePill } from '@/views/mobile/TodayView';
 import TouchTablesScreen       from '@/views/mobile/MobileTablesScreen';
 import TouchWalkInScreen       from '@/views/mobile/MobileWalkInScreen';
 import TouchClientsScreen      from '@/views/mobile/MobileClientsView';
@@ -1012,6 +1012,7 @@ function TabletTopBar({
         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       >
+        {isToday && <LiveServicePill />}
         <span style={{
           fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
           color: 'var(--ink-900)', letterSpacing: -.005, textTransform: 'capitalize',

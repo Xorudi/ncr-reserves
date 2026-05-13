@@ -312,6 +312,144 @@ function StatusInline({ n, label, fg, dot }: {
 
 /** Empty-state illustration: a minimal restaurant chair in line art with a
  *  barely-perceptible idle sway. The shadow expands in sync. */
+/**
+ * Empty-state for the day list — gives the screen personality with messages
+ * that adapt to the moment (before/during/between services, past, future)
+ * plus a soft ambient glow behind the chair illustration. The "live" lines
+ * are intentionally kept light so the operator never feels nagged.
+ */
+function EmptyDayState({ dateStr, effectiveShift, variant }: {
+  dateStr: string;
+  effectiveShift: 'M' | 'N';
+  variant: 'day' | 'shift';
+}) {
+  const today = new Date();
+  const todayIso = isoDate(today);
+  const isToday  = dateStr === todayIso;
+  const isPast   = dateStr < todayIso;
+  const isFuture = dateStr > todayIso;
+  const hourNow  = today.getHours() + today.getMinutes() / 60;
+
+  // Pick a title + sub from the context. Order matters — earlier branches win.
+  let title: string;
+  let sub: string;
+  let glow: string;  // background glow color tied to the moment
+
+  if (variant === 'shift') {
+    // Other shifts exist today, this one is empty
+    if (effectiveShift === 'M') {
+      title = 'Migdia tranquil';
+      sub   = "Cap reserva per ara · perfecte per repassar la nit";
+    } else {
+      title = 'Nit lliure';
+      sub   = 'Cap reserva al vespre · moment de pausa';
+    }
+    glow = 'rgba(116,133,74,.30)';
+  } else if (isPast) {
+    title = 'Cap reserva aquest dia';
+    sub   = 'Visualització històrica · només lectura';
+    glow  = 'rgba(60,40,20,.10)';
+  } else if (isFuture) {
+    title = 'Encara per omplir';
+    sub   = 'Cap reserva per a aquest dia';
+    glow  = 'rgba(90,163,192,.22)';
+  } else {
+    // It's TODAY — pick by time of day
+    if (hourNow < 11) {
+      title = 'Tot preparat pel servei ✨';
+      sub   = 'Bon matí · cap reserva entrada encara';
+      glow  = 'rgba(204,144,73,.28)';
+    } else if (hourNow >= 11 && hourNow < 13) {
+      title = 'Última hora abans de migdia';
+      sub   = 'Cap reserva per a aquest torn de moment';
+      glow  = 'rgba(204,144,73,.30)';
+    } else if (hourNow >= 13 && hourNow < 16) {
+      title = 'Migdia en marxa · sala tranquil·la';
+      sub   = 'No hi ha reserves obertes ara';
+      glow  = 'rgba(200,97,58,.25)';
+    } else if (hourNow >= 16 && hourNow < 19) {
+      title = 'Pausa entre serveis';
+      sub   = 'Moment de calma abans del vespre';
+      glow  = 'rgba(116,133,74,.22)';
+    } else if (hourNow >= 19 && hourNow < 21) {
+      title = 'Preparant la nit ✨';
+      sub   = 'Cap reserva entrada encara';
+      glow  = 'rgba(138,79,118,.28)';
+    } else if (hourNow >= 21 && hourNow < 23.5) {
+      title = 'Servei nocturn · sala buida';
+      sub   = 'Cap reserva activa ara mateix';
+      glow  = 'rgba(138,79,118,.28)';
+    } else {
+      title = 'Servei finalitzat';
+      sub   = 'Bona nit · descansa el merescut';
+      glow  = 'rgba(60,40,20,.16)';
+    }
+  }
+
+  const showActionHint = isToday && variant === 'day';
+
+  return (
+    <div style={{
+      position: 'relative',
+      textAlign: 'center', padding: '64px 20px',
+      color: 'var(--ink-500)',
+      overflow: 'hidden',  // keeps the glow clipped to the area
+    }}>
+      {/* Ambient glow — soft, breathing, behind everything */}
+      <div className="empty-glow"
+        style={{ background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`,
+          marginTop: -100, marginRight: -100 }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <span className="empty-breath"><EmptyChair /></span>
+        <div className="empty-text-in" style={{
+          fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
+          color: 'var(--ink-800)', marginTop: 16, letterSpacing: -.005,
+          lineHeight: 1.25,
+        }}>{title}</div>
+        <div className="empty-text-in-2" style={{
+          fontSize: 13, marginTop: 6, color: 'var(--ink-500)',
+          maxWidth: 280, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.4,
+        }}>{sub}</div>
+        {showActionHint && (
+          <div className="empty-text-in-2" style={{
+            fontSize: 12, marginTop: 18, color: 'var(--ink-500)',
+            fontFamily: 'var(--font-mono)', letterSpacing: .04,
+          }}>
+            Prem <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--terracotta-700)' }}>+</span> per afegir la primera reserva
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Live-service pill — shown next to the date title when viewing today AND
+ * during an active service window (lunch 13–16 / dinner 19–23:30). A soft
+ * pulsing dot signals "the system is reacting in real time".
+ */
+export function LiveServicePill() {
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes() / 60;
+  const inMigdia = h >= 13 && h < 16;
+  const inNit    = h >= 19 && h < 23.5;
+  if (!inMigdia && !inNit) return null;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '3px 9px', borderRadius: 999,
+      background: 'var(--terracotta-50)',
+      color: 'var(--terracotta-700)',
+      border: '1px solid rgba(168,74,42,.22)',
+      fontSize: 10.5, fontWeight: 700, letterSpacing: .06,
+      textTransform: 'uppercase',
+    }}>
+      <span className="live-dot" />
+      En directe
+    </span>
+  );
+}
+
 function EmptyChair() {
   return (
     <svg width="76" height="92" viewBox="0 0 76 92" fill="none"
@@ -524,7 +662,8 @@ export default function MobileTodayView({
           </button>
 
           <button onClick={() => setShowCal(true)}
-            style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', padding:'4px 0' }}>
+            style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', padding:'4px 0' }}>
+            {isToday && <LiveServicePill />}
             <span className="mono" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>{dayLabel}</span>
             <Icon d={I.calendar} size={14} />
           </button>
@@ -921,23 +1060,11 @@ export default function MobileTodayView({
         style={{ flex:1, overflowY:'auto' }}
       >
         {dayRes.length === 0 && (
-          <div style={{ textAlign:'center', padding:'64px 20px', color:'var(--ink-500)' }}>
-            <EmptyChair />
-            <div style={{ fontFamily:'var(--font-serif)', fontSize:18, color:'var(--ink-700)', marginTop:14, letterSpacing:-.005 }}>
-              Sala buida, taules a punt
-            </div>
-            <div style={{ fontSize:13, marginTop:6, color:'var(--ink-500)' }}>
-              Prem <span style={{ fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--terracotta-700)' }}>+</span> per afegir la primera reserva
-            </div>
-          </div>
+          <EmptyDayState dateStr={dateStr} effectiveShift={effectiveShift} variant="day" />
         )}
 
         {dayRes.length > 0 && activeList.length === 0 && (
-          <div style={{ textAlign:'center', padding:'48px 20px', color:'var(--ink-500)' }}>
-            <div style={{ fontFamily:'var(--font-serif)', fontSize:16, color:'var(--ink-600)' }}>
-              Cap reserva per al {effectiveShift === 'M' ? 'migdia' : 'vespre'}
-            </div>
-          </div>
+          <EmptyDayState dateStr={dateStr} effectiveShift={effectiveShift} variant="shift" />
         )}
 
         {/* listKey re-mounts every row when day or shift changes,

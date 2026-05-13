@@ -619,3 +619,62 @@ body::before {
     animation: none !important;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Empty-state ambient + live-service indicator
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Soft radial glow that gently breathes behind the empty illustration */
+@keyframes empty-glow {
+  0%, 100% { transform: scale(1);   opacity: .35; }
+  50%      { transform: scale(1.15); opacity: .55; }
+}
+.empty-glow {
+  position: absolute;
+  inset: 50% 50% auto auto;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  pointer-events: none;
+  transform-origin: center;
+  animation: empty-glow 5.5s ease-in-out infinite;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+/* Chair "breath" — the illustration scales 1→1.02→1 every few seconds so
+   the empty state never feels frozen. Very subtle. */
+@keyframes empty-breath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.025); }
+}
+.empty-breath {
+  display: inline-block;
+  transform-origin: center bottom;
+  animation: empty-breath 4.2s ease-in-out infinite;
+}
+
+/* Soft fade-in for the message text, staggered slightly behind the chair */
+@keyframes empty-text-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.empty-text-in { animation: empty-text-in 700ms 200ms ease-out both; }
+.empty-text-in-2 { animation: empty-text-in 700ms 380ms ease-out both; }
+
+/* Live-service indicator — a dot that pulses softly to signal "we're on" */
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(200,97,58,.55); }
+  50%      { box-shadow: 0 0 0 6px rgba(200,97,58,0);  }
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--terracotta-600);
+  animation: live-pulse 1.8s ease-out infinite;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-glow, .empty-breath, .empty-text-in, .empty-text-in-2, .live-dot {
+    animation: none !important;
+  }
+}
