@@ -114,11 +114,15 @@ export default function SmartInsightsStrip() {
 }
 
 function tonePalette(tone: InsightTone) {
+  // Phase 3: chips sit on paper (surface-elevated) with a faint tinted
+  // gradient. Tone communicates via a colored side accent + foreground
+  // color, not a flooded background — keeps the strip looking premium
+  // and lets terracotta only fire on genuine alerts.
   switch (tone) {
-    case 'positive': return { bg: 'var(--olive-50)',      fg: 'var(--olive-700)',      border: 'rgba(116,133,74,.24)' };
-    case 'warning':  return { bg: 'var(--clay-50)',       fg: 'var(--clay-700)',       border: 'rgba(176,118,54,.24)' };
-    case 'alert':    return { bg: 'var(--terracotta-50)', fg: 'var(--terracotta-700)', border: 'rgba(168,74,42,.26)' };
-    default:         return { bg: 'var(--paper)',         fg: 'var(--ink-700)',        border: 'rgba(60,40,20,.10)' };
+    case 'positive': return { tint: 'rgba(116,133,74,.07)', fg: 'var(--olive-700)',      accent: 'var(--olive-500)'      };
+    case 'warning':  return { tint: 'rgba(176,118,54,.08)', fg: 'var(--clay-700)',       accent: 'var(--clay-500)'       };
+    case 'alert':    return { tint: 'rgba(168,74,42,.08)',  fg: 'var(--terracotta-700)', accent: 'var(--terracotta-500)' };
+    default:         return { tint: 'transparent',          fg: 'var(--ink-700)',        accent: 'var(--ink-300)'        };
   }
 }
 
@@ -131,15 +135,24 @@ function InsightChip({ ins, onAction, onDismiss }: {
   const interactive = !!ins.action;
   return (
     <div style={{
+      position: 'relative',
       flexShrink: 0,
       maxWidth: 320,
-      padding: '8px 4px 8px 12px',
+      padding: '8px 4px 8px 14px',
       borderRadius: 12,
-      background: `linear-gradient(180deg, ${p.bg} 0%, rgba(255,255,255,.4) 100%)`,
-      border: `1px solid ${p.border}`,
-      boxShadow: '0 1px 2px rgba(60,40,20,.04), inset 0 1px 0 rgba(255,255,255,.5)',
+      // Paper card with a faint tone wash — colored signal comes from the
+      // accent bar + foreground color, not a flooded fill.
+      background: `linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 70%), ${p.tint}`,
+      backgroundBlendMode: 'normal',
+      boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
       display: 'flex', alignItems: 'stretch', gap: 4,
+      overflow: 'hidden',
     }}>
+      {/* Tone accent bar — 3px on the left edge, colored to the severity */}
+      <span aria-hidden style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: 3, background: p.accent,
+      }} />
       {/* Tappable area — icon + text + sub */}
       <button onClick={interactive ? onAction : undefined} className="press"
         disabled={!interactive}

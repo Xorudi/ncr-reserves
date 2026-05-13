@@ -1031,20 +1031,33 @@ export default function MobileTodayView({
         const totalPax = queue.reduce((s, w) => s + w.pax, 0);
         const oldest = queue.reduce((min, w) => Math.min(min, w.addedAt), Date.now());
         const oldestMin = Math.max(0, Math.floor((Date.now() - oldest) / 60_000));
+        // Tone escalates with how long the oldest party has been waiting:
+        // calm clay under 15 min, terracotta past 15 min (real attention).
+        const isUrgent = oldestMin >= 15;
+        const accent  = isUrgent ? 'var(--terracotta-500)' : 'var(--clay-500)';
+        const fgUrgent = isUrgent ? 'var(--terracotta-700)' : 'var(--ink-500)';
         return (
           <button onClick={() => setShowWaitlist(true)} className="press"
             style={{
-              margin: '0 14px 10px', padding: '11px 14px', borderRadius: 12,
-              background: 'linear-gradient(180deg, var(--terracotta-50) 0%, var(--paper) 70%)',
-              border: '1px solid rgba(168,74,42,.22)',
-              boxShadow: '0 1px 2px rgba(168,74,42,.06)',
+              position: 'relative',
+              margin: '0 14px 10px', padding: '12px 14px 12px 16px',
+              borderRadius: 12,
+              background: 'var(--surface-elevated)',
+              border: 'none',
+              boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
               cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
               width: 'calc(100% - 28px)',
               display: 'flex', alignItems: 'center', gap: 12,
+              overflow: 'hidden',
             }}>
+            {/* Left accent bar — color escalates with wait pressure */}
+            <span aria-hidden style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0,
+              width: 3, background: accent,
+            }} />
             <span style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              background: 'var(--terracotta-100)', color: 'var(--terracotta-700)',
+              background: 'var(--ink-50)', color: 'var(--ink-700)',
               display: 'grid', placeItems: 'center', fontSize: 18,
             }}>🚶</span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1052,7 +1065,7 @@ export default function MobileTodayView({
                 {queue.length} {queue.length === 1 ? 'grup' : 'grups'} a la cua · {totalPax} pax
               </div>
               <div style={{
-                fontSize: 11, color: oldestMin >= 15 ? 'var(--rose-700)' : 'var(--ink-500)',
+                fontSize: 11, color: fgUrgent,
                 marginTop: 2, fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: .04,
               }}>
                 espera més antiga: {oldestMin === 0 ? 'ara mateix' : `${oldestMin} min`}

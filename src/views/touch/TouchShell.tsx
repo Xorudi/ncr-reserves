@@ -431,9 +431,11 @@ export default function TouchShell() {
                     position: 'relative', flexShrink: 0,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
                     padding: '10px 4px 9px', border: 'none', borderRadius: 12,
-                    background: active ? 'var(--paper)' : 'transparent',
-                    boxShadow: active ? '0 1px 3px rgba(60,40,20,.06), 0 0 0 1px rgba(60,40,20,.05)' : 'none',
-                    color: active ? 'var(--terracotta-700)' : 'var(--ink-500)',
+                    background: active ? 'var(--surface-elevated)' : 'transparent',
+                    boxShadow: active
+                      ? 'var(--shadow-md), var(--shadow-ring), var(--shadow-inset-top)'
+                      : 'none',
+                    color: active ? 'var(--ink-900)' : 'var(--ink-500)',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                   <Icon d={entry.ico} size={22} stroke={active ? 2.1 : 1.6} />
