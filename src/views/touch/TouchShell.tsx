@@ -670,27 +670,38 @@ export default function TouchShell() {
     }}>
 
 
-      {/* ── Top header ──────────────────────────────────────────────── */}
+      {/* ── Top header ── glass material so the canvas gradient shows
+            through with a soft blur. Bottom inset shadow replaces the
+            hairline border for a softer plane separation. */}
       <header style={{
         paddingTop:    isStandalone ? 'calc(env(safe-area-inset-top) + 14px)' : '54px',
         paddingBottom: '14px',
         paddingLeft:   '18px',
         paddingRight:  '18px',
-        borderBottom:  'var(--hair)',
-        background:    'var(--cream)',
+        background:    'rgba(255,255,255,.55)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        backdropFilter:       'blur(16px) saturate(140%)',
+        boxShadow:     'inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4)',
         flexShrink:    0,
         display:       'flex',
         alignItems:    'flex-end',
         gap:           12,
+        position:      'relative',
+        zIndex:        5,
       }}>
         <button onClick={() => setShowUserPicker(true)}
           style={{
             width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-            background: activeEmp ? 'var(--terracotta-600)' : 'var(--ink-200)',
-            color: activeEmp ? '#fff' : 'var(--ink-600)',
+            // Soft ink gradient + ring instead of solid terracotta — the
+            // avatar identifies WHO without screaming a brand color.
+            background: activeEmp
+              ? 'linear-gradient(160deg, var(--ink-700) 0%, var(--ink-800) 100%)'
+              : 'var(--ink-200)',
+            color: activeEmp ? '#fef9ee' : 'var(--ink-600)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-serif)',
+            fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-serif)',
             border: 'none', cursor: 'pointer',
+            boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
           }}>
           {activeEmp ? activeEmp.initials : <Icon d={I.users} size={16} />}
         </button>
@@ -752,8 +763,13 @@ export default function TouchShell() {
       <nav style={{
         flexShrink: 0,
         zIndex: 50,
-        background: '#ffffff',
-        borderTop: '1px solid rgba(60,40,20,.08)',
+        // Glass material — translucent paper + backdrop blur, so the canvas
+        // gradient shows through softly. Replaces the flat white + hairline
+        // top border.
+        background: 'rgba(255,255,255,.78)',
+        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+        backdropFilter: 'blur(20px) saturate(140%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.6), 0 -8px 24px rgba(40,28,16,.06)',
         display: 'flex', alignItems: 'flex-start',
         paddingTop: 6,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -986,11 +1002,15 @@ function TabletTopBar({
       flexShrink: 0,
       display: 'flex', alignItems: 'center', gap: 14,
       padding: '14px 22px',
-      // Transparent — body's atmospheric gradient is the canvas. A soft inset
-      // shadow at the bottom edge separates header from list without a hard
-      // border line.
-      boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.04)',
+      // Glass material on top of the canvas — translucent paper with a real
+      // backdrop blur. Soft inset bottom shadow as a separator instead of a
+      // hard border. Reads as "the content scrolls under the header".
+      background: 'rgba(255,255,255,.55)',
+      WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+      backdropFilter: 'blur(16px) saturate(140%)',
+      boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4)',
       paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)',
+      position: 'relative', zIndex: 5,
     }}>
       {/* Prev day */}
       <button onClick={() => shiftDay(-1)} className="day-btn press"
