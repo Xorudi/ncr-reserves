@@ -72,7 +72,7 @@ export default function DesktopShell() {
     || page === 'settings';
 
   return (
-    <div style={{ display:'flex', height:'100dvh', background:'var(--cream)', overflow:'hidden' }}>
+    <div style={{ display:'flex', height:'100dvh', overflow:'hidden' }}>
       <LeftSidebar
         activeBizId={selectedBusiness}
         onChangeBiz={id => { setSelectedBusiness(id); setPage('today'); setShowForm(false); setShowWalkin(false); }}

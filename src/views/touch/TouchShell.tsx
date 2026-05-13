@@ -342,15 +342,13 @@ export default function TouchShell() {
       }}>
 
         {/* ── Left side rail ───────────────────────────────────────────
-              Diseño integrado: mismo crema que el main, sin borde duro,
-              marca con identidad serif, tabs como tiles + badge en
-              Reserves cuando hi ha pendents de confirmar. */}
-        <nav style={{
+              Uses the new matte "rail" surface — slightly warmer + darker
+              than the canvas so the content area visually advances. The
+              inset shadow on the right edge gives a soft "the content sits
+              in front" reading without a hard border. */}
+        <nav className="surface-rail" style={{
           width: 86, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
-          background: 'var(--cream)',
-          // Reemplaza el borde duro per una ombra subtil que dóna profunditat
-          boxShadow: 'inset -1px 0 0 rgba(60,40,20,.05)',
           paddingTop: 14,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
@@ -665,7 +663,8 @@ export default function TouchShell() {
       display: 'flex', flexDirection: 'column',
       height: `${appH}px`,                  // tracks visualViewport.height live
       width: '100%',
-      background: 'var(--cream)', overflow: 'hidden',
+      // Transparent so the body's atmospheric gradient shows through.
+      overflow: 'hidden',
     }}>
 
 
@@ -985,8 +984,10 @@ function TabletTopBar({
       flexShrink: 0,
       display: 'flex', alignItems: 'center', gap: 14,
       padding: '14px 22px',
-      background: 'var(--cream)',
-      borderBottom: '1px solid rgba(60,40,20,.06)',
+      // Transparent — body's atmospheric gradient is the canvas. A soft inset
+      // shadow at the bottom edge separates header from list without a hard
+      // border line.
+      boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.04)',
       paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)',
     }}>
       {/* Prev day */}

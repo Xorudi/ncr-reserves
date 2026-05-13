@@ -86,6 +86,43 @@
 
   --hair:        1px solid rgba(60,40,20,.08);
   --hair-strong: 1px solid rgba(60,40,20,.14);
+
+  /* ── Layered surface system (Phase 1 of the visual overhaul) ──────────────
+     Five surface roles, each with its own material:
+       app       — canvas, atmospheric gradient, base of the visual stack
+       rail      — sidebar, slightly matte and warmer than the canvas
+       base      — neutral surface for blocks that don't elevate
+       elevated  — cards lifted above the canvas (real shadow, paper white)
+       floating  — popovers/sheets/modals — translucent paper + backdrop blur
+     Existing --cream / --paper tokens stay valid for legacy code; new
+     components opt into the surface-* tokens for a coherent layer order. */
+  --surface-app:       #fcf7ec;
+  --surface-rail:      #f5edda;
+  --surface-base:      #fdf9f0;
+  --surface-elevated:  #ffffff;
+  --surface-floating:  rgba(255,255,255,.86);
+
+  /* Refined shadow scale — closer to Apple/Linear hierarchy. Each is a
+     contact line + ambient diffusion. Lower numbers are "barely there",
+     higher are "definitely floating above". */
+  --shadow-sm: 0 1px 2px rgba(40,28,16,.04);
+  --shadow-md: 0 2px 6px rgba(40,28,16,.05),
+               0 1px 2px rgba(40,28,16,.04);
+  --shadow-lg: 0 8px 22px rgba(40,28,16,.07),
+               0 2px 6px  rgba(40,28,16,.04);
+  --shadow-xl: 0 16px 40px rgba(40,28,16,.10),
+               0 6px 12px  rgba(40,28,16,.06);
+  --shadow-2xl: 0 24px 56px rgba(40,28,16,.14),
+                0 10px 20px rgba(40,28,16,.08);
+
+  /* Inset highlight that mimics light striking the top edge — pair with any
+     raised surface so it doesn't look like a sticker. */
+  --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.6);
+
+  /* Hair-thin ring for cards when shadow alone would feel too soft. Use as
+     an alternative to a hairline border — looks like the card has a ring
+     instead of a "drawn line", which reads more premium. */
+  --shadow-ring: 0 0 0 1px rgba(40,28,16,.04);
 }
 
 /* ─── Layout helpers ─────────────────────────────────────────────────────── */
@@ -118,7 +155,14 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: "ss01","cv11";
   color: var(--ink-800);
-  background: var(--cream);
+  /* Atmospheric canvas — a very subtle warm radial in the top-right and a
+     cool one in the bottom-left, mixed on the base surface. Gives the app
+     depth without saturating any single area. Pure cream as the floor. */
+  background:
+    radial-gradient(1200px 800px at 100% -10%, rgba(243,220,166,.32) 0%, transparent 55%),
+    radial-gradient(900px 700px  at -5% 110%, rgba(236,216,227,.22) 0%, transparent 55%),
+    var(--surface-app);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.005em;
   /* Stop iOS rubber-band bouncing on the body */
@@ -818,7 +862,98 @@ button, [role="button"] {
 }
 
 /* Sheet panel gets a subtle inset highlight at the top edge — reinforces
-   that the panel sits ABOVE the dimmed/blurred backdrop. */
+   that the panel sits ABOVE the dimmed/blurred backdrop. The 2xl shadow
+   here makes the lift unambiguous; the inset-top is preserved by content. */
 .sheet-panel {
-  box-shadow: 0 -6px 32px rgba(60,40,20,.14), inset 0 1px 0 rgba(255,255,255,.6);
+  box-shadow: var(--shadow-2xl), var(--shadow-inset-top);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Surface utilities — the new visual layer system. Components opt into
+   these via className so the language is consistent across the app.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* App canvas — no shadow, atmospheric gradient already on body. Only useful
+   if a container needs to override its parent's background. */
+.surface-app {
+  background: var(--surface-app);
+}
+
+/* Rail / sidebar — slightly warmer + matte, sits visually below the content
+   even though it's on the side. The inset shadow on the right edge gives a
+   "the content is in front" reading. */
+.surface-rail {
+  background: var(--surface-rail);
+  box-shadow: inset -1px 0 0 rgba(40,28,16,.04);
+}
+
+/* Base block — neutral surface for non-elevated content (e.g. read-only
+   sections, group headers). No shadow, just a tone shift from the canvas. */
+.surface-base {
+  background: var(--surface-base);
+  border-radius: 12px;
+}
+
+/* Elevated card — paper-white, ring + soft shadow, inset top highlight.
+   Reads as "lifted off the canvas". Use for reservations, insight cards,
+   client rows, anything that should feel tangible. */
+.surface-elevated {
+  background: var(--surface-elevated);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md), var(--shadow-ring), var(--shadow-inset-top);
+}
+
+/* Floating panel — popovers, dropdowns, key tooltips. Real translucency +
+   backdrop blur so the content behind reads through softly. Falls back
+   gracefully when backdrop-filter isn't available. */
+.surface-floating {
+  background: var(--surface-floating);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-radius: 18px;
+  box-shadow: var(--shadow-xl), var(--shadow-ring), var(--shadow-inset-top);
+}
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .surface-floating { background: var(--surface-elevated); }
+}
+
+/* Hover lift — only on devices with a real pointer. Touch interactions
+   don't get hover events, so this is safe. */
+@media (hover: hover) {
+  .surface-elevated.lift-on-hover:hover {
+    box-shadow: var(--shadow-lg), var(--shadow-ring), var(--shadow-inset-top);
+    transform: translateY(-1px);
+    transition:
+      box-shadow var(--dur-base, 220ms) var(--ease-out),
+      transform  var(--dur-base, 220ms) var(--ease-out);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Density system — three tiers the operator can switch between later.
+   Today: variables are set on :root with the "comfortable" defaults. A
+   simple toggle on <html data-density="compact|comfortable|spacious">
+   re-flows the whole app. Used by .density-aware components.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Comfortable defaults */
+  --density-row-py: 11px;   /* vertical padding inside list rows */
+  --density-row-gap: 6px;   /* gap between stacked rows */
+  --density-card-py: 13px;
+  --density-card-px: 14px;
+  --density-section-gap: 18px;
+}
+html[data-density="compact"] {
+  --density-row-py: 8px;
+  --density-row-gap: 4px;
+  --density-card-py: 10px;
+  --density-card-px: 12px;
+  --density-section-gap: 12px;
+}
+html[data-density="spacious"] {
+  --density-row-py: 14px;
+  --density-row-gap: 8px;
+  --density-card-py: 16px;
+  --density-card-px: 16px;
+  --density-section-gap: 24px;
 }
