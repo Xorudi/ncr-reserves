@@ -852,12 +852,14 @@ export default function MobileTodayView({
             flexShrink:0, padding:'0 14px 12px',
           }}>
             <div style={{
-              background:'var(--paper)',
-              border:'1px solid rgba(60,40,20,.08)',
-              borderRadius:14,
-              boxShadow:'0 1px 2px rgba(60,40,20,.04)',
-              padding:'14px 14px 12px',
-              display:'flex', flexDirection:'column', gap:11,
+              // Hero card — soft top-to-bottom gradient + layered shadow.
+              // Reads as the "first surface" of the screen, distinct from
+              // the canvas without needing a hard border.
+              background: 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--cream) 100%)',
+              borderRadius: 16,
+              boxShadow: 'var(--shadow-md), var(--shadow-ring), var(--shadow-inset-top)',
+              padding: '15px 16px 13px',
+              display: 'flex', flexDirection: 'column', gap: 11,
             }}>
               {/* Top: hero numbers in serif */}
               <div style={{
@@ -889,28 +891,32 @@ export default function MobileTodayView({
                 <div style={{
                   display:'flex', alignItems:'baseline', gap:3,
                   padding:'4px 10px', borderRadius:999,
-                  background: occupancy > 75 ? 'var(--terracotta-50)'
-                            : occupancy > 40 ? 'var(--olive-50)'
+                  background: occupancy >= 85 ? 'var(--terracotta-50)'
+                            : occupancy >= 60 ? 'var(--clay-50)'
+                            : occupancy >= 30 ? 'var(--olive-50)'
                             : 'var(--ink-100)',
                 }}>
                   <span key={`o-${occupancy}`} className="number-tween" style={{
                     fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
-                    color: occupancy > 75 ? 'var(--terracotta-700)'
-                         : occupancy > 40 ? 'var(--olive-700)'
+                    color: occupancy >= 85 ? 'var(--terracotta-700)'
+                         : occupancy >= 60 ? 'var(--clay-700)'
+                         : occupancy >= 30 ? 'var(--olive-700)'
                          : 'var(--ink-700)',
                     letterSpacing:-.005,
                   }}>{occupancy}</span>
                   <span style={{
                     fontSize:10, fontWeight:700, letterSpacing:.04,
-                    color: occupancy > 75 ? 'var(--terracotta-700)'
-                         : occupancy > 40 ? 'var(--olive-700)'
+                    color: occupancy >= 85 ? 'var(--terracotta-700)'
+                         : occupancy >= 60 ? 'var(--clay-700)'
+                         : occupancy >= 30 ? 'var(--olive-700)'
                          : 'var(--ink-500)',
                   }}>%</span>
                   <span style={{
                     marginLeft:4,
                     fontSize:10, fontWeight:700, letterSpacing:.06,
-                    color: occupancy > 75 ? 'var(--terracotta-700)'
-                         : occupancy > 40 ? 'var(--olive-700)'
+                    color: occupancy >= 85 ? 'var(--terracotta-700)'
+                         : occupancy >= 60 ? 'var(--clay-700)'
+                         : occupancy >= 30 ? 'var(--olive-700)'
                          : 'var(--ink-500)',
                     textTransform:'uppercase',
                     fontFamily:'var(--font-mono)',
@@ -1248,16 +1254,43 @@ function ResRow({ res: r, selected, onSel, plan, loyalty }: {
   const allergens = r.allergens ?? [];
   const hasAllergens = allergens.length > 0 || r.tags?.includes('allergy');
 
+  // Status-tied left accent — a 3px colored bar gives an at-a-glance read
+  // of the reservation state without painting the whole card (which used
+  // to make every row look like a different mood). The legacy tint.rowTint
+  // is dropped — the status pill + accent bar carry enough signal.
+  const accentColor =
+    effectiveStatus === 'seated'    ? 'var(--terracotta-500)' :
+    effectiveStatus === 'confirmed' ? 'var(--olive-500)'      :
+    effectiveStatus === 'pending'   ? 'var(--clay-500)'       :
+    effectiveStatus === 'noshow'    ? 'var(--rose-500, #c24a4a)' :
+    'transparent';
   return (
     <button onClick={() => onSel(r)} className="press"
       style={{
-        width:'100%', textAlign:'left',
-        background: selected ? 'var(--terracotta-50)' : tint.rowTint,
-        border:'none', borderTop:'var(--hair)',
-        padding:'13px 18px', cursor:'pointer',
-        display:'flex', gap:14, alignItems:'flex-start',
-        transition:'background 160ms var(--ease-ios)',
+        position: 'relative',
+        width: 'calc(100% - 16px)', margin: '0 8px 6px',
+        textAlign: 'left',
+        background: selected ? 'var(--terracotta-50)' : 'var(--surface-elevated)',
+        border: 'none', borderRadius: 12,
+        boxShadow: selected
+          ? '0 0 0 1.5px var(--terracotta-500), var(--shadow-md), var(--shadow-inset-top)'
+          : 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+        padding: '13px 16px 13px 18px',
+        // The colored accent bar sits at the left edge — implemented as an
+        // inset left shadow so it doesn't take layout space.
+        overflow: 'hidden',
+        cursor: 'pointer',
+        display: 'flex', gap: 14, alignItems: 'flex-start',
+        transition:
+          'background 160ms var(--ease-ios), ' +
+          'box-shadow 160ms var(--ease-ios), ' +
+          'transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}>
+      {/* Status accent — colored bar pinned to the left edge */}
+      <span aria-hidden style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: 3, background: accentColor,
+      }} />
 
       {/* Pax tile — bigger, with "pax" label, status ring */}
       <div style={{
