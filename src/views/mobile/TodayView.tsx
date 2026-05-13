@@ -664,7 +664,7 @@ export default function MobileTodayView({
           <button onClick={() => setShowCal(true)}
             style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', padding:'4px 0' }}>
             {isToday && <LiveServicePill />}
-            <span className="mono" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>{dayLabel}</span>
+            <span key={dateStr} className="mono date-label-in" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>{dayLabel}</span>
             <Icon d={I.calendar} size={14} />
           </button>
 

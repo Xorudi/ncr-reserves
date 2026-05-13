@@ -1013,7 +1013,7 @@ function TabletTopBar({
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       >
         {isToday && <LiveServicePill />}
-        <span style={{
+        <span key={selIso} className="date-label-in" style={{
           fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
           color: 'var(--ink-900)', letterSpacing: -.005, textTransform: 'capitalize',
         }}>

@@ -467,18 +467,40 @@ body::before {
   }
 }
 
-/* ── Day-change reveal — clip-path bridges old and new content as a single
-   transformation instead of two stacked translations crossfading. */
+/* ── Day-change reveal — translate-based slide so the new day feels like it
+   enters from the direction the user is navigating. Combined with the row
+   stagger inside, it reads as "turning a page" rather than a wipe.
+   Kept short (240ms) so it never blocks an operator mid-service. */
 @keyframes day-next-reveal {
-  from { opacity: 0; clip-path: inset(0 100% 0 0); }
-  to   { opacity: 1; clip-path: inset(0 0 0 0);    }
+  from { opacity: 0; transform: translate3d(28px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0,    0, 0); }
 }
 @keyframes day-prev-reveal {
-  from { opacity: 0; clip-path: inset(0 0 0 100%); }
-  to   { opacity: 1; clip-path: inset(0 0 0 0);    }
+  from { opacity: 0; transform: translate3d(-28px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0,     0, 0); }
 }
-.day-next { animation: day-next-reveal 340ms var(--ease-in-out) both; }
-.day-prev { animation: day-prev-reveal 340ms var(--ease-in-out) both; }
+.day-next,
+.day-prev {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+.day-next { animation-name: day-next-reveal; }
+.day-prev { animation-name: day-prev-reveal; }
+
+/* ── Date label — a tiny crossfade-with-lift when the date changes. The
+   span carries a `key={dateStr}` so React remounts it on every change,
+   which re-fires the animation. Subtle enough to feel like a polish detail
+   rather than an interruption. */
+@keyframes date-label-in {
+  from { opacity: 0; transform: translateY(-3px); filter: blur(1px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+}
+.date-label-in {
+  animation: date-label-in 280ms var(--ease-out) both;
+  will-change: transform, opacity, filter;
+}
 
 /* ── FAB scroll-react — fades and shrinks on scroll-down, returns on
    scroll-up or idle. The shell flips a class on the FAB based on scroll. */
@@ -515,10 +537,55 @@ body::before {
 
 /* ── Date nav arrow buttons ─────────────────────────────────────────────── */
 .day-btn {
-  transition: background var(--dur-micro) var(--ease-ios),
-              transform  var(--dur-press) var(--ease-ios-fast);
+  transition:
+    background var(--dur-micro) var(--ease-ios),
+    transform  var(--dur-press) var(--ease-ios-fast);
 }
 .day-btn:active { transform: scale(0.88); }
+@media (hover: hover) {
+  .day-btn:hover { background: var(--ink-50); }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Apple-level polish — global refinements applied via existing classes
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Refined .press feedback — slightly less aggressive scale, smoother return.
+   Combined with a gentle opacity touch it reads more like Apple's tap feel
+   and less like a button being "punched". */
+.press {
+  transition:
+    transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity   140ms linear,
+    box-shadow var(--dur-micro) var(--ease-out);
+}
+.press:active {
+  transform: scale(0.975);
+  opacity: 0.94;
+}
+
+/* Focus-visible ring — for keyboard navigation. Subtle terracotta halo,
+   no harsh outline. Only on devices where keyboard focus matters. */
+@media (hover: hover) {
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 2px solid var(--terracotta-600);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+}
+
+/* Tighter transitions for interactive surfaces — replaces the default
+   browser delays that make selects/inputs feel sluggish. */
+button, [role="button"] {
+  transition:
+    background var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    REDUCED MOTION — all animations disabled or instant
