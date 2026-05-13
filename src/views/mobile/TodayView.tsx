@@ -9,6 +9,7 @@ import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq } from '@/types';
 import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/loyalty';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
+import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
 interface LoyaltyLookup {
@@ -1008,6 +1009,9 @@ export default function MobileTodayView({
           </div>
         );
       })()}
+
+      {/* ── Smart insights strip — auto-generated from history, weather, queue ─ */}
+      <SmartInsightsStrip />
 
       {/* ── Waitlist banner — only for entries added on the selected day ── */}
       {(() => {
