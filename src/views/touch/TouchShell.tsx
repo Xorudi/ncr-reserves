@@ -92,6 +92,8 @@ export default function TouchShell() {
     reservations,
     closeOutPastDays,
     showWaitlist, setShowWaitlist,
+    setSelectedReservation,
+    waitlist,
   } = useAppStore();
 
   // Close out yesterday automatically — runs once on mount, when the tab
@@ -115,6 +117,7 @@ export default function TouchShell() {
     r.bizId === selectedBusiness && r.date === dayIso,
   );
   const pendingResCount = dayResAll.filter(r => r.status === 'pending').length;
+  const waitlistCountForBiz = waitlist.filter(w => w.bizId === selectedBusiness).length;
   const totalRes = dayResAll.length;
   const totalPax = dayResAll.reduce((s, r) => s + r.pax, 0);
 
@@ -383,7 +386,7 @@ export default function TouchShell() {
             {RAIL_TABS.map(t => {
               const active = tab === t.id;
               const showBadge = t.id === 'reservations' && pendingResCount > 0;
-              return (
+              const buttonEl = (
                 <button key={t.id} onClick={() => setTab(t.id)} className="nav-btn press"
                   style={{
                     position: 'relative',
@@ -414,6 +417,44 @@ export default function TouchShell() {
                   )}
                 </button>
               );
+              // After Clients, inject the Llista d'espera button — it opens
+              // the sheet rather than switching tabs, but visually behaves
+              // like another nav entry so the rail stays scannable.
+              if (t.id === 'clients') {
+                return (
+                  <React.Fragment key={t.id}>
+                    {buttonEl}
+                    <button onClick={() => setShowWaitlist(true)} className="nav-btn press"
+                      style={{
+                        position: 'relative',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                        padding: '10px 4px 9px', border: 'none', borderRadius: 12,
+                        background: 'transparent',
+                        color: 'var(--ink-500)',
+                        cursor: 'pointer', fontFamily: 'inherit',
+                      }}>
+                      <span style={{ fontSize: 22, lineHeight: 1 }}>🚶</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 550,
+                        letterSpacing: .01, color: 'var(--ink-500)',
+                      }}>Espera</span>
+                      {waitlistCountForBiz > 0 && (
+                        <span style={{
+                          position: 'absolute', top: 6, right: 14,
+                          minWidth: 16, height: 16, padding: '0 4px',
+                          borderRadius: 999,
+                          background: 'var(--terracotta-600)', color: '#fff',
+                          fontSize: 9.5, fontWeight: 700,
+                          display: 'grid', placeItems: 'center',
+                          boxShadow: '0 1px 2px rgba(168,74,42,.32)',
+                          border: '1.5px solid var(--cream)',
+                        }}>{waitlistCountForBiz}</span>
+                      )}
+                    </button>
+                  </React.Fragment>
+                );
+              }
+              return buttonEl;
             })}
           </div>
 
@@ -583,6 +624,13 @@ export default function TouchShell() {
         <WaitlistSheet
           open={showWaitlist}
           onClose={() => setShowWaitlist(false)}
+          onSeated={(res) => {
+            // Jump to Reserves with the newly-seated walk-in selected so the
+            // operator can immediately assign a table from the detail sheet.
+            setSelectedDate(new Date(res.date + 'T00:00:00'));
+            setSelectedReservation(res);
+            setTab('reservations');
+          }}
         />
         <Toaster />
       </div>
@@ -761,6 +809,11 @@ export default function TouchShell() {
       <WaitlistSheet
         open={showWaitlist}
         onClose={() => setShowWaitlist(false)}
+        onSeated={(res) => {
+          setSelectedDate(new Date(res.date + 'T00:00:00'));
+          setSelectedReservation(res);
+          setTab('reservations');
+        }}
       />
       <Toaster />
     </div>

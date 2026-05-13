@@ -105,7 +105,13 @@ interface AppState {
   addToWaitlist:      (e: Omit<WaitlistEntry, 'id' | 'addedAt' | 'status'>) => void;
   removeFromWaitlist: (id: string) => void;
   notifyWaitlist:     (id: string) => void;
-  seatFromWaitlist:   (id: string) => void;
+  /**
+   * Seat a waiting party: removes from queue and creates a walk-in reservation
+   * with status='seated', today/now date/time, source='walk-in', and no table
+   * assigned yet (operator picks one from the detail sheet). Returns the new
+   * reservation so the UI can navigate to it.
+   */
+  seatFromWaitlist:   (id: string) => Reservation | null;
   setMergeModalTable: (v: any | null) => void;
 
   // ── Shift notes CRUD ──────────────────────────────────────────────────────────
@@ -513,7 +519,38 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
       addedAt: Date.now(),
       status: 'waiting',
     };
-    set((s) => ({ waitlist: [...s.waitlist, entry] }));
+    // When the entry has both name and phone, also seed the cartera so the
+    // next reservation by this person picks them up with one tap — and so the
+    // ranking system sees them as a (newly-tracked) customer.
+    const phone = (e.phone ?? '').trim();
+    const name  = e.name.trim();
+    set((s) => {
+      const next: Partial<typeof s> = { waitlist: [...s.waitlist, entry] };
+      if (name && phone) {
+        const alreadyKnown = s.customers.some(c =>
+          (c.phone && c.phone === phone) ||
+          c.name.trim().toLowerCase() === name.toLowerCase(),
+        );
+        if (!alreadyKnown) {
+          const today = new Date();
+          const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+          const newCust: Customer = {
+            id:        `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            name,
+            phone,
+            email:     '',
+            visits:    0,
+            lastVisit: todayIso,
+            spend:     0,
+            tags:      [],
+            biz:       [e.bizId],
+            notes:     '',
+          };
+          next.customers = [...s.customers, newCust];
+        }
+      }
+      return next as typeof s;
+    });
   },
   removeFromWaitlist: (id) => {
     set((s) => ({ waitlist: s.waitlist.filter(w => w.id !== id) }));
@@ -526,10 +563,33 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     }));
   },
   seatFromWaitlist: (id) => {
-    // Just remove from the queue — the operator handles seating via Walk-in
-    // or by creating a reservation from there. Keeping the two flows decoupled
-    // avoids accidental double-booking.
-    set((s) => ({ waitlist: s.waitlist.filter(w => w.id !== id) }));
+    const entry = get().waitlist.find(w => w.id === id);
+    if (!entry) return null;
+
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+    const newRes: Reservation = {
+      id:        `walkin-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      bizId:     entry.bizId,
+      date,
+      time,
+      name:      entry.name,
+      pax:       entry.pax,
+      status:    'seated',
+      phone:     entry.phone,
+      notes:     entry.notes,
+      source:    'walk-in',
+    };
+
+    set((s) => ({
+      reservations: [...s.reservations, newRes],
+      waitlist:     s.waitlist.filter(w => w.id !== id),
+    }));
+
+    cloud.upsertReservation(newRes);
+    return newRes;
   },
   setMergeModalTable: (v) => set({ mergeModalTable: v }),
 

@@ -127,6 +127,7 @@ export function WaitlistModal({ open, onClose }: { open:boolean; onClose:()=>voi
   const {
     selectedBusiness, waitlist,
     addToWaitlist, removeFromWaitlist, notifyWaitlist, seatFromWaitlist,
+    setSelectedReservation,
   } = useAppStore();
   const [name, setName]   = useState('');
   const [pax, setPax]     = useState(2);
@@ -170,7 +171,17 @@ export function WaitlistModal({ open, onClose }: { open:boolean; onClose:()=>voi
           <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
             {queue.map(w => <DesktopQueueRow key={w.id} w={w}
               onNotify={() => { notifyWaitlist(w.id); toast(`Avisat: ${w.name}`, { icon: 'check', tone: 'olive' }); }}
-              onSeat={() => { seatFromWaitlist(w.id); toast(`${w.name} a taula`, { icon: 'check', tone: 'terracotta' }); }}
+              onSeat={() => {
+                const newRes = seatFromWaitlist(w.id);
+                if (newRes) {
+                  // Select the new walk-in so the RightPanel opens with it
+                  // ready for table assignment. Modal closes via onClose so
+                  // the operator sees the daily view immediately.
+                  setSelectedReservation(newRes);
+                  onClose();
+                  toast(`${w.name} a taula · assigna-la`, { icon: 'check', tone: 'terracotta', ms: 2600 });
+                }
+              }}
               onRemove={() => {
                 const snap = { bizId: w.bizId, name: w.name, pax: w.pax, phone: w.phone, notes: w.notes };
                 removeFromWaitlist(w.id);

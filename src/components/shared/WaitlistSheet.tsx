@@ -12,14 +12,17 @@ import AnimatedSheet from './AnimatedSheet';
 import { Icon, I } from './Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
-import type { WaitlistEntry } from '@/types';
+import type { WaitlistEntry, Reservation } from '@/types';
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Called after "Asseure": receives the freshly-created walk-in reservation
+   *  so the shell can navigate to Reserves with it selected. */
+  onSeated?: (res: Reservation) => void;
 }
 
-export default function WaitlistSheet({ open, onClose }: Props) {
+export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
   const {
     selectedBusiness, waitlist,
     addToWaitlist, removeFromWaitlist, notifyWaitlist, seatFromWaitlist,
@@ -67,8 +70,14 @@ export default function WaitlistSheet({ open, onClose }: Props) {
   }
 
   function handleSeat(w: WaitlistEntry) {
-    seatFromWaitlist(w.id);
-    toast(`${w.name} a taula`, { icon: 'check', tone: 'terracotta', ms: 2000 });
+    const newRes = seatFromWaitlist(w.id);
+    if (!newRes) return;
+    toast(`${w.name} a taula · assigna-la`, {
+      icon: 'check', tone: 'terracotta', ms: 2600,
+    });
+    onClose();
+    // Defer so the sheet exit animation has room to play before the tab swap.
+    setTimeout(() => onSeated?.(newRes), 240);
   }
 
   function handleRemove(w: WaitlistEntry) {
