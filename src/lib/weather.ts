@@ -11,6 +11,15 @@ export type WxCondition =
   | 'drizzle' | 'rain' | 'showers' | 'thunder'
   | 'snow' | 'unknown';
 
+export interface HourlySlot {
+  hour:       number;       // 0..23
+  temp:       number;       // °C
+  code:       number;       // WMO code
+  condition:  WxCondition;
+  precipProb: number;       // 0..100
+  windKmh:    number;
+}
+
 export interface WeatherForecast {
   date:           string;   // YYYY-MM-DD
   tMin:           number;   // °C
@@ -22,13 +31,15 @@ export interface WeatherForecast {
   precipProb:     number;
   /** Max wind speed during the day in km/h. */
   windKmh:        number;
+  /** 24 hourly slots when available — drives the iOS-style detail chart. */
+  hourly?:        HourlySlot[];
   /** ISO timestamp the forecast was fetched. */
   fetchedAt:      number;
 }
 
 interface CacheEntry { data: WeatherForecast; fetchedAt: number; }
 
-const CACHE_KEY    = 'ncr.weather.cache.v1';
+const CACHE_KEY    = 'ncr.weather.cache.v2';  // v2 adds hourly slots
 const TTL_TODAY    = 60 * 60 * 1000;     // 1h
 const TTL_FUTURE   = 6  * 60 * 60 * 1000;  // 6h
 const TTL_PAST     = 30 * 24 * 60 * 60 * 1000; // 30 days (won't change)
@@ -130,11 +141,14 @@ export async function fetchForecast(opts: FetchOpts): Promise<WeatherForecast | 
   const ttl = ttlFor(opts.date);
   if (hit && Date.now() - hit.fetchedAt < ttl) return hit.data;
 
-  // Open-Meteo: free, no key. We request daily summary for the exact date.
+  // Open-Meteo: free, no key. We request both the daily summary and the
+  // 24 hourly slots for the exact date — the latter powers the iOS-style
+  // hourly chart in the detail sheet.
   const url =
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${opts.lat}&longitude=${opts.lng}` +
     `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_probability_max,wind_speed_10m_max` +
+    `&hourly=temperature_2m,weathercode,precipitation_probability,wind_speed_10m` +
     `&timezone=auto` +
     `&start_date=${opts.date}&end_date=${opts.date}`;
 
@@ -149,10 +163,36 @@ export async function fetchForecast(opts: FetchOpts): Promise<WeatherForecast | 
         precipitation_probability_max?: number[];
         wind_speed_10m_max?: number[];
       };
+      hourly?: {
+        time?:                      string[];
+        temperature_2m?:            number[];
+        weathercode?:               number[];
+        precipitation_probability?: number[];
+        wind_speed_10m?:            number[];
+      };
     };
     const d = json.daily;
     if (!d || !d.weathercode || d.weathercode.length === 0) return null;
     const code = d.weathercode[0] ?? -1;
+
+    // Build hourly slots — Open-Meteo returns 24 entries per requested day.
+    let hourly: HourlySlot[] | undefined;
+    const h = json.hourly;
+    if (h && h.time && h.temperature_2m && h.weathercode) {
+      hourly = h.time.map((iso, i) => {
+        const hour = parseInt(iso.slice(11, 13), 10);
+        const hCode = h.weathercode?.[i] ?? -1;
+        return {
+          hour,
+          temp:       Math.round(h.temperature_2m?.[i] ?? 0),
+          code:       hCode,
+          condition:  codeToCondition(hCode),
+          precipProb: Math.round(h.precipitation_probability?.[i] ?? 0),
+          windKmh:    Math.round(h.wind_speed_10m?.[i] ?? 0),
+        };
+      });
+    }
+
     const forecast: WeatherForecast = {
       date:        opts.date,
       tMin:        Math.round(d.temperature_2m_min?.[0] ?? 0),
@@ -161,6 +201,7 @@ export async function fetchForecast(opts: FetchOpts): Promise<WeatherForecast | 
       condition:   codeToCondition(code),
       precipProb:  Math.round(d.precipitation_probability_max?.[0] ?? 0),
       windKmh:     Math.round(d.wind_speed_10m_max?.[0] ?? 0),
+      hourly,
       fetchedAt:   Date.now(),
     };
     cache[key] = { data: forecast, fetchedAt: forecast.fetchedAt };

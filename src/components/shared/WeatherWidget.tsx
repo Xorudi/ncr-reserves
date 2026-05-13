@@ -14,7 +14,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
 import {
   fetchForecast, conditionLabel, operationalAlert, DEFAULT_COORDS,
-  type WeatherForecast, type WxCondition,
+  type WeatherForecast, type WxCondition, type HourlySlot,
 } from '@/lib/weather';
 
 // ─── Emoji per condition — used as the icon glyph in the pill and the sheet ──
@@ -193,6 +193,16 @@ function WeatherDetailSheet({ open, onClose, forecast, date }: {
           <DetailCard label="Vent màxim" value={`${forecast.windKmh} km/h`} tone={forecast.windKmh >= 40 ? 'rose' : 'ink'} />
         </div>
 
+        {/* Hourly forecast — strip of mini-cards + smooth temperature curve.
+            Only renders when the API returned hourly data (always true for
+            dates within Open-Meteo's hourly window). */}
+        {forecast.hourly && forecast.hourly.length > 0 && (
+          <>
+            <HourlyStrip slots={forecast.hourly} dateIso={forecast.date} />
+            <HourlyCurve  slots={forecast.hourly} tMin={forecast.tMin} tMax={forecast.tMax} dateIso={forecast.date} />
+          </>
+        )}
+
         {/* Operational alert */}
         {alert && (
           <div style={{
@@ -218,6 +228,188 @@ function WeatherDetailSheet({ open, onClose, forecast, date }: {
       </div>
     </AnimatedSheet>
   );
+}
+
+// ─── Hourly strip — horizontal scroll of mini-cards (hour · icon · temp) ─────
+
+function HourlyStrip({ slots, dateIso }: { slots: HourlySlot[]; dateIso: string }) {
+  const nowIso = new Date().toISOString().slice(0, 10);
+  const isToday = dateIso === nowIso;
+  const currentHour = isToday ? new Date().getHours() : -1;
+
+  return (
+    <div style={{ padding: '14px 18px 0' }}>
+      <div style={{
+        fontSize: 10.5, fontWeight: 700, color: 'var(--ink-500)',
+        letterSpacing: .06, textTransform: 'uppercase', marginBottom: 6,
+      }}>Per hores</div>
+      <div className="scroll" style={{
+        display: 'flex', gap: 6,
+        overflowX: 'auto', paddingBottom: 6,
+        // Hide horizontal scrollbar — the cards spill far enough to imply more
+        scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+      }}>
+        {slots.map(s => {
+          const isCurrent = s.hour === currentHour;
+          return (
+            <div key={s.hour} style={{
+              flexShrink: 0, width: 50,
+              padding: '8px 4px', borderRadius: 10,
+              background: isCurrent ? 'var(--terracotta-50)' : 'var(--ink-50)',
+              border: isCurrent ? '1.5px solid var(--terracotta-500)' : '1px solid rgba(60,40,20,.06)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            }}>
+              <div style={{
+                fontSize: 10.5, fontFamily: 'var(--font-mono)', fontWeight: 700,
+                color: isCurrent ? 'var(--terracotta-700)' : 'var(--ink-500)',
+                letterSpacing: .04,
+              }}>{String(s.hour).padStart(2, '0')}</div>
+              <div style={{ fontSize: 16, lineHeight: 1 }}>{hourEmoji(s.condition)}</div>
+              <div style={{
+                fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 500,
+                color: 'var(--ink-900)', lineHeight: 1,
+              }}>{s.temp}°</div>
+              {s.precipProb >= 30 && (
+                <div style={{
+                  fontSize: 9, fontWeight: 700, color: 'var(--sky-700)',
+                  fontFamily: 'var(--font-mono)', letterSpacing: .04,
+                }}>{s.precipProb}%</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Hourly temp curve — smooth SVG area chart with min/max dots labeled ─────
+
+function HourlyCurve({ slots, tMin, tMax, dateIso }: {
+  slots: HourlySlot[]; tMin: number; tMax: number; dateIso: string;
+}) {
+  // Layout
+  const W = 320, H = 90, P = { l: 8, r: 8, t: 16, b: 14 };
+  const innerW = W - P.l - P.r;
+  const innerH = H - P.t - P.b;
+  // Pad the range a bit so the curve breathes
+  const min = tMin - 1;
+  const max = tMax + 1;
+  const range = Math.max(1, max - min);
+  const x = (i: number) => P.l + (i / Math.max(1, slots.length - 1)) * innerW;
+  const y = (t: number) => P.t + (1 - (t - min) / range) * innerH;
+
+  // Build a smooth Catmull-Rom-ish path via cubic bezier (simple variant).
+  const points = slots.map((s, i) => ({ x: x(i), y: y(s.temp) }));
+  let d = '';
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (i === 0) { d += `M ${p.x.toFixed(1)} ${p.y.toFixed(1)}`; continue; }
+    const prev = points[i - 1];
+    const cx = (prev.x + p.x) / 2;
+    d += ` C ${cx.toFixed(1)} ${prev.y.toFixed(1)}, ${cx.toFixed(1)} ${p.y.toFixed(1)}, ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+  }
+  const fillPath = `${d} L ${points[points.length - 1].x.toFixed(1)} ${(P.t + innerH).toFixed(1)} L ${points[0].x.toFixed(1)} ${(P.t + innerH).toFixed(1)} Z`;
+
+  // Indices of min/max for the dot labels
+  let iMin = 0, iMax = 0;
+  slots.forEach((s, i) => {
+    if (s.temp < slots[iMin].temp) iMin = i;
+    if (s.temp > slots[iMax].temp) iMax = i;
+  });
+
+  const nowIso = new Date().toISOString().slice(0, 10);
+  const isToday = dateIso === nowIso;
+  const currentHour = isToday ? new Date().getHours() : -1;
+  const currentIdx = currentHour >= 0 ? slots.findIndex(s => s.hour === currentHour) : -1;
+
+  return (
+    <div style={{ padding: '8px 18px 0' }}>
+      <div style={{
+        fontSize: 10.5, fontWeight: 700, color: 'var(--ink-500)',
+        letterSpacing: .06, textTransform: 'uppercase', marginBottom: 6,
+      }}>Temperatura · 24h</div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none"
+        style={{ display: 'block' }}>
+        <defs>
+          <linearGradient id="wxCurveFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="var(--terracotta-500)" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="var(--sky-500)"        stopOpacity="0.05" />
+          </linearGradient>
+          <linearGradient id="wxCurveStroke" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="var(--sky-600)" />
+            <stop offset="50%"  stopColor="var(--olive-600)" />
+            <stop offset="100%" stopColor="var(--terracotta-600)" />
+          </linearGradient>
+        </defs>
+
+        {/* Gridlines at quartiles */}
+        {[0, 0.5, 1].map(f => (
+          <line key={f}
+            x1={P.l} x2={P.l + innerW}
+            y1={P.t + f * innerH} y2={P.t + f * innerH}
+            stroke="rgba(60,40,20,.08)" strokeWidth="1" strokeDasharray="2 4" />
+        ))}
+
+        {/* Filled area under curve */}
+        <path d={fillPath} fill="url(#wxCurveFill)" />
+        {/* The curve itself */}
+        <path d={d} fill="none" stroke="url(#wxCurveStroke)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Now indicator */}
+        {currentIdx >= 0 && (
+          <>
+            <line x1={x(currentIdx)} x2={x(currentIdx)} y1={P.t} y2={P.t + innerH}
+              stroke="var(--terracotta-600)" strokeWidth="1" strokeOpacity="0.5" />
+            <circle cx={x(currentIdx)} cy={y(slots[currentIdx].temp)} r="3"
+              fill="var(--terracotta-600)" stroke="white" strokeWidth="1.5" />
+          </>
+        )}
+
+        {/* Min/Max dots + labels */}
+        <circle cx={x(iMax)} cy={y(slots[iMax].temp)} r="2.5" fill="var(--terracotta-700)" />
+        <text x={x(iMax)} y={y(slots[iMax].temp) - 6}
+          textAnchor="middle" fontSize="9.5" fontFamily="var(--font-mono)"
+          fontWeight="700" fill="var(--terracotta-700)">
+          {slots[iMax].temp}°
+        </text>
+        <circle cx={x(iMin)} cy={y(slots[iMin].temp)} r="2.5" fill="var(--sky-700)" />
+        <text x={x(iMin)} y={y(slots[iMin].temp) + 12}
+          textAnchor="middle" fontSize="9.5" fontFamily="var(--font-mono)"
+          fontWeight="700" fill="var(--sky-700)">
+          {slots[iMin].temp}°
+        </text>
+
+        {/* X-axis labels at 0/6/12/18 */}
+        {[0, 6, 12, 18].map(h => {
+          const idx = slots.findIndex(s => s.hour === h);
+          if (idx < 0) return null;
+          return (
+            <text key={h} x={x(idx)} y={H - 2}
+              textAnchor="middle" fontSize="9" fontFamily="var(--font-mono)"
+              fill="var(--ink-400)">{h}</text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// Hour-level icon — smaller variants of the same condition emojis used in the
+// pill, picked to look right at 16px without color.
+function hourEmoji(c: WxCondition): string {
+  switch (c) {
+    case 'clear':    return '☀';
+    case 'cloudy':   return '⛅';
+    case 'overcast': return '☁';
+    case 'fog':      return '🌫';
+    case 'drizzle':  return '🌦';
+    case 'rain':
+    case 'showers':  return '🌧';
+    case 'thunder':  return '⛈';
+    case 'snow':     return '❄';
+    default:         return '·';
+  }
 }
 
 function DetailCard({ label, value, tone = 'ink' }: { label: string; value: string; tone?: 'ink' | 'sky' | 'rose' }) {
