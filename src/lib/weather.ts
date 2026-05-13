@@ -129,37 +129,58 @@ export interface OperationalInsight {
  * available, the 24 hourly slots. This is what powers the "què cal tenir en
  * compte" section in the weather sheet. Multiple insights can fire at once;
  * caller renders them in order (highest severity first).
+ *
+ * When the forecast is for TODAY, we only look at hourly slots from the
+ * current hour forward — an alert about rain that started at 03:00 is
+ * useless at 14:55. For future-day forecasts we consider the whole 24 h.
  */
 export function operationalInsights(f: WeatherForecast): OperationalInsight[] {
   const out: OperationalInsight[] = [];
 
-  // ── Hourly-driven insights (only when we have the data) ────────────────────
-  if (f.hourly && f.hourly.length > 0) {
-    // First hour with high precipitation probability — used to surface a
-    // time-specific "des de XX:00" hint instead of a vague "rain probable".
-    const rainStart = f.hourly.find(h => h.precipProb >= 60 && (h.condition === 'rain' || h.condition === 'showers' || h.condition === 'drizzle'));
+  // Compute the "earliest relevant hour" for filtering hourly slots.
+  // For today → now's hour. For future days → 0 (entire day). For past days
+  // → 24 (nothing relevant; skip hourly insights altogether).
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const isToday  = f.date === todayIso;
+  const isPast   = f.date < todayIso;
+  const fromHour = isPast ? 24 : (isToday ? now.getHours() : 0);
+
+  // ── Hourly-driven insights (only when we have the data and the day still
+  //    has unspent hours ahead) ────────────────────────────────────────────────
+  if (f.hourly && f.hourly.length > 0 && fromHour < 24) {
+    const futureHours = f.hourly.filter(h => h.hour >= fromHour);
+
+    // First upcoming hour with high precipitation probability.
+    const rainStart = futureHours.find(h => h.precipProb >= 60 && (h.condition === 'rain' || h.condition === 'showers' || h.condition === 'drizzle'));
     if (rainStart) {
+      const whenLabel = isToday && rainStart.hour === fromHour
+        ? 'ara mateix'
+        : `des de ${String(rainStart.hour).padStart(2, '0')}:00`;
       out.push({
         id:       'rain-start',
         icon:     '🌧️',
         text:     'Alta probabilitat de pluja — possibles cancel·lacions a la terrassa.',
-        when:     `des de ${String(rainStart.hour).padStart(2, '0')}:00`,
+        when:     whenLabel,
         severity: 'alert',
       });
     }
-    // First hour with strong wind in the evening/night service window.
-    const windStart = f.hourly.find(h => h.windKmh >= 35 && h.hour >= 17);
+    // First upcoming strong-wind hour in the evening/night service window.
+    const windStart = futureHours.find(h => h.windKmh >= 35 && h.hour >= 17);
     if (windStart && windStart.windKmh >= 40) {
+      const whenLabel = isToday && windStart.hour === fromHour
+        ? 'ara mateix'
+        : `des de ${String(windStart.hour).padStart(2, '0')}:00`;
       out.push({
         id:       'wind-evening',
         icon:     '💨',
         text:     'Vent fort previst — recomanat bloquejar taules descobertes i pissarres.',
-        when:     `des de ${String(windStart.hour).padStart(2, '0')}:00`,
+        when:     whenLabel,
         severity: 'warn',
       });
     }
-    // Heat spike at service hours.
-    const hotSlot = f.hourly.find(h => h.temp >= 30 && h.hour >= 12 && h.hour < 16);
+    // Heat spike during today's remaining lunch hours.
+    const hotSlot = futureHours.find(h => h.temp >= 30 && h.hour >= 12 && h.hour < 16);
     if (hotSlot && f.tMax >= 32) {
       out.push({
         id:       'heat-lunch',
@@ -168,11 +189,11 @@ export function operationalInsights(f: WeatherForecast): OperationalInsight[] {
         severity: 'warn',
       });
     }
-    // Nice weather in service hours — anticipate more terrace demand
-    const goodHour = f.hourly.find(h =>
+    // Nice weather during today's remaining service hours.
+    const goodHour = futureHours.find(h =>
       h.condition === 'clear' && h.temp >= 18 && h.temp <= 28 &&
       h.precipProb < 20 && h.windKmh < 20 &&
-      (h.hour >= 12 && h.hour < 16 || h.hour >= 19 && h.hour < 23)
+      ((h.hour >= 12 && h.hour < 16) || (h.hour >= 19 && h.hour < 23))
     );
     if (goodHour && f.precipProb < 30) {
       out.push({
@@ -185,7 +206,8 @@ export function operationalInsights(f: WeatherForecast): OperationalInsight[] {
   }
 
   // ── Day-level fallbacks (cover dates where hourly data is missing) ─────────
-  if (out.length === 0) {
+  // Skipped for past days — the operator can't act on yesterday's weather.
+  if (out.length === 0 && !isPast) {
     if (f.precipProb >= 60 && (f.condition === 'rain' || f.condition === 'showers' || f.condition === 'drizzle')) {
       out.push({ id: 'rain-day',    icon: '🌧️', text: 'Pluja probable — replega la terrassa o tanca reserves exteriors.', severity: 'alert' });
     } else if (f.condition === 'thunder') {
