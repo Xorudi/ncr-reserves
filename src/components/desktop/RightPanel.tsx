@@ -159,9 +159,12 @@ function AlertsPanel({ biz }: { biz: Business }) {
           {showNoteForm && (
             <div style={{ background:'var(--paper)', border:'var(--hair)', borderRadius:10, padding:'10px 12px', marginBottom:6 }}>
               <input value={noteAuthor} onChange={e => setNoteAuthor(e.target.value)}
-                placeholder="Autor / Rol (opcional)" style={{ ...inputStyle, marginBottom:6 }} />
+                placeholder="Autor / Rol (opcional)"
+                maxLength={80}
+                style={{ ...inputStyle, marginBottom:6 }} />
               <textarea value={noteBody} onChange={e => setNoteBody(e.target.value)}
                 placeholder="Escriu la nota…" rows={3}
+                maxLength={2000}
                 style={{ ...inputStyle, resize:'vertical', lineHeight:1.45 }} />
               <div style={{ display:'flex', gap:5, marginTop:7 }}>
                 <button onClick={() => { setShowNoteForm(false); setEditingNote(null); setNoteBody(''); setNoteAuthor(''); }}
@@ -203,7 +206,9 @@ function AlertsPanel({ biz }: { biz: Business }) {
           {showEvForm && (
             <div style={{ background:'var(--paper)', border:'var(--hair)', borderRadius:10, padding:'10px 12px', marginBottom:6 }}>
               <input value={evTitle} onChange={e => setEvTitle(e.target.value)}
-                placeholder="Títol de l'esdeveniment *" style={{ ...inputStyle, marginBottom:6 }} />
+                placeholder="Títol de l'esdeveniment *"
+                maxLength={120}
+                style={{ ...inputStyle, marginBottom:6 }} />
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:6 }}>
                 <input value={evDate} onChange={e => setEvDate(e.target.value)}
                   type="date" style={inputStyle} />
@@ -212,6 +217,7 @@ function AlertsPanel({ biz }: { biz: Business }) {
               </div>
               <textarea value={evDesc} onChange={e => setEvDesc(e.target.value)}
                 placeholder="Descripció (opcional)" rows={2}
+                maxLength={1000}
                 style={{ ...inputStyle, resize:'vertical', lineHeight:1.45, marginBottom:6 }} />
               <div style={{ display:'flex', gap:5 }}>
                 <button onClick={() => setShowEvForm(false)}
@@ -541,14 +547,14 @@ function EditResForm({ res, onSave, onCancel, onClose, onDelete }: {
         {/* Nom */}
         <div>
           <label style={lbl}>Nom complet</label>
-          <input value={name} onChange={e => setName(e.target.value)} style={inp} />
+          <input value={name} onChange={e => setName(e.target.value)} maxLength={80} autoComplete="name" style={inp} />
         </div>
 
         {/* Telèfon + Hora */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
           <div>
             <label style={lbl}>Telèfon</label>
-            <input value={phone} onChange={e => setPhone(e.target.value)} style={{ ...inp, fontFamily:'var(--font-mono)' }} />
+            <input value={phone} onChange={e => setPhone(e.target.value)} type="tel" maxLength={30} inputMode="tel" autoComplete="tel" pattern="^[+0-9 ()\-\.]{6,30}$" style={{ ...inp, fontFamily:'var(--font-mono)' }} />
           </div>
           <div>
             <label style={lbl}>Hora</label>
@@ -621,6 +627,7 @@ function EditResForm({ res, onSave, onCancel, onClose, onDelete }: {
           <label style={lbl}>Notes</label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)}
             rows={3} placeholder="Al·lèrgies, preferències, observacions…"
+            maxLength={1000}
             style={{ ...inp, resize:'vertical', lineHeight:1.5 }} />
         </div>
 

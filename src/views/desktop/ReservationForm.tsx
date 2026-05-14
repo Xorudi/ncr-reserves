@@ -36,6 +36,7 @@ export default function ReservationForm({ onClose }: { onClose?: () => void }) {
           <Field label="Nom del client *">
             <input required value={name} onChange={e=>setName(e.target.value)}
               placeholder="Nom i cognoms"
+              maxLength={80} autoComplete="name"
               style={inputStyle} />
           </Field>
 
@@ -43,6 +44,8 @@ export default function ReservationForm({ onClose }: { onClose?: () => void }) {
           <Field label="Telèfon">
             <input value={phone} onChange={e=>setPhone(e.target.value)}
               placeholder="+34 6XX XXX XXX" type="tel"
+              maxLength={30} inputMode="tel" autoComplete="tel"
+              pattern="^[+0-9 ()\-\.]{6,30}$"
               style={inputStyle} />
           </Field>
 
@@ -55,7 +58,9 @@ export default function ReservationForm({ onClose }: { onClose?: () => void }) {
                   {n}
                 </button>
               ))}
-              <input value={pax} onChange={e=>setPax(Number(e.target.value))} type="number" min={1} max={50}
+              <input value={pax}
+                onChange={e=>setPax(Math.min(200, Math.max(1, Number(e.target.value) || 1)))}
+                type="number" min={1} max={200} inputMode="numeric"
                 style={{ ...inputStyle, width:70 }} />
             </div>
           </Field>
@@ -90,7 +95,7 @@ export default function ReservationForm({ onClose }: { onClose?: () => void }) {
           <Field label="Notes internes">
             <textarea value={notes} onChange={e=>setNotes(e.target.value)}
               placeholder="Al·lèrgies, preferències, peticions especials…"
-              rows={3}
+              rows={3} maxLength={1000}
               style={{ ...inputStyle, resize:'vertical',lineHeight:1.5 }} />
           </Field>
 

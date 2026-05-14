@@ -846,6 +846,7 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
             <label style={lbl}>Nom complet *</label>
             <input type="text" placeholder="Nom del client" value={form.name}
               onChange={e => upd('name', e.target.value)}
+              maxLength={80} autoComplete="name"
               style={{ ...inp, borderColor: touched && !form.name.trim() ? 'var(--terracotta-500)' : undefined }} />
             {touched && !form.name.trim() && (
               <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>El nom és obligatori</div>
@@ -858,6 +859,8 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
               <label style={lbl}>Telèfon</label>
               <input type="tel" placeholder="+34 600…" value={form.phone}
                 onChange={e => upd('phone', e.target.value)}
+                maxLength={30} inputMode="tel" autoComplete="tel"
+                pattern="^[+0-9 ()\-\.]{6,30}$"
                 style={{ ...inp, borderColor: touched && phoneError() ? 'var(--terracotta-500)' : undefined }} />
               {touched && phoneError() && (
                 <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>{phoneError()}</div>
@@ -867,6 +870,8 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
               <label style={lbl}>Email</label>
               <input type="email" placeholder="email@…" value={form.email}
                 onChange={e => upd('email', e.target.value)}
+                maxLength={254} inputMode="email" autoComplete="email"
+                autoCapitalize="off" autoCorrect="off" spellCheck={false}
                 style={{ ...inp, borderColor: touched && emailError() ? 'var(--terracotta-500)' : undefined }} />
               {touched && emailError() && (
                 <div style={{ fontSize:11, color:'var(--terracotta-600)', marginTop:3 }}>{emailError()}</div>
@@ -903,6 +908,7 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
             <textarea rows={3}
               placeholder="Exemple: al·lèrgia al gluten, prefereix terrassa, aniversari el 14/03…"
               value={form.notes} onChange={e => upd('notes', e.target.value)}
+              maxLength={2000}
               style={{ ...inp, resize:'none', lineHeight:1.5 }} />
           </div>
 

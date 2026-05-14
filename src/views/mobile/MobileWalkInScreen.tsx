@@ -523,9 +523,13 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
 
           {showExtra && (
             <div style={{ display:'flex', flexDirection:'column', gap:9, marginBottom:2 }}>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="Nom del client" style={inp} />
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telèfon" style={inp} />
-              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (al·lèrgies, taula especial…)" style={inp} />
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Nom del client"
+                maxLength={80} autoComplete="name" style={inp} />
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telèfon"
+                maxLength={30} inputMode="tel" autoComplete="tel"
+                pattern="^[+0-9 ()\-\.]{6,30}$" style={inp} />
+              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (al·lèrgies, taula especial…)"
+                maxLength={200} style={inp} />
             </div>
           )}
 

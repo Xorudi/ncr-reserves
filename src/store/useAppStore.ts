@@ -14,6 +14,11 @@ import {
   EMPLOYEE_SHIFTS_INIT,
 } from '@/data/mockData';
 import { cloud } from '@/lib/cloudSync';
+import {
+  sanitizeReservation, sanitizeCustomer, sanitizeEmployee,
+  sanitizeShiftNote, sanitizeAppEvent, sanitizeWaitlistEntry,
+  sanitizeTextPreserve, LIMITS,
+} from '@/utils/validation';
 
 interface AppState {
   // ── Core ──────────────────────────────────────────────────────────────────────
@@ -270,7 +275,10 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   },
 
   addReservation: (res) => {
-    const newRes: Reservation = { ...res, id: `${res.bizId}-${res.time}-${Date.now()}` };
+    // Sanitise BEFORE persisting — bounded strings, valid date/time,
+    // pax clamped, control chars stripped. See utils/validation.ts.
+    const clean = sanitizeReservation(res as unknown as Record<string, unknown>) as typeof res;
+    const newRes: Reservation = { ...clean, id: `${clean.bizId}-${clean.time}-${Date.now()}` };
     set((s) => ({ reservations: [...s.reservations, newRes] }));
     cloud.upsertReservation(newRes);
   },
@@ -487,13 +495,20 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   // ── Customer CRUD ─────────────────────────────────────────────────────────────
   addCustomer: (cust) => {
-    const newCust: Customer = { ...cust, id: `cust-${Date.now()}` };
+    const clean = sanitizeCustomer(cust as unknown as Record<string, unknown>) as typeof cust;
+    const newCust: Customer = { ...clean, id: `cust-${Date.now()}` };
     set((s) => ({ customers: [...s.customers, newCust] }));
     cloud.upsertCustomer(newCust);
   },
 
   updateCustomer: (id, updates) => {
-    set((s) => ({ customers: s.customers.map(c => c.id === id ? { ...c, ...updates } : c) }));
+    // Only sanitise the fields that were sent in `updates`. We re-run the
+    // full customer sanitiser on the merged record so caps still apply.
+    set((s) => ({
+      customers: s.customers.map(c => c.id === id
+        ? (sanitizeCustomer({ ...c, ...updates } as unknown as Record<string, unknown>) as unknown) as Customer
+        : c)
+    }));
     const updated = get().customers.find(c => c.id === id);
     if (updated) cloud.upsertCustomer(updated);
   },
@@ -513,8 +528,9 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   // Entries auto-expire after 4h of inactivity to keep the queue tidy across
   // services — we don't have a backend cron yet, so removal is on demand.
   addToWaitlist: (e) => {
+    const clean = sanitizeWaitlistEntry(e as unknown as Record<string, unknown>) as typeof e;
     const entry: WaitlistEntry = {
-      ...e,
+      ...clean,
       id: `wl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       addedAt: Date.now(),
       status: 'waiting',
@@ -595,13 +611,15 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   // ── Shift notes CRUD ──────────────────────────────────────────────────────────
   addShiftNote: (n) => {
-    const newNote: ShiftNote = { ...n, id: `sn-${Date.now()}` };
+    const clean = sanitizeShiftNote(n as unknown as Record<string, unknown>) as typeof n;
+    const newNote: ShiftNote = { ...clean, id: `sn-${Date.now()}` };
     set((s) => ({ shiftNotes: [...s.shiftNotes, newNote] }));
     cloud.upsertShiftNote(newNote);
   },
 
   editShiftNote: (id, body) => {
-    set((s) => ({ shiftNotes: s.shiftNotes.map((n) => n.id === id ? { ...n, body } : n) }));
+    const cleanBody = sanitizeTextPreserve(body, LIMITS.SHIFT_NOTE);
+    set((s) => ({ shiftNotes: s.shiftNotes.map((n) => n.id === id ? { ...n, body: cleanBody } : n) }));
     const updated = get().shiftNotes.find(n => n.id === id);
     if (updated) cloud.upsertShiftNote(updated);
   },
@@ -613,7 +631,8 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   // ── Events CRUD ───────────────────────────────────────────────────────────────
   addAppEvent: (e) => {
-    const newEv: AppEvent = { ...e, id: `ev-${Date.now()}` };
+    const clean = sanitizeAppEvent(e as unknown as Record<string, unknown>) as typeof e;
+    const newEv: AppEvent = { ...clean, id: `ev-${Date.now()}` };
     set((s) => ({ appEvents: [...s.appEvents, newEv] }));
     cloud.upsertEvent(newEv);
   },
@@ -743,13 +762,18 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
 
   // ── Staff CRUD ────────────────────────────────────────────────────────────────
   addEmployee: (emp) => {
-    const newEmp: Employee = { ...emp, id: `emp-${Date.now()}` };
+    const clean = sanitizeEmployee(emp as unknown as Record<string, unknown>) as typeof emp;
+    const newEmp: Employee = { ...clean, id: `emp-${Date.now()}` };
     set((s) => ({ employees: [...s.employees, newEmp] }));
     cloud.upsertEmployee(newEmp);
   },
 
   updateEmployee: (id, updates) => {
-    set((s) => ({ employees: s.employees.map(e => e.id === id ? { ...e, ...updates } : e) }));
+    set((s) => ({
+      employees: s.employees.map(e => e.id === id
+        ? (sanitizeEmployee({ ...e, ...updates } as unknown as Record<string, unknown>) as unknown) as Employee
+        : e)
+    }));
     const updated = get().employees.find(e => e.id === id);
     if (updated) cloud.upsertEmployee(updated);
   },

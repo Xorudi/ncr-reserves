@@ -2490,6 +2490,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 <input type="text" placeholder="Nom del client" value={form.name}
                   onChange={e => upd('name', e.target.value)}
                   onFocus={() => setShowDropdown(false)}
+                  maxLength={80} autoComplete="name"
                   style={{
                     ...inp, padding:'10px 12px',
                     borderColor: touched && !form.name.trim() ? 'var(--terracotta-500)' : 'rgba(60,40,20,.12)',
@@ -2507,6 +2508,8 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 <input type="tel" placeholder="+34 600 000 000" value={form.phone}
                   onChange={e => upd('phone', e.target.value)}
                   onFocus={() => setShowDropdown(false)}
+                  maxLength={30} inputMode="tel" autoComplete="tel"
+                  pattern="^[+0-9 ()\-\.]{6,30}$"
                   style={{ ...inp, padding:'10px 12px', fontFamily:'var(--font-mono)', fontSize:14 }} />
               </div>
 
@@ -2658,6 +2661,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 <textarea rows={2} placeholder="Ocasió especial, preferències…" value={form.notes}
                   onChange={e => upd('notes', e.target.value)}
                   onFocus={() => setShowDropdown(false)}
+                  maxLength={1000}
                   style={{ ...inp, padding:'10px 12px', resize:'none', lineHeight:1.5, fontSize:14 }} />
               </div>
 

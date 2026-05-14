@@ -402,6 +402,7 @@ function NewClientModal({ open, onClose, onSave }: {
         <FieldLabel required>Nom complet</FieldLabel>
         <input value={name} onChange={e => setName(e.target.value)}
           placeholder="Ex: Maria Puig Solà"
+          maxLength={80} autoComplete="name"
           style={inputStyle(errors.name)} />
         {errors.name && <ErrMsg>{errors.name}</ErrMsg>}
       </div>
@@ -412,6 +413,8 @@ function NewClientModal({ open, onClose, onSave }: {
           <FieldLabel required>Telèfon</FieldLabel>
           <input value={phone} onChange={e => setPhone(e.target.value)}
             placeholder="612 345 678" type="tel"
+            maxLength={30} inputMode="tel" autoComplete="tel"
+            pattern="^[+0-9 ()\-\.]{6,30}$"
             style={{ ...inputStyle(errors.phone), fontFamily:'var(--font-mono)' }} />
           {errors.phone && <ErrMsg>{errors.phone}</ErrMsg>}
         </div>
@@ -419,6 +422,8 @@ function NewClientModal({ open, onClose, onSave }: {
           <FieldLabel>Email</FieldLabel>
           <input value={email} onChange={e => setEmail(e.target.value)}
             placeholder="correu@exemple.com" type="email"
+            maxLength={254} inputMode="email" autoComplete="email"
+            autoCapitalize="off" autoCorrect="off" spellCheck={false}
             style={inputStyle(errors.email)} />
           {errors.email && <ErrMsg>{errors.email}</ErrMsg>}
         </div>
@@ -468,7 +473,7 @@ function NewClientModal({ open, onClose, onSave }: {
         <FieldLabel>Notes internes</FieldLabel>
         <textarea value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Al·lèrgies, preferències de taula, altres observacions…"
-          rows={3}
+          rows={3} maxLength={2000}
           style={{ ...inputStyle(), resize:'vertical', lineHeight:1.5 }} />
       </div>
     </Modal>
