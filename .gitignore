@@ -4,3 +4,7 @@ dist-ssr
 *.local
 .env
 .env.*
+
+# One-off setup scripts that may contain device credentials. Never commit.
+scripts/setup-supabase-auth.mjs
+.supabase-tmp/

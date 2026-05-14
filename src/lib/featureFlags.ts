@@ -8,12 +8,17 @@
 /**
  * Gate the app behind a Supabase Auth login (SignInView).
  *
- * Prereqs before flipping to `true`:
- *   1. Create one Supabase Auth user per device/venue in the dashboard.
- *   2. Set `app_metadata.biz_ids` for each user.
- *   3. Run `supabase/auth-migration.sql` to enable tenant-scoped RLS.
+ * Activated on 2026-05-14 after:
+ *   ✓ 4 device users created in Supabase Auth
+ *     (device-ganxo / device-pista / device-esquitx / device-admin)
+ *   ✓ app_metadata.biz_ids set on each user
+ *   ✓ scripts/combined-rls-migration.sql executed → 11 tenant_*
+ *     policies replace the previous allow_all_* ones
+ *   ✓ verified via REST: anon sees 0 rows, ganxo user can only
+ *     read/write rows with biz_id='ganxo'
  *
- * Until those are in place, leave this `false`. The PIN gate alone is
- * enforced, and Supabase requests still work because RLS is `allow_all`.
+ * Combined with the PIN gate, the app now has two-layer protection:
+ *   • Supabase Auth (cryptographic, remote)
+ *   • PIN (local, device-level)
  */
-export const SUPABASE_AUTH_ENABLED = false;
+export const SUPABASE_AUTH_ENABLED = true;
