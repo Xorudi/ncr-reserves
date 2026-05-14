@@ -18,6 +18,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { verifyPin, loadPinConfig } from '@/lib/pinAuth';
 import { usePinScope } from '@/store/usePinScope';
+import { getSession, extractBizIds } from '@/lib/auth';
+import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
+import type { BusinessId } from '@/types';
 
 export default function PinLockView() {
   const [pin,     setPin]   = useState('');
@@ -25,6 +28,9 @@ export default function PinLockView() {
   const [shake,   setShake] = useState(false);
   const [busy,    setBusy]  = useState(false);
   const [mounted, setMounted] = useState(false);   // entrance animation
+  // Allow-list of biz_ids the current Supabase session can actually access.
+  // null = no restriction (Supabase Auth disabled, or env vars missing).
+  const [sessionBizIds, setSessionBizIds] = useState<readonly BusinessId[] | null>(null);
   const verifying = useRef(false);
 
   const unlock = usePinScope(s => s.unlock);
@@ -34,6 +40,15 @@ export default function PinLockView() {
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
+  }, []);
+
+  // Read the Supabase session once to know which biz_ids this device can see.
+  useEffect(() => {
+    if (!SUPABASE_AUTH_ENABLED) return;
+    getSession().then(s => {
+      if (!s) return;
+      setSessionBizIds(extractBizIds(s) as readonly BusinessId[]);
+    });
   }, []);
 
   // ── Keypad input ───────────────────────────────────────────────────────────
@@ -69,14 +84,34 @@ export default function PinLockView() {
     verifyPin(pin).then(match => {
       verifying.current = false;
       setBusy(false);
-      if (match) {
-        unlock(match.label, match.scope);
-      } else {
+      if (!match) {
+        // Wrong PIN — neutral retry, no counters.
         setShake(true);
         setTimeout(() => setShake(false), 420);
         setPin('');
         setError('Aquest PIN no coincideix. Torna-ho a provar.');
+        return;
       }
+      // PIN matched. If a Supabase session is in play, restrict the
+      // unlocked scope to the intersection of (PIN scope) ∩ (session
+      // biz_ids). This prevents using a PIN from one venue on a device
+      // whose Supabase user can only see another venue — the row-level
+      // policies would refuse the queries anyway, so we surface the
+      // mismatch up-front instead of leaving the user staring at an
+      // empty book.
+      const effective = sessionBizIds
+        ? match.scope.filter(id => sessionBizIds.includes(id))
+        : match.scope;
+
+      if (effective.length === 0) {
+        setShake(true);
+        setTimeout(() => setShake(false), 420);
+        setPin('');
+        setError('Aquest dispositiu no té accés a aquest llibre.');
+        return;
+      }
+
+      unlock(match.label, effective);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
