@@ -1,13 +1,15 @@
 /**
- * Sign-in view — one credential per device/venue.
+ * Sign-in view — Supabase device login.
  *
- * This is the *real* authentication gate (vs. the decorative PIN flow in
- * views/desktop/LoginView.tsx which still exists for in-shift staff
- * attribution). After a successful sign-in the Supabase SDK persists the
- * session, so the user only sees this screen on first launch (or after an
- * explicit log-out).
+ * Responsive via clamp(); same visual system as PinLockView so the two
+ * screens feel like one. Card capped at 420 px on desktop, fills width
+ * on mobile with safe-area padding.
+ *
+ * Inputs use `width: 100%; min-width: 0; box-sizing: border-box` so
+ * iOS Safari's intrinsic `size=20` on `<input type="email/password">`
+ * cannot push the card past the viewport.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { signIn } from '@/lib/auth';
 
 interface Props {
@@ -20,6 +22,12 @@ export default function SignInView({ onSignedIn }: Props) {
   const [password, setPassword] = useState('');
   const [busy,     setBusy]     = useState(false);
   const [error,    setError]    = useState<string | null>(null);
+  const [mounted,  setMounted]  = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,51 +44,26 @@ export default function SignInView({ onSignedIn }: Props) {
   }
 
   return (
-    <div style={{
-      width: '100%', height: '100%', minHeight: '100vh',
-      background: 'radial-gradient(ellipse at top, #f5e9d6 0%, #ebe5d8 60%, #ddd4c2 100%)',
-      display: 'grid', placeItems: 'center', padding: 24,
-      fontFamily: 'var(--font-sans, system-ui)',
-    }}>
+    <div className="sign-in-wrap">
       <form
+        className={`sign-in ${mounted ? 'sign-in--in' : ''}`}
         onSubmit={handleSubmit}
         autoComplete="on"
-        style={{
-          width: 420, maxWidth: '100%',
-          background: 'var(--paper, #fbf7ee)',
-          borderRadius: 18,
-          boxShadow: '0 24px 60px rgba(60,40,20,.18), 0 4px 12px rgba(60,40,20,.08)',
-          overflow: 'hidden',
-        }}
+        aria-label="Accés del dispositiu"
       >
         {/* Header */}
-        <div style={{
-          padding: '24px 28px 20px',
-          background: 'linear-gradient(180deg, #2a201a 0%, #1d1612 100%)',
-          color: 'var(--cream, #fbf7ee)',
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 9,
-            background: 'var(--terracotta-500, #c8613a)', color: '#fff',
-            display: 'grid', placeItems: 'center',
-            fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 20,
-          }}>N</div>
-          <div>
-            <div style={{
-              fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500,
-              lineHeight: 1.1,
-            }}>NCR Reserves</div>
-            <div style={{
-              fontSize: 12, color: 'rgba(251,247,238,.7)', marginTop: 2,
-            }}>Accés del dispositiu</div>
+        <header className="sign-in__header">
+          <span className="sign-in__monogram" aria-hidden="true">N</span>
+          <div className="sign-in__brand">
+            <span className="sign-in__title">NCR Reserves</span>
+            <span className="sign-in__subtitle">Accés del dispositiu</span>
           </div>
-        </div>
+        </header>
 
         {/* Body */}
-        <div style={{ padding: '24px 28px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-700,#3a2a1f)' }}>Email del dispositiu</span>
+        <div className="sign-in__body">
+          <label className="sign-in__field">
+            <span className="sign-in__label">Email del dispositiu</span>
             <input
               type="email"
               name="email"
@@ -94,18 +77,12 @@ export default function SignInView({ onSignedIn }: Props) {
               value={email}
               onChange={e => setEmail(e.target.value)}
               disabled={busy}
-              style={{
-                padding: '10px 12px', borderRadius: 9,
-                border: '1.5px solid rgba(60,40,20,.15)',
-                background: 'var(--cream,#fdf9f2)', fontSize: 14,
-                fontFamily: 'inherit', color: 'var(--ink-900,#1d1612)',
-                outline: 'none',
-              }}
+              className="sign-in__input"
             />
           </label>
 
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-700,#3a2a1f)' }}>Contrasenya</span>
+          <label className="sign-in__field">
+            <span className="sign-in__label">Contrasenya</span>
             <input
               type="password"
               name="password"
@@ -116,50 +93,228 @@ export default function SignInView({ onSignedIn }: Props) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               disabled={busy}
-              style={{
-                padding: '10px 12px', borderRadius: 9,
-                border: '1.5px solid rgba(60,40,20,.15)',
-                background: 'var(--cream,#fdf9f2)', fontSize: 14,
-                fontFamily: 'inherit', color: 'var(--ink-900,#1d1612)',
-                outline: 'none',
-              }}
+              className="sign-in__input"
             />
           </label>
 
           {error && (
-            <div role="alert" style={{
-              padding: '8px 12px', borderRadius: 8,
-              background: 'rgba(200,80,60,.08)',
-              color: 'var(--terracotta-700,#923c1f)',
-              fontSize: 13,
-            }}>{error}</div>
+            <div className="sign-in__error" role="alert">{error}</div>
           )}
 
           <button
             type="submit"
             disabled={busy || !email || !password}
-            style={{
-              marginTop: 4, padding: 12,
-              background: 'var(--terracotta-600,#a8502f)', color: '#fff',
-              border: 'none', borderRadius: 11, cursor: busy ? 'wait' : 'pointer',
-              fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-              opacity: (busy || !email || !password) ? .55 : 1,
-              transition: 'opacity .12s',
-            }}
+            className="sign-in__submit"
           >
             {busy ? 'Entrant…' : 'Entrar'}
           </button>
 
-          <div style={{
-            marginTop: 6, padding: '10px 12px',
-            background: 'var(--ink-50, rgba(60,40,20,.04))',
-            borderRadius: 8, fontSize: 11.5,
-            color: 'var(--ink-600,#5a4a3a)', lineHeight: 1.45,
-          }}>
-            Aquesta sessió quedarà recordada en aquest dispositiu. Si comparteixes l'iPad amb un altre local, tanca la sessió des de <em>Més → Sortir</em> abans d'entregar-lo.
-          </div>
+          <p className="sign-in__hint">
+            Aquesta sessió quedarà recordada en aquest dispositiu. Si comparteixes
+            l'iPad amb un altre local, tanca la sessió des de <em>Més → Sortir</em>
+            abans d'entregar-lo.
+          </p>
         </div>
       </form>
+
+      <style>{`
+        :where(.sign-in-wrap) {
+          --ease-out:  cubic-bezier(0.23, 1, 0.32, 1);
+          --paper:     var(--paper,        #fbf7ee);
+          --cream:     var(--cream,        #fdf9f2);
+          --ink-900:   var(--ink-900,      #1d1612);
+          --ink-700:   var(--ink-700,      #3a2a1f);
+          --ink-600:   var(--ink-600,      #5a4a3a);
+          --ink-500:   var(--ink-500,      #7a6a5a);
+          --terra-500: var(--terracotta-500, #c8613a);
+          --terra-600: var(--terracotta-600, #a8502f);
+          --terra-700: var(--terracotta-700, #923c1f);
+        }
+
+        .sign-in-wrap {
+          position: fixed; inset: 0;
+          display: grid; place-items: center;
+          padding:
+            max(20px, env(safe-area-inset-top))
+            16px
+            max(20px, env(safe-area-inset-bottom));
+          overflow: auto;
+          background: radial-gradient(ellipse at top, #f5e9d6 0%, #ebe5d8 55%, #ddd4c2 100%);
+          font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+        }
+
+        /* Form card — fluid width, capped on desktop. */
+        .sign-in {
+          width: 100%;
+          max-width: 440px;
+          background: var(--paper);
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 28px 72px rgba(60,40,20,.18), 0 6px 18px rgba(60,40,20,.08);
+          box-sizing: border-box;
+
+          /* Entrance */
+          opacity: 0;
+          transform: translateY(8px);
+          transition:
+            opacity 320ms var(--ease-out),
+            transform 320ms var(--ease-out);
+        }
+        .sign-in--in {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        @media (min-width: 900px) {
+          .sign-in { max-width: 420px; }
+        }
+
+        /* Header */
+        .sign-in__header {
+          padding: clamp(22px, 4.5vw, 28px) clamp(20px, 5vw, 28px) clamp(18px, 4vw, 22px);
+          background: linear-gradient(180deg, #2a201a 0%, #1d1612 100%);
+          color: var(--cream);
+          display: flex; align-items: center; gap: 12px;
+        }
+        .sign-in__monogram {
+          flex: none;
+          width: 40px; height: 40px;
+          border-radius: 9px;
+          background: var(--terra-500); color: #fff;
+          display: grid; place-items: center;
+          font-family: var(--font-serif);
+          font-weight: 500;
+          font-size: 20px;
+          box-shadow: 0 2px 6px rgba(0,0,0,.18);
+        }
+        .sign-in__brand {
+          display: flex; flex-direction: column;
+          line-height: 1.15;
+          min-width: 0;
+        }
+        .sign-in__title {
+          font-family: var(--font-serif);
+          font-size: clamp(18px, 4vw, 22px);
+          font-weight: 500;
+        }
+        .sign-in__subtitle {
+          font-size: clamp(11.5px, 2.6vw, 12.5px);
+          color: rgba(251,247,238,.7);
+          margin-top: 2px;
+        }
+
+        /* Body */
+        .sign-in__body {
+          padding: clamp(20px, 4.5vw, 26px) clamp(20px, 5vw, 28px) clamp(20px, 4.5vw, 24px);
+          display: flex; flex-direction: column;
+          gap: 14px;
+        }
+        .sign-in__field {
+          display: flex; flex-direction: column;
+          gap: 6px;
+          min-width: 0;
+        }
+        .sign-in__label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--ink-700);
+        }
+
+        /* The key fix: inputs were overflowing the card on iPhone because
+           iOS Safari gives <input> an intrinsic size of 20 chars, and
+           min-width: auto refuses to shrink below that. width: 100% +
+           min-width: 0 + box-sizing: border-box keeps them inside. */
+        .sign-in__input {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          padding: 11px 12px;
+          border-radius: 10px;
+          border: 1.5px solid rgba(60,40,20,.15);
+          background: var(--cream);
+          font-size: 16px;             /* iOS won't auto-zoom on focus when ≥16 px */
+          font-family: inherit;
+          color: var(--ink-900);
+          outline: none;
+          transition:
+            border-color 160ms var(--ease-out),
+            box-shadow 160ms var(--ease-out);
+          -webkit-appearance: none;
+        }
+        .sign-in__input:focus-visible {
+          border-color: var(--terra-500);
+          box-shadow: 0 0 0 4px rgba(200, 97, 58, .14);
+        }
+        .sign-in__input:disabled {
+          opacity: .65;
+        }
+
+        .sign-in__error {
+          padding: 9px 12px;
+          border-radius: 9px;
+          background: rgba(200, 80, 60, .08);
+          color: var(--terra-700);
+          font-size: 13px;
+          line-height: 1.4;
+        }
+
+        .sign-in__submit {
+          margin-top: 4px;
+          padding: 13px 0;
+          border: none;
+          border-radius: 12px;
+          background: var(--terra-600);
+          color: #fff;
+          font-family: inherit;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          user-select: none;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          box-shadow: 0 1px 0 rgba(60,40,20,.04);
+          transition:
+            transform 140ms var(--ease-out),
+            background-color 160ms var(--ease-out),
+            opacity 160ms var(--ease-out);
+        }
+        .sign-in__submit:disabled {
+          opacity: .55;
+          cursor: not-allowed;
+        }
+        .sign-in__submit:active:not(:disabled) {
+          transition: none;
+          transform: scale(0.985);
+          background-color: #9b482a;
+        }
+        .sign-in__submit:focus-visible {
+          outline: 2px solid var(--terra-500);
+          outline-offset: 2px;
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .sign-in__submit:not(:disabled):hover {
+            background-color: #9b482a;
+          }
+        }
+
+        .sign-in__hint {
+          margin: 4px 0 0;
+          padding: 10px 12px;
+          background: rgba(60,40,20,.04);
+          border-radius: 9px;
+          font-size: 11.5px;
+          line-height: 1.5;
+          color: var(--ink-600);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .sign-in,
+          .sign-in__submit {
+            transform: none !important;
+            transition: opacity 200ms ease, background-color 200ms ease;
+          }
+          .sign-in--in { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
