@@ -17,8 +17,20 @@ interface Props {
   onSignedIn: () => void;
 }
 
+/**
+ * Default email pre-fill.
+ *
+ * Almost every device in this deployment uses the same admin account
+ * (per-venue isolation is handled by the PIN gate + RLS, not by which
+ * Supabase user the iPad logs in as). Pre-filling saves typing on
+ * iPhone keyboards. If a particular device wants a different Supabase
+ * user (e.g. a restaurant-only iPad that should never see the others
+ * in the DB), the operator can simply edit the field.
+ */
+const DEFAULT_EMAIL = 'device-admin@ncr-reserves.local';
+
 export default function SignInView({ onSignedIn }: Props) {
-  const [email,    setEmail]    = useState('');
+  const [email,    setEmail]    = useState(DEFAULT_EMAIL);
   const [password, setPassword] = useState('');
   const [busy,     setBusy]     = useState(false);
   const [error,    setError]    = useState<string | null>(null);
@@ -93,6 +105,7 @@ export default function SignInView({ onSignedIn }: Props) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               disabled={busy}
+              autoFocus
               className="sign-in__input"
             />
           </label>
