@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { StatusChip, Tag } from '@/components/shared/StatusChip';
 import { BUSINESSES, initials, avIdx } from '@/data/mockData';
+import { useVisibleBusinesses } from '@/store/usePinScope';
 import { Modal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId } from '@/types';
@@ -335,6 +336,7 @@ function NewClientModal({ open, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: NewClientData) => void;
 }) {
+  const visibleBusinesses = useVisibleBusinesses();
   const [name,  setName]  = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -426,7 +428,7 @@ function NewClientModal({ open, onClose, onSave }: {
       <div style={{ marginBottom:14 }}>
         <FieldLabel required>Negoci(s)</FieldLabel>
         <div style={{ display:'flex',gap:8 }}>
-          {BUSINESSES.map(b => {
+          {visibleBusinesses.map(b => {
             const on = biz.includes(b.id as BusinessId);
             return (
               <button key={b.id} onClick={() => toggleBiz(b.id as BusinessId)}

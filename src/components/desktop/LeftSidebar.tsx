@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { BUSINESSES, avIdx } from '@/data/mockData';
+import { useVisibleBusinesses } from '@/store/usePinScope';
 import { useAppStore } from '@/store/useAppStore';
 import type { BusinessId, BusinessStats, Employee, EmployeeRole } from '@/types';
 import WeatherWidget from '@/components/shared/WeatherWidget';
+import { signOut } from '@/lib/auth';
+import { isAuthRequired } from '@/lib/supabase';
+import { usePinScope } from '@/store/usePinScope';
+import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
 
 interface Props {
   activeBizId: BusinessId;
@@ -18,6 +23,7 @@ interface Props {
 
 export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'today', onNavigate, onNewReservation, onWalkin, onSearch }: Props) {
   const { businessConfigs, employees, employeeRoles, activeEmployeeId, setActiveEmployee } = useAppStore();
+  const visibleBusinesses = useVisibleBusinesses();
   const [showUserPicker, setShowUserPicker] = useState(false);
 
   const activeEmp  = employees.find(e => e.id === activeEmployeeId) ?? null;
@@ -48,7 +54,7 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
       <div style={{ padding:'10px 12px 6px' }}>
         <div style={{ fontSize:10.5,fontWeight:600,letterSpacing:.08,textTransform:'uppercase',color:'var(--ink-500)',padding:'0 4px 8px' }}>Negocis</div>
         <div style={{ display:'flex',flexDirection:'column',gap:4 }}>
-          {BUSINESSES.map(b => {
+          {visibleBusinesses.map(b => {
             const isActive = b.id === activeBizId;
             return (
               <button key={b.id} onClick={() => onChangeBiz(b.id as BusinessId)}
@@ -185,6 +191,61 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
           onClose={() => setShowUserPicker(false)}
         />
       )}
+
+      {/* Blocar (always — PIN gate is always required).
+          Tancar sessió (only when the Supabase Auth gate is in use). */}
+      <div style={{ padding:'0 12px 10px', display:'flex', flexDirection:'column', gap:4 }}>
+        <button
+          onClick={() => usePinScope.getState().lock()}
+          style={{
+            display:'flex', alignItems:'center', gap:7, width:'100%',
+            padding:'7px 10px', border:'none', borderRadius:8,
+            background:'transparent', cursor:'pointer', fontFamily:'inherit',
+            fontSize:12, color:'var(--ink-700)', transition:'background .12s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--ink-50)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <Icon d={I.shield} size={11} /> Blocar (tornar al PIN)
+        </button>
+        {SUPABASE_AUTH_ENABLED && isAuthRequired() && (
+          <button
+            onClick={async () => {
+              if (typeof window !== 'undefined' &&
+                  !window.confirm('Segur que vols tancar la sessió en aquest dispositiu?')) {
+                return;
+              }
+              await signOut();
+            }}
+            style={{
+              display:'flex', alignItems:'center', gap:7, width:'100%',
+              padding:'7px 10px', border:'none', borderRadius:8,
+              background:'transparent', cursor:'pointer', fontFamily:'inherit',
+              fontSize:12, color:'var(--ink-500)', transition:'background .12s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--ink-50)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Icon d={I.chevR} size={11} /> Tancar sessió
+          </button>
+        )}
+      </div>
+
+      {/* App version + author */}
+      <div style={{
+        padding:'10px 14px 12px',
+        borderTop:'var(--hair)',
+        textAlign:'center',
+        fontSize:10, color:'var(--ink-400)',
+        fontFamily:'var(--font-mono)', fontWeight:600,
+        letterSpacing:.12, textTransform:'uppercase',
+        lineHeight:1.5,
+      }}>
+        NCR Reserves · v0.1
+        <div style={{ fontSize:9.5, fontWeight:500, textTransform:'none', letterSpacing:0, color:'var(--ink-400)', marginTop:2 }}>
+          by Jordi Audinis
+        </div>
+      </div>
     </aside>
   );
 }

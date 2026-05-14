@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
+import { useVisibleBusinesses } from '@/store/usePinScope';
 import { useDevice } from '@/hooks/useDevice';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
@@ -178,6 +179,13 @@ export default function TabletShell() {
 function BizPickerSheet({ current, onSelect, onClose }: {
   current: BusinessId; onSelect: (id: BusinessId) => void; onClose: () => void;
 }) {
+  const visibleBusinesses = useVisibleBusinesses();
+  return _BizPickerSheet({ current, onSelect, onClose, businesses: visibleBusinesses });
+}
+function _BizPickerSheet({ current, onSelect, onClose, businesses }: {
+  current: BusinessId; onSelect: (id: BusinessId) => void; onClose: () => void;
+  businesses: typeof BUSINESSES;
+}) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,.35)', display: 'flex', alignItems: 'flex-end' }}
       onClick={onClose}>
@@ -187,7 +195,7 @@ function BizPickerSheet({ current, onSelect, onClose }: {
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-500)', letterSpacing: .06, textTransform: 'uppercase', marginBottom: 10, paddingLeft: 2 }}>
           Canviar negoci
         </div>
-        {BUSINESSES.map(b => (
+        {businesses.map(b => (
           <button key={b.id} onClick={() => onSelect(b.id)}
             style={{
               display: 'flex', alignItems: 'center', gap: 12, width: '100%',

@@ -11,6 +11,10 @@ import {
 import { idbGet } from '@/backup/indexedDB';
 import StatsScreen from './StatsScreen';
 import CalendarScreen from './CalendarScreen';
+import { signOut } from '@/lib/auth';
+import { isAuthRequired } from '@/lib/supabase';
+import { usePinScope } from '@/store/usePinScope';
+import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
 
 type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats';
 
@@ -117,6 +121,29 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
       action: () => onSub('backups'),
       tone: 'olive',
     },
+    // "Blocar" is always available — the PIN gate is always active.
+    {
+      label: 'Blocar',
+      desc:  'Bloca l\'app i demana el PIN un altre cop',
+      ico:   I.shield,
+      action: () => { usePinScope.getState().lock(); },
+      tone: 'olive' as const,
+    },
+    // "Sortir" only when the Supabase Auth gate is in use.
+    ...(SUPABASE_AUTH_ENABLED && isAuthRequired() ? [{
+      label: 'Sortir',
+      desc:  'Tanca la sessió en aquest dispositiu',
+      ico:   I.chevR,
+      action: async () => {
+        if (typeof window !== 'undefined' &&
+            !window.confirm('Segur que vols tancar la sessió en aquest dispositiu?')) {
+          return;
+        }
+        await signOut();
+        // The auth listener in App.tsx will swap the shell for SignInView.
+      },
+      tone: 'clay' as const,
+    }] : []),
   ];
 
   function renderItem(item: MenuItem) {
@@ -310,6 +337,14 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
         letterSpacing: .12, textTransform: 'uppercase',
       }}>
         NCR Reserves · v0.1
+        <div style={{
+          marginTop: 4,
+          fontSize: 9.5, fontWeight: 500,
+          textTransform: 'none', letterSpacing: 0,
+          color: 'var(--ink-400)',
+        }}>
+          by Jordi Audinis
+        </div>
       </div>
     </div>
   );

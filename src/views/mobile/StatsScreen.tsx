@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate, BUSINESSES } from '@/data/mockData';
+import { useVisibleBusinesses } from '@/store/usePinScope';
 import { rankCustomers, LEVELS, computeCustomerStats, type LevelId } from '@/utils/loyalty';
 import { getDailyServiceCapacity, getEffectiveCapacity } from '@/utils/businessConfig';
 import type { Reservation } from '@/types';
@@ -1208,13 +1209,14 @@ interface BizMetrics {
 
 function ComparativaTab() {
   const { reservations, customers, selectedDate, businessConfigs } = useAppStore();
+  const visibleBusinesses = useVisibleBusinesses();
   const todayIso = isoDate(selectedDate);
 
   const metrics = useMemo<BizMetrics[]>(() => {
     const t = new Date(todayIso + 'T00:00:00').getTime();
     const startMonth = new Date(t - 30 * 86400000).toISOString().slice(0, 10);
 
-    return BUSINESSES.map(biz => {
+    return visibleBusinesses.map(biz => {
       // Today
       const todayRes = reservations.filter(r => r.bizId === biz.id && r.date === todayIso);
       const activeToday = todayRes.filter(r => r.status !== 'cancelled' && r.status !== 'noshow');
@@ -1269,7 +1271,7 @@ function ComparativaTab() {
         maxTrend,
       };
     });
-  }, [reservations, customers, todayIso, businessConfigs]);
+  }, [reservations, customers, todayIso, businessConfigs, visibleBusinesses]);
 
   // Leaders per metric — used to add a subtle 🏆 to the leader card.
   const leaderRes  = metrics.reduce((max, m) => m.resToday    > max.resToday    ? m : max, metrics[0]);

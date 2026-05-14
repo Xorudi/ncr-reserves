@@ -15,6 +15,7 @@ import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
+import { useVisibleBusinesses } from '@/store/usePinScope';
 import { useDevice } from '@/hooks/useDevice';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import Toaster, { toast } from '@/components/shared/Toaster';
@@ -116,6 +117,7 @@ export default function TouchShell() {
   useEffect(() => { closeOutPastDays(); }, [selectedDate, closeOutPastDays]);
 
   const { isTablet, isStandalone } = useDevice();
+  const visibleBusinesses = useVisibleBusinesses();
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
 
@@ -1118,6 +1120,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
   onSelect: (id: BusinessId) => void; onClose: () => void;
 }) {
   const { reservations } = useAppStore();
+  const visibleBusinesses = useVisibleBusinesses();
   const todayIso = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1158,7 +1161,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
               letterSpacing: .08, textTransform: 'uppercase', marginTop: 4,
               fontFamily: 'var(--font-mono)',
             }}>
-              {BUSINESSES.length} actius · canvia el context
+              {visibleBusinesses.length} actius · canvia el context
             </div>
           </div>
           <button onClick={onClose} aria-label="Tancar"
@@ -1175,7 +1178,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
 
         {/* Business cards — staggered entrance */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {BUSINESSES.map((b, i) => {
+          {visibleBusinesses.map((b, i) => {
             const isCur = b.id === current;
             const dayRes = reservations.filter(r => r.bizId === b.id && r.date === todayIso);
             const totalRes = dayRes.length;

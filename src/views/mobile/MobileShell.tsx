@@ -3,6 +3,7 @@ import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
+import { useVisibleBusinesses } from '@/store/usePinScope';
 import { useIsStandalonePWA } from '@/hooks/useDevice';
 import type { Employee, EmployeeRole, BusinessId } from '@/types';
 
@@ -248,6 +249,7 @@ export default function MobileShell() {
 function BizPickerSheet({ open, current, onSelect, onClose }: {
   open: boolean; current: BusinessId; onSelect: (id: BusinessId) => void; onClose: () => void;
 }) {
+  const visibleBusinesses = useVisibleBusinesses();
   return (
     <AnimatedSheet open={open} onClose={onClose} zIndex={500}>
       <div style={{ width:'100%', background:'var(--paper)', borderRadius:'18px 18px 0 0', padding:'16px 14px 32px' }}>
@@ -255,7 +257,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
         <div style={{ fontSize:11, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, textTransform:'uppercase', marginBottom:10, paddingLeft:2 }}>
           Canviar negoci
         </div>
-        {BUSINESSES.map(b => (
+        {visibleBusinesses.map(b => (
           <button key={b.id} onClick={() => onSelect(b.id)}
             style={{
               display:'flex', alignItems:'center', gap:12, width:'100%',
