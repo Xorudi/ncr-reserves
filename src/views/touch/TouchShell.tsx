@@ -306,7 +306,17 @@ export default function TouchShell() {
     <div key={tab} className="tab-enter"
       style={{
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        ...(capMain ? { maxWidth: 1100, width: '100%', alignSelf: 'center' } : null),
+        ...(capMain ? {
+          maxWidth: 1100, width: '100%', alignSelf: 'center',
+          // Treat the centered content as a single card on the cream
+          // canvas so the paper-coloured inner panels stop creating a
+          // hard vertical edge against the cream surround. Soft top
+          // rounding only — the bottom blends into the page scroll.
+          borderTopLeftRadius: 22, borderTopRightRadius: 22,
+          background: 'var(--surface-base)',
+          boxShadow: '0 1px 0 rgba(60,40,20,.04), 0 8px 28px rgba(60,40,20,.05)',
+          marginTop: 12,
+        } : null),
       }}>
       {tab === 'reservations' && (
         <TouchReservationsScreen
@@ -622,6 +632,21 @@ export default function TouchShell() {
           )}
 
           {screenContent}
+
+          {/* Side accent panels — only on large touchscreens. Fill the empty
+              space on either side of the centered content with quiet,
+              "alive" widgets (live clock, current shift). The cream tint
+              and the time-of-day glow already live underneath; these
+              cards just give the operator something to glance at when
+              looking up from the form. */}
+          {capMain && (
+            <LiveSidePanel
+              activeShift={activeShift}
+              totalRes={totalRes}
+              totalPax={totalPax}
+              pendingResCount={pendingResCount}
+            />
+          )}
 
           {/* FAB bottom-right — opens new reservation */}
           <button
@@ -1539,5 +1564,172 @@ function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployee
         )}
       </div>
     </AnimatedSheet>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LiveSidePanel — quiet "alive" widget that fills the right-side empty margin
+// next to the centered content on a 1920 px restaurant touchscreen.
+//
+// Three vertically-stacked tiles, all read-only:
+//   1. Live clock (HH:MM, ticks every minute) + current weekday + day number
+//   2. Active shift (Migdia / Nit) with a coloured accent — empty state shows
+//      "Fora de servei" so the operator sees at a glance whether the dining
+//      room is "on"
+//   3. Mini KPI line (reserves · pax · pendents)
+//
+// Pinned to the right edge with safe-area padding and clear of the FAB.
+// Returns null on phones / iPads — only renders on large touchscreens where
+// the screen content has been width-capped.
+// ─────────────────────────────────────────────────────────────────────────────
+type ShiftLite = { id: 'M'|'N'; label: string; range: string; emoji: string; tint: string; tintFg: string } | null;
+
+function LiveSidePanel({
+  activeShift, totalRes, totalPax, pendingResCount,
+}: {
+  activeShift: ShiftLite;
+  totalRes: number;
+  totalPax: number;
+  pendingResCount: number;
+}) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    // Tick once a minute on the wall-clock minute boundary, so the displayed
+    // HH:MM updates exactly when the minute rolls over (not on a random offset).
+    const align = () => {
+      const d = new Date();
+      const msToNextMinute = 60_000 - (d.getSeconds() * 1000 + d.getMilliseconds());
+      return msToNextMinute;
+    };
+    let interval: number | null = null;
+    const t = window.setTimeout(() => {
+      setNow(new Date());
+      interval = window.setInterval(() => setNow(new Date()), 60_000);
+    }, align());
+    return () => {
+      window.clearTimeout(t);
+      if (interval !== null) window.clearInterval(interval);
+    };
+  }, []);
+
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const weekday = now.toLocaleDateString('ca-ES', { weekday: 'long' });
+  const dayNum  = now.getDate();
+  const monthShort = now.toLocaleDateString('ca-ES', { month: 'short' });
+
+  return (
+    <aside
+      aria-hidden
+      style={{
+        position: 'absolute',
+        top: 84,                          // sit below the date header
+        right: 18,
+        width: 184,
+        display: 'flex', flexDirection: 'column', gap: 12,
+        pointerEvents: 'none',            // purely decorative; never steals taps
+        zIndex: 5,
+      }}>
+
+      {/* ── Tile 1: Live clock ─────────────────────────────────────────── */}
+      <div style={{
+        padding: '14px 16px 16px',
+        background: 'var(--surface-elevated)',
+        border: '1px solid rgba(60,40,20,.08)',
+        borderRadius: 16,
+        boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+        display: 'flex', flexDirection: 'column', gap: 6,
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: 34, fontWeight: 500, lineHeight: 1,
+          color: 'var(--ink-900)', letterSpacing: -.01,
+          fontVariantNumeric: 'tabular-nums',
+        }}>
+          {hh}:{mm}
+        </div>
+        <div style={{
+          fontSize: 11, fontWeight: 700, letterSpacing: .06,
+          color: 'var(--ink-500)', textTransform: 'uppercase',
+          fontFamily: 'var(--font-sans)',
+        }}>
+          {weekday} · {dayNum} {monthShort}
+        </div>
+      </div>
+
+      {/* ── Tile 2: Active shift ───────────────────────────────────────── */}
+      <div style={{
+        position: 'relative',
+        padding: '12px 14px 12px 16px',
+        background: activeShift ? `linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 65%), ${activeShift.tint}` : 'var(--surface-base)',
+        border: '1px solid rgba(60,40,20,.08)',
+        borderRadius: 14,
+        boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+        display: 'flex', flexDirection: 'column', gap: 4,
+        overflow: 'hidden',
+      }}>
+        {activeShift && (
+          <span aria-hidden style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+            background: activeShift.id === 'M' ? 'var(--clay-500)' : 'var(--plum-600)',
+          }} />
+        )}
+        <div style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: .08,
+          color: 'var(--ink-500)', textTransform: 'uppercase',
+        }}>
+          Torn
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontFamily: 'var(--font-serif)', fontSize: 15, fontWeight: 500,
+          color: activeShift ? activeShift.tintFg : 'var(--ink-700)',
+          letterSpacing: -.005,
+        }}>
+          {activeShift && <span style={{ fontSize: 14 }}>{activeShift.emoji}</span>}
+          {activeShift ? activeShift.label.replace('Servei de ', '') : 'Fora de servei'}
+        </div>
+        {activeShift && (
+          <div style={{
+            fontSize: 11, color: activeShift.tintFg, opacity: .8, fontWeight: 600,
+            fontFamily: 'var(--font-mono)',
+          }}>
+            {activeShift.range}
+          </div>
+        )}
+      </div>
+
+      {/* ── Tile 3: Mini KPI strip ─────────────────────────────────────── */}
+      <div style={{
+        padding: '12px 14px',
+        background: 'var(--surface-elevated)',
+        border: '1px solid rgba(60,40,20,.08)',
+        borderRadius: 14,
+        boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}>
+        <KpiRow label="Reserves" value={totalRes} />
+        <KpiRow label="Comensals" value={totalPax} />
+        <KpiRow label="Pendents" value={pendingResCount}
+                accent={pendingResCount > 0} />
+      </div>
+    </aside>
+  );
+}
+
+function KpiRow({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+      <span style={{
+        fontSize: 10.5, fontWeight: 700, letterSpacing: .06,
+        color: 'var(--ink-500)', textTransform: 'uppercase',
+      }}>{label}</span>
+      <span key={`${label}-${value}`} className="number-tween" style={{
+        fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 500,
+        color: accent ? 'var(--terracotta-700)' : 'var(--ink-900)',
+        letterSpacing: -.005,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{value}</span>
+    </div>
   );
 }
