@@ -60,12 +60,19 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
         style={{ zIndex: zIndex - 1 }}
         onClick={onClose}
       />
-      {/* Panel — children supply all visual styles (bg, radius, padding, etc.) */}
+      {/* Panel — children supply all visual styles (bg, radius, padding, etc.)
+          The inner `.sheet-content` wrapper is just a sizing container: on a
+          large touch screen it caps the visible width to ~880 px and centers
+          it (so 8-column PAX grids stay tap-sized on a 1920 px monitor),
+          while on iPad / phone it stays width:100% to keep the existing
+          full-width bottom-sheet behaviour. */}
       <div
         className={`sheet-panel ${vis ? 'vis' : ''}`}
         style={{ zIndex }}
       >
-        {children}
+        <div className="sheet-content">
+          {children}
+        </div>
       </div>
     </>,
     document.body,
