@@ -414,6 +414,29 @@ body::before {
   .sheet-backdrop { background: rgba(30, 22, 16, .48); }
 }
 
+/* ── DatePickerPopover — floating calendar above a backdrop. Entrance
+   scales subtly UP from the anchor point with origin-aware transform —
+   per Emil Kowalski's rule: popovers scale from their trigger, not
+   center. We can't easily compute the anchor offset here, so we fake it
+   with origin: top center for placement=below, bottom center for above. */
+.picker-pop {
+  opacity: 0;
+  transform: scale(0.97) translateY(-4px);
+  transform-origin: top center;
+  transition:
+    opacity   var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+  will-change: transform, opacity;
+}
+.picker-pop[data-placement="above"] {
+  transform: scale(0.97) translateY(4px);
+  transform-origin: bottom center;
+}
+.picker-pop.vis {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
 /* ── Sheet panel — iOS-like drawer easing (Vaul / Sonner reference)
    Asymmetric in/out per Emil Kowalski's "Asymmetric enter/exit timing":
    the user is deciding while it opens (slow + ease-drawer) but the

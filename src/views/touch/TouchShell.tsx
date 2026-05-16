@@ -12,6 +12,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
+import DatePickerPopover from '@/components/shared/DatePickerPopover';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
@@ -1017,6 +1018,10 @@ function TabletTopBar({
   const isToday  = todayIso === selIso;
   const dayLabel = `${DAYS_CA[d.getDay()]}, ${d.getDate()} de ${MONTHS_CA[d.getMonth()]}`;
 
+  // Custom date popover state. Anchored to the date label below.
+  const labelRef = useRef<HTMLLabelElement | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   function shiftDay(delta: number) {
     const nd = new Date(d);
     nd.setDate(nd.getDate() + delta);
@@ -1051,26 +1056,19 @@ function TabletTopBar({
         <Icon d={I.chevL} size={18} stroke={2} />
       </button>
 
-      {/* Date label — clicable, opens native date picker.
-          Use pointer events so the hover-style highlight ALSO fires on
-          desktop touchscreens (they emit pointerenter/leave but no
-          mouseenter/leave from a finger tap).
-
-          Click anywhere on the label → onClick locates the inner <input>
-          and calls showPicker(). The input itself is shrunk to a 1×1 px
-          dot anchored to the BOTTOM-CENTER of the label so Chrome opens
-          the native picker directly under the date text (Chrome anchors
-          the popup to the input's bounding box). */}
-      <label style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-        cursor: 'pointer', position: 'relative',
-        padding: '6px 14px', borderRadius: 10,
-        transition: 'background 160ms var(--ease-ios)',
-      }}
-        onClick={e => {
-          const inp = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement | null;
-          if (inp) { try { inp.showPicker?.(); inp.focus(); } catch { /* ignore */ } }
+      {/* Date label — opens the custom DatePickerPopover anchored below.
+          Pointer events drive the hover/press tint so the highlight ALSO
+          fires on desktop touchscreens (they emit pointerenter/leave but
+          no mouseenter/leave from a finger tap). */}
+      <label
+        ref={labelRef}
+        style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          cursor: 'pointer', position: 'relative',
+          padding: '6px 14px', borderRadius: 10,
+          transition: 'background 160ms var(--ease-ios)',
         }}
+        onClick={() => setPickerOpen(o => !o)}
         onPointerEnter={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
         onPointerLeave={e => (e.currentTarget.style.background = 'transparent')}
         onPointerDown={e => (e.currentTarget.style.background = 'rgba(60,40,20,.08)')}
@@ -1086,32 +1084,15 @@ function TabletTopBar({
         <span style={{ color: 'var(--ink-500)', display: 'flex' }}>
           <Icon d={I.calendar} size={16} stroke={1.7} />
         </span>
-        {/* Hidden native date input — sized to 1×1 px and pinned to the
-            bottom-center of the label. The native picker anchors to this
-            point, so it opens centered directly UNDER the date label
-            instead of off to the left. pointerEvents: none so it never
-            steals taps from the label's onClick handler. */}
-        <input type="date"
-          value={selIso}
-          onChange={e => {
-            if (!e.target.value) return;
-            const [y, m, dd] = e.target.value.split('-').map(Number);
-            setSelectedDate(new Date(y, (m || 1) - 1, dd || 1));
-          }}
-          tabIndex={-1}
-          aria-hidden
-          style={{
-            position: 'absolute',
-            bottom: 0, left: '50%',
-            transform: 'translateX(-50%)',
-            width: 1, height: 1, padding: 0, margin: 0,
-            opacity: 0,
-            border: 'none', background: 'transparent',
-            color: 'transparent', fontFamily: 'inherit',
-            pointerEvents: 'none',
-          }}
-        />
       </label>
+
+      <DatePickerPopover
+        open={pickerOpen}
+        selected={d}
+        onSelect={setSelectedDate}
+        onClose={() => setPickerOpen(false)}
+        anchorRef={labelRef}
+      />
 
       {/* Next day */}
       <button onClick={() => shiftDay(1)} className="day-btn press"

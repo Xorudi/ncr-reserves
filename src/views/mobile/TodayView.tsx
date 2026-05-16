@@ -4,6 +4,7 @@ import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from 
 import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
+import DatePickerPopover from '@/components/shared/DatePickerPopover';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
 import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq } from '@/types';
@@ -1940,6 +1941,10 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   const [recurFreq,         setRecurFreq]         = useState<RecurFreq>('weekly');
   const [recurOccurrences,  setRecurOccurrences]  = useState(8);
 
+  // Custom DatePickerPopover for the DATA tile.
+  const dateTileRef = useRef<HTMLLabelElement | null>(null);
+  const [dateOpen, setDateOpen] = useState(false);
+
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
     if (!open) return;
@@ -2161,21 +2166,16 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
               </span>
             </div>
             <div style={{ ...card, display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:8, padding:8 }}>
-              {/* DATA — tap anywhere on the tile to open the native picker.
-                  Chrome anchors the popup to the input's bounding box, so
-                  we shrink the input to 1×1 px and pin it to the BOTTOM
-                  of the tile → the calendar appears directly UNDERNEATH
-                  the date text. */}
-              <label style={{
-                position:'relative', display:'flex', flexDirection:'column', gap:2,
-                background:'var(--paper)', borderRadius:10,
-                border:'1px solid rgba(60,40,20,.10)',
-                padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
-              }}
-                onClick={e => {
-                  const inp = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement | null;
-                  if (inp) { try { inp.showPicker?.(); inp.focus(); } catch { /* ignore */ } }
-                }}>
+              {/* DATA — opens the custom DatePickerPopover anchored below. */}
+              <label
+                ref={dateTileRef}
+                style={{
+                  position:'relative', display:'flex', flexDirection:'column', gap:2,
+                  background:'var(--paper)', borderRadius:10,
+                  border:'1px solid rgba(60,40,20,.10)',
+                  padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
+                }}
+                onClick={() => setDateOpen(o => !o)}>
                 <span style={{ ...lbl, marginBottom:0 }}>Data</span>
                 <span style={{
                   fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
@@ -2188,17 +2188,20 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                     return `${dt.getDate()} ${MONTHS_SHORT[dt.getMonth()]} ${dt.getFullYear()}`;
                   })()}
                 </span>
-                <input type="date" value={form.date} onChange={e => upd('date', e.target.value)}
-                  tabIndex={-1} aria-hidden
-                  style={{
-                    position:'absolute', bottom:0, left:'50%',
-                    transform:'translateX(-50%)',
-                    width:1, height:1, padding:0, margin:0,
-                    opacity:0, border:'none', background:'transparent',
-                    fontFamily:'inherit', color:'transparent',
-                    pointerEvents:'none',
-                  }} />
               </label>
+              <DatePickerPopover
+                open={dateOpen}
+                selected={(() => {
+                  const [y,m,dd] = form.date.split('-').map(Number);
+                  return new Date(y, (m||1)-1, dd||1);
+                })()}
+                onSelect={d => {
+                  const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                  upd('date', iso);
+                }}
+                onClose={() => setDateOpen(false)}
+                anchorRef={dateTileRef}
+              />
 
               {/* HORA — same pattern: 1×1 px input pinned to bottom-center
                   so the native time picker appears directly under the time. */}
