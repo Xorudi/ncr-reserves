@@ -584,8 +584,13 @@ export default function TouchShell() {
             setSelectedDate={setSelectedDate}
           />
 
-          {/* Banner de servei en marxa — només quan toca, discret però visible */}
-          {activeShift && (
+          {/* Banner de servei en marxa — només quan toca, discret però visible.
+              On large touchscreens (capMain) the LiveSidePanel on the right
+              already shows the active shift + the day's reserves/pax KPIs,
+              so we hide this full-width banner to avoid (a) duplicating
+              the info and (b) overlapping the side panels which extend
+              into the banner's horizontal margin. */}
+          {activeShift && !capMain && (
             <div style={{
               position: 'relative',
               flexShrink: 0,
