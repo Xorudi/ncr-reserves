@@ -100,10 +100,34 @@ export default function ReservationsListSheet({ open, filter, title, onClose }: 
         <div style={{ padding: '14px 16px 4px' }}>
           {matched.length === 0 ? (
             <div style={{
-              textAlign: 'center', padding: '32px 0',
-              color: 'var(--ink-500)', fontSize: 13.5, fontStyle: 'italic',
+              textAlign: 'center', padding: '40px 16px 28px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
             }}>
-              Cap reserva al filtre.
+              {/* Soft icon — search glass over a hairline circle */}
+              <div aria-hidden style={{
+                width: 56, height: 56, borderRadius: 999,
+                background: 'var(--surface-base)',
+                border: '1px dashed rgba(60,40,20,.16)',
+                display: 'grid', placeItems: 'center',
+                color: 'var(--ink-500)',
+                marginBottom: 4,
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path d="m20 20-3.7-3.7" />
+                </svg>
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500,
+                color: 'var(--ink-800)', letterSpacing: -.005,
+              }}>
+                Cap reserva al filtre
+              </div>
+              <div style={{
+                fontSize: 12.5, color: 'var(--ink-500)', maxWidth: 240, lineHeight: 1.45,
+              }}>
+                Prova canviant el filtre o el dia per veure més reserves.
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
