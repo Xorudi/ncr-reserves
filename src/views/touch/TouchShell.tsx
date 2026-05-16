@@ -1071,7 +1071,10 @@ function TabletTopBar({
         <span style={{ color: 'var(--ink-500)', display: 'flex' }}>
           <Icon d={I.calendar} size={16} stroke={1.7} />
         </span>
-        {/* Hidden native date input — tapping the label opens the picker */}
+        {/* Hidden native date input — tapping the label opens the picker.
+            On Chrome desktop the picker only opens when the (invisible)
+            calendar icon is clicked, not the field body. Calling
+            showPicker() programmatically gives the same behavior as iOS. */}
         <input type="date"
           value={selIso}
           onChange={e => {
@@ -1079,6 +1082,8 @@ function TabletTopBar({
             const [y, m, dd] = e.target.value.split('-').map(Number);
             setSelectedDate(new Date(y, (m || 1) - 1, dd || 1));
           }}
+          onClick={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* ignore */ } }}
+          onFocus={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* ignore */ } }}
           style={{
             position: 'absolute', inset: 0,
             opacity: 0, cursor: 'pointer',

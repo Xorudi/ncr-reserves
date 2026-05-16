@@ -2169,6 +2169,14 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   })()}
                 </span>
                 <input type="date" value={form.date} onChange={e => upd('date', e.target.value)}
+                  // Chrome on desktop only opens the calendar when the user
+                  // clicks the (invisible-here) calendar icon, not the field
+                  // body. iOS/iPad opens it on any tap. Force the picker so a
+                  // tap anywhere on the tile works on both — including the
+                  // restaurant's touchscreen PC where the field would
+                  // otherwise just receive focus and do nothing visible.
+                  onClick={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* unsupported — focus is already set */ } }}
+                  onFocus={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* same */ } }}
                   style={{
                     position:'absolute', inset:0, opacity:0, cursor:'pointer',
                     border:'none', background:'transparent', fontFamily:'inherit',
@@ -2192,6 +2200,8 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   {form.time}
                 </span>
                 <input type="time" value={form.time} onChange={e => upd('time', e.target.value)}
+                  onClick={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* unsupported */ } }}
+                  onFocus={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* same */ } }}
                   style={{
                     position:'absolute', inset:0, opacity:0, cursor:'pointer',
                     border:'none', background:'transparent', fontFamily:'inherit',
