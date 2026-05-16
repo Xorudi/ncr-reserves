@@ -2161,13 +2161,21 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
               </span>
             </div>
             <div style={{ ...card, display:'grid', gridTemplateColumns:'1.2fr 1fr', gap:8, padding:8 }}>
-              {/* DATA — label envoltant per fer clic a tota la tile */}
+              {/* DATA — tap anywhere on the tile to open the native picker.
+                  Chrome anchors the popup to the input's bounding box, so
+                  we shrink the input to 1×1 px and pin it to the BOTTOM
+                  of the tile → the calendar appears directly UNDERNEATH
+                  the date text. */}
               <label style={{
                 position:'relative', display:'flex', flexDirection:'column', gap:2,
                 background:'var(--paper)', borderRadius:10,
                 border:'1px solid rgba(60,40,20,.10)',
                 padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
-              }}>
+              }}
+                onClick={e => {
+                  const inp = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement | null;
+                  if (inp) { try { inp.showPicker?.(); inp.focus(); } catch { /* ignore */ } }
+                }}>
                 <span style={{ ...lbl, marginBottom:0 }}>Data</span>
                 <span style={{
                   fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
@@ -2181,28 +2189,29 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   })()}
                 </span>
                 <input type="date" value={form.date} onChange={e => upd('date', e.target.value)}
-                  // Chrome on desktop only opens the calendar when the user
-                  // clicks the (invisible-here) calendar icon, not the field
-                  // body. iOS/iPad opens it on any tap. Force the picker so a
-                  // tap anywhere on the tile works on both — including the
-                  // restaurant's touchscreen PC where the field would
-                  // otherwise just receive focus and do nothing visible.
-                  onClick={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* unsupported — focus is already set */ } }}
-                  onFocus={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* same */ } }}
+                  tabIndex={-1} aria-hidden
                   style={{
-                    position:'absolute', inset:0, opacity:0, cursor:'pointer',
-                    border:'none', background:'transparent', fontFamily:'inherit',
-                    color:'transparent',
+                    position:'absolute', bottom:0, left:'50%',
+                    transform:'translateX(-50%)',
+                    width:1, height:1, padding:0, margin:0,
+                    opacity:0, border:'none', background:'transparent',
+                    fontFamily:'inherit', color:'transparent',
+                    pointerEvents:'none',
                   }} />
               </label>
 
-              {/* HORA */}
+              {/* HORA — same pattern: 1×1 px input pinned to bottom-center
+                  so the native time picker appears directly under the time. */}
               <label style={{
                 position:'relative', display:'flex', flexDirection:'column', gap:2,
                 background:'var(--paper)', borderRadius:10,
                 border:'1px solid rgba(60,40,20,.10)',
                 padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
-              }}>
+              }}
+                onClick={e => {
+                  const inp = e.currentTarget.querySelector('input[type="time"]') as HTMLInputElement | null;
+                  if (inp) { try { inp.showPicker?.(); inp.focus(); } catch { /* ignore */ } }
+                }}>
                 <span style={{ ...lbl, marginBottom:0 }}>Hora</span>
                 <span style={{
                   fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
@@ -2212,12 +2221,14 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   {form.time}
                 </span>
                 <input type="time" value={form.time} onChange={e => upd('time', e.target.value)}
-                  onClick={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* unsupported */ } }}
-                  onFocus={e => { try { (e.currentTarget as HTMLInputElement).showPicker?.(); } catch { /* same */ } }}
+                  tabIndex={-1} aria-hidden
                   style={{
-                    position:'absolute', inset:0, opacity:0, cursor:'pointer',
-                    border:'none', background:'transparent', fontFamily:'inherit',
-                    color:'transparent',
+                    position:'absolute', bottom:0, left:'50%',
+                    transform:'translateX(-50%)',
+                    width:1, height:1, padding:0, margin:0,
+                    opacity:0, border:'none', background:'transparent',
+                    fontFamily:'inherit', color:'transparent',
+                    pointerEvents:'none',
                   }} />
               </label>
             </div>
