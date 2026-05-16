@@ -6,7 +6,10 @@ import { useVisibleBusinesses } from '@/store/usePinScope';
 import { Modal } from '@/components/desktop/Modals';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId } from '@/types';
-import { rankCustomers, computeCustomerStats, type CustomerStats, type Level } from '@/utils/loyalty';
+import {
+  rankCustomers, computeCustomerStats, countVisitsInPeriod, periodLabel,
+  type CustomerStats, type Level, type Period,
+} from '@/utils/loyalty';
 
 function fmtDate(iso: string) {
   const [y,m,d] = iso.split('-');
@@ -25,6 +28,19 @@ export default function ClientsView() {
   useEffect(() => {
     try { sessionStorage.setItem('ncr.clientsFilter.desktop', filter); } catch { /* ignore */ }
   }, [filter]);
+
+  // Period sub-filter for the ranking view (Setmana / Mes / Any / Total).
+  const [period, setPeriod] = useState<Period>(() => {
+    try {
+      const saved = sessionStorage.getItem('ncr.clientsPeriod.desktop');
+      if (saved === 'week' || saved === 'month' || saved === 'year' || saved === 'all') return saved;
+    } catch { /* ignore */ }
+    return 'all';
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('ncr.clientsPeriod.desktop', period); } catch { /* ignore */ }
+  }, [period]);
+
   const [showNewClient, setShowNewClient] = useState(false);
   const { selectedCustomer, setSelectedCustomer } = useAppStore();
 
@@ -40,6 +56,24 @@ export default function ClientsView() {
     return m;
   }, [ranked]);
 
+  // Per-customer visit count for the selected period (scoped to business).
+  const todayForCount = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const bizClientsAll = useMemo(
+    () => customers.filter(c => c.biz.includes(selectedBusiness as BusinessId)),
+    [customers, selectedBusiness],
+  );
+  const periodResScoped = useMemo(
+    () => reservations.filter(r => r.bizId === selectedBusiness),
+    [reservations, selectedBusiness],
+  );
+  const visitsByPeriod = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of bizClientsAll) {
+      m.set(c.id, countVisitsInPeriod(c, periodResScoped, period, todayForCount));
+    }
+    return m;
+  }, [bizClientsAll, periodResScoped, period, todayForCount]);
+
   const filtered = useMemo(() => {
     const base = customers.filter(c => {
       if (!c.biz.includes(selectedBusiness as any)) return false;
@@ -50,10 +84,22 @@ export default function ClientsView() {
       return true;
     });
     if (filter === 'ranking') {
-      return base.sort((a, b) => (rankMap.get(a.id)?.rank ?? 9999) - (rankMap.get(b.id)?.rank ?? 9999));
+      if (period === 'all') {
+        return base.sort((a, b) =>
+          (rankMap.get(a.id)?.rank ?? 9999) - (rankMap.get(b.id)?.rank ?? 9999));
+      }
+      // Period ranking: by visit count in window, tie-break by lifetime points.
+      return base.sort((a, b) => {
+        const va = visitsByPeriod.get(a.id) ?? 0;
+        const vb = visitsByPeriod.get(b.id) ?? 0;
+        if (vb !== va) return vb - va;
+        const pa = rankMap.get(a.id)?.stats.points ?? 0;
+        const pb = rankMap.get(b.id)?.stats.points ?? 0;
+        return pb - pa;
+      });
     }
     return base.sort((a, b) => b.visits - a.visits);
-  }, [selectedBusiness, query, filter, customers, rankMap]);
+  }, [selectedBusiness, query, filter, period, customers, rankMap, visitsByPeriod]);
 
   return (
     <div style={{ flex:1,display:'flex',height:'100%',overflow:'hidden' }}>
@@ -71,6 +117,31 @@ export default function ClientsView() {
               <button key={k} onClick={() => setFilter(k)} style={{ padding:'6px 12px',borderRadius:999,border:filter===k?'none':'1px solid rgba(60,40,20,.14)',background:filter===k?'var(--ink-900)':'transparent',color:filter===k?'var(--cream)':'var(--ink-700)',fontFamily:'inherit',fontSize:12,fontWeight:600,cursor:'pointer' }}>{label}</button>
             ))}
           </div>
+
+          {/* Period sub-filter — only visible inside Ranking. */}
+          {filter === 'ranking' && (
+            <div style={{ display:'flex', gap:3, marginLeft:8, paddingLeft:8, borderLeft:'var(--hair)' }}>
+              {([
+                ['week',  'Setmana'],
+                ['month', 'Mes'],
+                ['year',  'Any'],
+                ['all',   'Total'],
+              ] as const).map(([k, label]) => (
+                <button key={k} onClick={() => setPeriod(k)}
+                  style={{
+                    padding:'6px 11px', borderRadius:999,
+                    border: period === k ? 'none' : '1px solid rgba(60,40,20,.14)',
+                    background: period === k ? 'var(--terracotta-600)' : 'transparent',
+                    color: period === k ? 'var(--cream)' : 'var(--ink-700)',
+                    fontFamily:'inherit', fontSize:12, fontWeight:600, cursor:'pointer',
+                    transition:'background .15s, color .15s',
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div style={{ flex:1 }} />
           <span style={{ fontSize:12,color:'var(--ink-500)' }}>{filtered.length} clients</span>
           <button onClick={() => setShowNewClient(true)}
@@ -117,7 +188,14 @@ export default function ClientsView() {
                       {entry && <LevelPill level={entry.stats.level} points={entry.stats.points} />}
                     </td>
                     <td style={{ padding:'11px 14px',fontFamily:'var(--font-mono)',fontSize:12,color:'var(--ink-700)' }}>{c.phone}</td>
-                    <td style={{ padding:'11px 14px',textAlign:'center',fontWeight:600,color:'var(--ink-900)' }}>{c.visits}</td>
+                    <td style={{ padding:'11px 14px',textAlign:'center',fontWeight:600,color:'var(--ink-900)' }}
+                        title={filter === 'ranking' && period !== 'all'
+                          ? `${visitsByPeriod.get(c.id) ?? 0} visites ${periodLabel(period)}`
+                          : `${c.visits} visites totals`}>
+                      {filter === 'ranking' && period !== 'all'
+                        ? (visitsByPeriod.get(c.id) ?? 0)
+                        : c.visits}
+                    </td>
                     <td style={{ padding:'11px 14px',color:'var(--ink-600)',fontSize:12 }}>{fmtDate(c.lastVisit)}</td>
                     <td style={{ padding:'11px 14px',textAlign:'right',fontFamily:'var(--font-mono)',color:'var(--ink-700)' }}>{c.visits>0?`${avg}€`:'—'}</td>
                     <td style={{ padding:'11px 14px' }}>

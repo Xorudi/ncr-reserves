@@ -213,6 +213,72 @@ export function computeCustomerStats(
   };
 }
 
+// ─── Period filter (for ranking) ──────────────────────────────────────────────
+
+/** Time-window for visit counts in the ranking view. */
+export type Period = 'week' | 'month' | 'year' | 'all';
+
+/** Human-readable label used as the suffix in row counters. */
+export function periodLabel(p: Period): string {
+  switch (p) {
+    case 'week':  return 'aquesta setmana';
+    case 'month': return 'aquest mes';
+    case 'year':  return 'aquest any';
+    case 'all':   return 'totals';
+  }
+}
+
+/**
+ * Inclusive start date (YYYY-MM-DD) for the period, or null for 'all'.
+ * Week starts on Monday (Catalonia ISO convention).
+ */
+export function periodStartIso(
+  p: Period,
+  today: string = new Date().toISOString().slice(0, 10),
+): string | null {
+  if (p === 'all') return null;
+  const t = new Date(today + 'T00:00:00');
+  if (p === 'week') {
+    const dow = t.getDay();             // 0 = Sunday, 1 = Monday, …
+    const back = (dow + 6) % 7;         // days since the latest Monday
+    const start = new Date(t);
+    start.setDate(start.getDate() - back);
+    return start.toISOString().slice(0, 10);
+  }
+  if (p === 'month') {
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-01`;
+  }
+  // year
+  return `${t.getFullYear()}-01-01`;
+}
+
+/**
+ * Count completed reservations for `customer` inside `period`.
+ * Uses the same phone/name match as `computeCustomerStats` for consistency.
+ *
+ * Future-dated reservations are NEVER counted (a "visit" must have happened).
+ */
+export function countVisitsInPeriod(
+  customer: Customer,
+  reservations: Reservation[],
+  period: Period,
+  today: string = new Date().toISOString().slice(0, 10),
+): number {
+  const startIso = periodStartIso(period, today);
+  const cname = customer.name.trim().toLowerCase();
+  let count = 0;
+  for (const r of reservations) {
+    if (r.status !== 'completed') continue;
+    if (r.date > today) continue;                                   // ignore future
+    if (startIso && r.date < startIso) continue;                    // before window
+    const phoneMatch = !!(customer.phone && r.phone === customer.phone);
+    const nameMatch  = !!(r.name && r.name.trim().toLowerCase() === cname);
+    if (!phoneMatch && !nameMatch) continue;
+    count++;
+  }
+  return count;
+}
+
 // ─── Ranking ─────────────────────────────────────────────────────────────────
 
 export interface RankedCustomer {

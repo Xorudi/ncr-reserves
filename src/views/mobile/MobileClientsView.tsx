@@ -4,7 +4,11 @@ import { Tag } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId, ReservationStatus } from '@/types';
-import { rankCustomers, computeCustomerStats, type CustomerStats } from '@/utils/loyalty';
+import {
+  rankCustomers, computeCustomerStats,
+  countVisitsInPeriod, periodLabel,
+  type CustomerStats, type Period,
+} from '@/utils/loyalty';
 
 const ALL_TAGS = ['vip','regular','allergy','birthday','conflictiu','terrassa'] as const;
 const TAG_LABEL: Record<string, string> = {
@@ -40,6 +44,19 @@ export default function MobileClientsView() {
   useEffect(() => {
     try { sessionStorage.setItem('ncr.clientsFilter', filter); } catch { /* ignore */ }
   }, [filter]);
+
+  // Period sub-filter for the ranking view (Setmana / Mes / Any / Total).
+  // Defaults to 'all' for backwards-compatibility with the previous UI.
+  const [period, setPeriod] = useState<Period>(() => {
+    try {
+      const saved = sessionStorage.getItem('ncr.clientsPeriod');
+      if (saved === 'week' || saved === 'month' || saved === 'year' || saved === 'all') return saved;
+    } catch { /* ignore */ }
+    return 'all';
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('ncr.clientsPeriod', period); } catch { /* ignore */ }
+  }, [period]);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editId,   setEditId]   = useState<string | null>(null);
   const [showNew,  setShowNew]  = useState(false);
@@ -61,6 +78,22 @@ export default function MobileClientsView() {
     return m;
   }, [ranked]);
 
+  // Per-customer visit count for the currently-selected period.
+  // Built once per (customers, reservations, period, biz) — cheap O(N×M)
+  // pass; for typical restaurant scales (≈hundreds × hundreds) negligible.
+  const todayForCount = useMemo(() => isoDate(new Date()), []);
+  const periodResScoped = useMemo(
+    () => reservations.filter(r => r.bizId === selectedBusiness),
+    [reservations, selectedBusiness],
+  );
+  const visitsByPeriod = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of bizClients) {
+      m.set(c.id, countVisitsInPeriod(c, periodResScoped, period, todayForCount));
+    }
+    return m;
+  }, [bizClients, periodResScoped, period, todayForCount]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = bizClients.filter(c => {
@@ -70,10 +103,25 @@ export default function MobileClientsView() {
       return true;
     });
     if (filter === 'ranking') {
-      return base.sort((a, b) => (rankMap.get(a.id)?.rank ?? 9999) - (rankMap.get(b.id)?.rank ?? 9999));
+      if (period === 'all') {
+        // Lifetime ranking = preserved original behaviour (by points).
+        return base.sort((a, b) =>
+          (rankMap.get(a.id)?.rank ?? 9999) - (rankMap.get(b.id)?.rank ?? 9999));
+      }
+      // Period ranking — sort by completed visits in the window, descending.
+      // Tie-break with lifetime points so two clients with the same count
+      // keep a stable, meaningful order.
+      return base.sort((a, b) => {
+        const va = visitsByPeriod.get(a.id) ?? 0;
+        const vb = visitsByPeriod.get(b.id) ?? 0;
+        if (vb !== va) return vb - va;
+        const pa = rankMap.get(a.id)?.stats.points ?? 0;
+        const pb = rankMap.get(b.id)?.stats.points ?? 0;
+        return pb - pa;
+      });
     }
     return base.sort((a, b) => b.visits - a.visits);
-  }, [bizClients, query, filter, rankMap]);
+  }, [bizClients, query, filter, period, rankMap, visitsByPeriod]);
 
   // Header stats — totals + today's expected visitors (fuzzy first-name match)
   const todayIso = isoDate(new Date());
@@ -235,6 +283,37 @@ export default function MobileClientsView() {
             );
           })}
         </div>
+
+        {/* Period sub-filter — only when Ranking tab is active. */}
+        {filter === 'ranking' && (
+          <div style={{
+            display:'flex', gap:6, marginTop:8, overflowX:'auto',
+            scrollbarWidth:'none', msOverflowStyle:'none',
+          }}>
+            {([
+              ['week',  'Setmana'],
+              ['month', 'Mes'],
+              ['year',  'Any'],
+              ['all',   'Total'],
+            ] as const).map(([id, label]) => {
+              const active = period === id;
+              return (
+                <button key={id} onClick={() => setPeriod(id)} className="press"
+                  style={{
+                    flexShrink:0, padding:'5px 11px', borderRadius:999,
+                    whiteSpace:'nowrap', fontFamily:'inherit',
+                    border: active ? 'none' : '1px solid rgba(60,40,20,.10)',
+                    background: active ? 'var(--terracotta-600)' : 'var(--paper)',
+                    color: active ? 'var(--cream)' : 'var(--ink-600)',
+                    fontSize:11.5, fontWeight: active ? 700 : 600, cursor:'pointer',
+                    transition:'background 200ms var(--ease-in-out), color 200ms var(--ease-in-out), border-color 200ms var(--ease-in-out)',
+                  }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── List ───────────────────────────────────────────────────────── */}
@@ -243,7 +322,14 @@ export default function MobileClientsView() {
           <div key={c.id}
             className="row-stagger"
             style={{ ['--row-i' as string]: Math.min(i, 7) }}>
-            <ClientRow client={c} rankInfo={rankMap.get(c.id)} showRank={filter === 'ranking'} onTap={() => setDetailId(c.id)} />
+            <ClientRow
+              client={c}
+              rankInfo={rankMap.get(c.id)}
+              showRank={filter === 'ranking'}
+              periodCount={filter === 'ranking' ? visitsByPeriod.get(c.id) : undefined}
+              periodSuffix={filter === 'ranking' ? periodLabel(period) : undefined}
+              onTap={() => setDetailId(c.id)}
+            />
           </div>
         ))}
         {filtered.length === 0 && (
@@ -355,10 +441,14 @@ function ClientsEmpty({ query, filter }: { query: string; filter: ClientFilter }
 }
 
 // ─── Client row — richer layout with last-visit, allergens, serif spend ──────
-function ClientRow({ client: c, onTap, rankInfo, showRank }: {
+function ClientRow({ client: c, onTap, rankInfo, showRank, periodCount, periodSuffix }: {
   client: Customer; onTap: () => void;
   rankInfo?: { stats: CustomerStats; rank: number };
   showRank?: boolean;
+  /** When defined, overrides the lifetime `c.visits` counter on the row.
+   *  Used by the ranking view to show "3 visites aquesta setmana" etc. */
+  periodCount?: number;
+  periodSuffix?: string;
 }) {
   const lastSeen = relLastVisit(c.lastVisit);
   const isVip      = c.tags.includes('vip');
@@ -456,8 +546,15 @@ function ClientRow({ client: c, onTap, rankInfo, showRank }: {
             <span style={{
               fontFamily:'var(--font-serif)', fontSize:13.5, fontWeight:500,
               color:'var(--ink-900)', letterSpacing:-.005,
-            }}>{c.visits}</span>
-            <span style={{ fontWeight:600 }}>{c.visits === 1 ? 'visita' : 'visites'}</span>
+            }}>{periodCount !== undefined ? periodCount : c.visits}</span>
+            {periodCount !== undefined ? (
+              <span style={{ fontWeight:600 }}>
+                {periodCount === 1 ? 'visita' : 'visites'}
+                {periodSuffix ? <span style={{ fontWeight:500, color:'var(--ink-400)' }}> {periodSuffix}</span> : null}
+              </span>
+            ) : (
+              <span style={{ fontWeight:600 }}>{c.visits === 1 ? 'visita' : 'visites'}</span>
+            )}
           </span>
           {c.spend > 0 && (
             <>
