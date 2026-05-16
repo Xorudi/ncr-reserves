@@ -296,9 +296,18 @@ export default function TouchShell() {
   };
 
   // ── Shared: screen content (remounts on tab change for enter animation) ───
+  // On a large touchscreen (≥1280 px wide, e.g. the 1920 px restaurant
+  // counter monitor) we cap the visible content width to ~1100 px and
+  // centre it, so reservation rows / walk-in PAX grids / settings cards
+  // don't stretch into uncomfortable giants. The Taules tab opts out
+  // because the floor-plan canvas needs every pixel.
+  const capMain = isLargeScreen && tab !== 'tables';
   const screenContent = (
     <div key={tab} className="tab-enter"
-      style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      style={{
+        flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        ...(capMain ? { maxWidth: 1100, width: '100%', alignSelf: 'center' } : null),
+      }}>
       {tab === 'reservations' && (
         <TouchReservationsScreen
           newResTrigger={newResTrigger}
