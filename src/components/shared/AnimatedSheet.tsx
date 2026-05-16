@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useDevice } from '@/hooks/useDevice';
 
 interface Props {
   open: boolean;
@@ -26,6 +27,15 @@ interface Props {
 export default function AnimatedSheet({ open, onClose, zIndex = 100, children }: Props) {
   const [mounted, setMounted] = useState(open);
   const [vis, setVis]         = useState(false);
+
+  // On large touchscreens (≥1280 px wide AND touch — typical restaurant
+  // counter monitor or hybrid PC with touchscreen), cap the sheet content
+  // width and center it so PAX grids and form fields don't stretch into
+  // tap-uncomfortable giants. JS detection matches useDevice exactly — CSS
+  // `pointer: coarse` returns false on hybrid PCs where the mouse is the
+  // primary pointer despite the screen being touch-capable.
+  const { isLargeScreen, isTouch } = useDevice();
+  const capContent = isLargeScreen && isTouch;
 
   useEffect(() => {
     if (open) {
@@ -70,7 +80,10 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
         className={`sheet-panel ${vis ? 'vis' : ''}`}
         style={{ zIndex }}
       >
-        <div className="sheet-content">
+        <div
+          className="sheet-content"
+          style={capContent ? { maxWidth: 880, marginLeft: 'auto', marginRight: 'auto' } : undefined}
+        >
           {children}
         </div>
       </div>

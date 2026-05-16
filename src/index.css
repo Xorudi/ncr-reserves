@@ -461,19 +461,12 @@ body::before {
     opacity   var(--dur-fast)  linear;
 }
 
-/* Sheet content wrapper — by default just fills the panel. On a large
-   touch screen (≥1280 px wide AND coarse pointer = restaurant counter
-   monitor or kiosk), cap the visible width so PAX grids and form fields
-   don't stretch into tap-uncomfortable giants. The panel itself stays
-   full-width so the slide-up animation still works. */
+/* Sheet content wrapper — just fills the panel. The max-width cap for
+   large touchscreens is applied inline by AnimatedSheet (via useDevice's
+   isLargeScreen + isTouch flags) because a CSS-only `@media (pointer:
+   coarse)` check returns false on hybrid PCs where the mouse is the
+   primary pointer despite the screen being touch-capable. */
 .sheet-content { width: 100%; }
-@media (pointer: coarse) and (min-width: 1280px) {
-  .sheet-content {
-    max-width: 880px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
 
 /* ── Touch / press feedback — subtle scale, no harsh opacity drop ────── */
 .press {
