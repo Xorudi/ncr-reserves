@@ -15,6 +15,7 @@ import { signOut } from '@/lib/auth';
 import { isAuthRequired } from '@/lib/supabase';
 import { usePinScope } from '@/store/usePinScope';
 import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
+import AnimatedSheet from '@/components/shared/AnimatedSheet';
 
 type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats';
 
@@ -48,6 +49,10 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
     reservations, shiftNotes, appEvents, selectedDate,
     waitlist, setShowWaitlist,
   } = useAppStore();
+
+  // Branded inline confirmation for sign-out — replaces the native
+  // window.confirm() dialog so the kiosk feel never breaks.
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
   const biz     = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const emp     = employees.find(e => e.id === activeEmployeeId) ?? null;
   const roleMap = Object.fromEntries(employeeRoles.map(r => [r.id, r]));
@@ -134,14 +139,7 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
       label: 'Sortir',
       desc:  'Tanca la sessió en aquest dispositiu',
       ico:   I.chevR,
-      action: async () => {
-        if (typeof window !== 'undefined' &&
-            !window.confirm('Segur que vols tancar la sessió en aquest dispositiu?')) {
-          return;
-        }
-        await signOut();
-        // The auth listener in App.tsx will swap the shell for SignInView.
-      },
+      action: () => setConfirmSignOut(true),
       tone: 'clay' as const,
     }] : []),
   ];
@@ -205,6 +203,7 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
   }
 
   return (
+    <>
     <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 14px var(--scroll-pad-bottom)' }}>
 
       {/* Header — serif title */}
@@ -347,6 +346,49 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
         </div>
       </div>
     </div>
+
+    {/* Sign-out confirmation — branded sheet replacing window.confirm() */}
+    <AnimatedSheet open={confirmSignOut} onClose={() => setConfirmSignOut(false)} zIndex={250}>
+      <div style={{
+        background: 'var(--paper)',
+        borderRadius: '20px 20px 0 0',
+        padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
+        boxShadow: '0 -8px 32px rgba(0,0,0,.16)',
+      }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--ink-200)', margin: '0 auto 14px' }} />
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500,
+          color: 'var(--ink-900)', letterSpacing: -.005, marginBottom: 8,
+        }}>
+          Tancar sessió?
+        </div>
+        <div style={{ fontSize: 13.5, color: 'var(--ink-600)', lineHeight: 1.45, marginBottom: 18 }}>
+          Es tancarà la sessió d'aquest dispositiu. Caldrà introduir l'email i contrasenya per tornar a entrar.
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setConfirmSignOut(false)} className="press"
+            style={{
+              flex: 1, padding: '12px 16px', borderRadius: 12,
+              border: '1px solid rgba(60,40,20,.12)', background: 'var(--surface-base)',
+              color: 'var(--ink-800)', fontFamily: 'inherit',
+              fontSize: 14, fontWeight: 650, cursor: 'pointer', minHeight: 48,
+            }}>
+            Cancel·lar
+          </button>
+          <button onClick={async () => { setConfirmSignOut(false); await signOut(); }} className="press"
+            style={{
+              flex: 1, padding: '12px 16px', borderRadius: 12,
+              border: 'none', background: 'var(--terracotta-600)',
+              color: '#fff', fontFamily: 'inherit',
+              fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 48,
+              boxShadow: '0 1px 2px rgba(168,74,42,.32), inset 0 1px 0 rgba(255,255,255,.18)',
+            }}>
+            Tancar sessió
+          </button>
+        </div>
+      </div>
+    </AnimatedSheet>
+    </>
   );
 }
 

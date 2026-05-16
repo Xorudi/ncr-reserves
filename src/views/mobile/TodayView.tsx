@@ -5,6 +5,7 @@ import { useAppStore } from '@/store/useAppStore';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
+import TimePickerPopover from '@/components/shared/TimePickerPopover';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
 import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq } from '@/types';
@@ -1944,6 +1945,9 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   // Custom DatePickerPopover for the DATA tile.
   const dateTileRef = useRef<HTMLLabelElement | null>(null);
   const [dateOpen, setDateOpen] = useState(false);
+  // Custom TimePickerPopover for the HORA tile.
+  const timeTileRef = useRef<HTMLLabelElement | null>(null);
+  const [timeOpen, setTimeOpen] = useState(false);
 
   // ── Reset form every time the sheet opens ────────────────────────────────
   useEffect(() => {
@@ -2203,18 +2207,16 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 anchorRef={dateTileRef}
               />
 
-              {/* HORA — same pattern: 1×1 px input pinned to bottom-center
-                  so the native time picker appears directly under the time. */}
-              <label style={{
-                position:'relative', display:'flex', flexDirection:'column', gap:2,
-                background:'var(--paper)', borderRadius:10,
-                border:'1px solid rgba(60,40,20,.10)',
-                padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
-              }}
-                onClick={e => {
-                  const inp = e.currentTarget.querySelector('input[type="time"]') as HTMLInputElement | null;
-                  if (inp) { try { inp.showPicker?.(); inp.focus(); } catch { /* ignore */ } }
-                }}>
+              {/* HORA — opens the custom TimePickerPopover anchored below. */}
+              <label
+                ref={timeTileRef}
+                style={{
+                  position:'relative', display:'flex', flexDirection:'column', gap:2,
+                  background:'var(--paper)', borderRadius:10,
+                  border:'1px solid rgba(60,40,20,.10)',
+                  padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
+                }}
+                onClick={() => setTimeOpen(o => !o)}>
                 <span style={{ ...lbl, marginBottom:0 }}>Hora</span>
                 <span style={{
                   fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
@@ -2223,17 +2225,14 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 }}>
                   {form.time}
                 </span>
-                <input type="time" value={form.time} onChange={e => upd('time', e.target.value)}
-                  tabIndex={-1} aria-hidden
-                  style={{
-                    position:'absolute', bottom:0, left:'50%',
-                    transform:'translateX(-50%)',
-                    width:1, height:1, padding:0, margin:0,
-                    opacity:0, border:'none', background:'transparent',
-                    fontFamily:'inherit', color:'transparent',
-                    pointerEvents:'none',
-                  }} />
               </label>
+              <TimePickerPopover
+                open={timeOpen}
+                value={form.time}
+                onChange={t => upd('time', t)}
+                onClose={() => setTimeOpen(false)}
+                anchorRef={timeTileRef}
+              />
             </div>
           </section>
 

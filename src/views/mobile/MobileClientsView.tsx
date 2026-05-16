@@ -1,5 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
+import DatePickerPopover from '@/components/shared/DatePickerPopover';
+import TimePickerPopover from '@/components/shared/TimePickerPopover';
 import { Tag } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
@@ -786,6 +788,11 @@ function QuickResRow({ client: c, bizId, addReservation }: {
   const [time, setTime] = useState('13:00');
   const [pax,  setPax]  = useState(2);
   const [done, setDone] = useState(false);
+  // Anchors for the custom date/time popovers.
+  const dateTileRef = useRef<HTMLLabelElement | null>(null);
+  const timeTileRef = useRef<HTMLLabelElement | null>(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [timeOpen, setTimeOpen] = useState(false);
 
   function save() {
     addReservation({
@@ -809,26 +816,63 @@ function QuickResRow({ client: c, bizId, addReservation }: {
       </button>
       {open && !done && (
         <div style={{ marginTop:8, padding:'12px', background:'var(--cream)', borderRadius:11, border:'var(--hair)', display:'flex', flexDirection:'column', gap:9 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:8 }}>
+            {/* DATA tile — opens DatePickerPopover */}
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--ink-400)', letterSpacing:.06, marginBottom:4 }}>DATA</div>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                style={{ width:'100%', padding:'8px', borderRadius:8, border:'1.5px solid rgba(60,40,20,.15)', fontFamily:'inherit', fontSize:12, background:'white', outline:'none' }} />
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, marginBottom:4 }}>DATA</div>
+              <label
+                ref={dateTileRef}
+                onClick={() => setDateOpen(o => !o)}
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', height:38, padding:'0 10px', borderRadius:8, border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)', cursor:'pointer', boxShadow:'var(--sh-1)' }}>
+                <span style={{ fontFamily:'var(--font-serif)', fontSize:14, fontWeight:500, color:'var(--ink-900)', whiteSpace:'nowrap' }}>
+                  {(() => { const [y,m,dd] = date.split('-').map(Number); const dt = new Date(y, (m||1)-1, dd||1); const M=['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des']; return `${dt.getDate()} ${M[dt.getMonth()]}`; })()}
+                </span>
+              </label>
+              <DatePickerPopover
+                open={dateOpen}
+                selected={(() => { const [y,m,dd] = date.split('-').map(Number); return new Date(y, (m||1)-1, dd||1); })()}
+                onSelect={d => setDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)}
+                onClose={() => setDateOpen(false)}
+                anchorRef={dateTileRef}
+              />
             </div>
+            {/* HORA tile — opens TimePickerPopover */}
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--ink-400)', letterSpacing:.06, marginBottom:4 }}>HORA</div>
-              <input type="time" value={time} onChange={e => setTime(e.target.value)}
-                style={{ width:'100%', padding:'8px', borderRadius:8, border:'1.5px solid rgba(60,40,20,.15)', fontFamily:'inherit', fontSize:12, background:'white', outline:'none' }} />
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, marginBottom:4 }}>HORA</div>
+              <label
+                ref={timeTileRef}
+                onClick={() => setTimeOpen(o => !o)}
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', height:38, padding:'0 10px', borderRadius:8, border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)', cursor:'pointer', boxShadow:'var(--sh-1)' }}>
+                <span style={{ fontFamily:'var(--font-serif)', fontSize:14, fontWeight:500, color:'var(--ink-900)' }}>
+                  {time}
+                </span>
+              </label>
+              <TimePickerPopover
+                open={timeOpen}
+                value={time}
+                onChange={setTime}
+                onClose={() => setTimeOpen(false)}
+                anchorRef={timeTileRef}
+              />
             </div>
+            {/* PAX — −/+ stepper instead of native number spinner */}
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--ink-400)', letterSpacing:.06, marginBottom:4 }}>PAX</div>
-              <input type="number" min={1} max={30} value={pax}
-                onChange={e => setPax(Math.max(1, parseInt(e.target.value) || 1))}
-                style={{ width:'100%', padding:'8px', borderRadius:8, border:'1.5px solid rgba(60,40,20,.15)', fontFamily:'inherit', fontSize:12, background:'white', outline:'none' }} />
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, marginBottom:4 }}>PAX</div>
+              <div style={{ display:'flex', alignItems:'center', height:38, borderRadius:8, border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)', boxShadow:'var(--sh-1)', overflow:'hidden' }}>
+                <button className="press" aria-label="Restar comensal"
+                  onClick={() => setPax(p => Math.max(1, p - 1))}
+                  style={{ width:34, height:'100%', border:'none', background:'transparent', cursor:'pointer', fontSize:18, color:'var(--ink-700)', display:'grid', placeItems:'center' }}>−</button>
+                <span style={{ flex:1, textAlign:'center', fontFamily:'var(--font-serif)', fontSize:15, fontWeight:500, color:'var(--ink-900)', fontVariantNumeric:'tabular-nums' }}>
+                  {pax}
+                </span>
+                <button className="press" aria-label="Sumar comensal"
+                  onClick={() => setPax(p => Math.min(30, p + 1))}
+                  style={{ width:34, height:'100%', border:'none', background:'transparent', cursor:'pointer', fontSize:18, color:'var(--ink-700)', display:'grid', placeItems:'center' }}>+</button>
+              </div>
             </div>
           </div>
-          <button onClick={save}
-            style={{ padding:'10px', borderRadius:10, border:'none', background:'var(--terracotta-600)', color:'white', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+          <button onClick={save} className="press"
+            style={{ padding:'12px', borderRadius:10, border:'none', background:'var(--terracotta-600)', color:'white', fontFamily:'inherit', fontSize:13.5, fontWeight:700, cursor:'pointer', minHeight:44, boxShadow:'0 1px 2px rgba(168,74,42,.32), inset 0 1px 0 rgba(255,255,255,.18)' }}>
             Crear reserva
           </button>
         </div>
