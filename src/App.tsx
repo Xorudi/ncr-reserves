@@ -13,33 +13,47 @@ import {
   watchConnectivity,
 } from '@/lib/cloudSync';
 import { isAuthRequired } from '@/lib/supabase';
-import { getSession, onAuthChange } from '@/lib/auth';
+import {
+  getSession, refreshSession, onAuthChange,
+} from '@/lib/auth';
 import type { AuthState } from '@/lib/auth';
 import { isPinConfigured } from '@/lib/pinAuth';
 import { usePinScope } from '@/store/usePinScope';
 import { useAppStore } from '@/store/useAppStore';
 import type { BusinessId } from '@/types';
-
 import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
+
+/* ── Auth logging ─────────────────────────────────────────────────────────────
+ * Visible in production too — these events are rare and crucial for
+ * diagnosing why a device might bounce to the login screen. Tag every
+ * line with `[ncr-auth]` so they're easy to grep in DevTools console.
+ */
+// eslint-disable-next-line no-console
+const alog = (...args: unknown[]) => console.info('[ncr-auth]', ...args);
 
 /**
  * Root router with a 3-layer gate:
  *
  *   1. Supabase Auth (cryptographic, device-level)
- *      → SignInView until a session exists
+ *      → SignInView only when we are SURE there's no recoverable session
  *   2. PIN config (one-time per device)
  *      → PinSetupView until the 4 local PINs are configured
  *   3. PIN unlock (every page load / after manual lock)
- *      → PinLockView until a valid PIN is entered, which sets the
- *        active business scope
+ *      → PinLockView until a valid PIN is entered
  *
- * Then the device/shell renders normally.
+ * Auth-gate resilience (the important part):
  *
- * If Supabase env vars are absent (offline dev mode), the Supabase gate
- * is skipped — but the PIN gates still apply so the device still has a
- * lock. To run truly unlocked in dev, clear `ncr-reserves-pin-config`
- * from localStorage and the Setup screen will not appear because
- * `isAuthRequired()` short-circuits it (see below).
+ *   • On mount we OPTIMISTICALLY check getSession() first. If it returns
+ *     anything, we go signed-in immediately.
+ *   • If getSession() is null we attempt refreshSession() before giving
+ *     up. This recovers from cases where the access_token expired while
+ *     the device was sleeping but the refresh_token is still valid.
+ *   • When the SDK emits SIGNED_OUT, we DO NOT bounce to login unless:
+ *       a) the user explicitly clicked "Sortir" (we listen for our own
+ *          `ncr:manual-signout` window event dispatched by lib/auth.ts),
+ *       b) OR a follow-up refreshSession() also fails (i.e. the token
+ *          is genuinely invalid, not a network blip).
+ *   • Going offline never kicks the user out. Cached session stays.
  */
 export default function App() {
   const { isMobile, isTablet } = useDevice();
@@ -53,37 +67,165 @@ export default function App() {
   // PIN is always required (defaults are baked into pinAuth.ts).
   const [pinConfigured, setPinConfigured] = useState<boolean>(isPinConfigured);
 
-  // ── Auth bootstrap + subscription (only when the flag is on) ───────────────
+  // ── Auth bootstrap + subscription ──────────────────────────────────────────
   useEffect(() => {
-    if (!SUPABASE_AUTH_ENABLED || !isAuthRequired()) return;
+    if (!SUPABASE_AUTH_ENABLED || !isAuthRequired()) {
+      alog('Supabase auth gate disabled — running offline-mode shell');
+      return;
+    }
 
-    let cancelled = false;
-    getSession().then(s => {
-      if (cancelled) return;
-      setAuth(s
-        ? { status: 'signed-in', session: s, bizIds: extractBizIdsSafe(s) }
-        : { status: 'signed-out' });
-    });
+    let cancelled       = false;
+    // Set to true synchronously when the user clicks "Sortir" via signOut().
+    // Used to distinguish a deliberate sign-out from an SDK-emitted
+    // SIGNED_OUT caused by a refresh failure.
+    let manualSignOut   = false;
 
-    const off = onAuthChange(s => {
-      setAuth(s
-        ? { status: 'signed-in', session: s, bizIds: extractBizIdsSafe(s) }
-        : { status: 'signed-out' });
-      // After a sign-out, the PIN scope must clear and we re-check config.
-      if (!s) {
-        usePinScope.getState().lock();
-        setPinConfigured(isPinConfigured());
+    function applySession(session: import('@supabase/supabase-js').Session) {
+      const bizIds = extractBizIdsSafe(session);
+      alog('signed-in', {
+        user_id:   session.user.id,
+        email:     session.user.email,
+        biz_ids:   bizIds,
+        expires_at: session.expires_at,
+      });
+      setAuth({ status: 'signed-in', session, bizIds });
+    }
+
+    function applySignedOut(reason: string) {
+      alog('signed-out reason:', reason);
+      usePinScope.getState().lock();
+      setPinConfigured(isPinConfigured());
+      setAuth({ status: 'signed-out' });
+    }
+
+    /**
+     * Initial-load resolver. Prefers the cached session; falls back to
+     * refresh; only signs out as a last resort.
+     */
+    async function bootstrap() {
+      alog('bootstrap: looking for cached session…');
+      let session = await getSession();
+
+      if (session) {
+        alog('bootstrap: found cached session, expires_at', session.expires_at);
+        const nowSec = Math.floor(Date.now() / 1000);
+        const expired = !!session.expires_at && session.expires_at <= nowSec;
+        if (expired) {
+          alog('bootstrap: cached session expired; attempting refresh');
+          const refreshed = await refreshSession();
+          if (refreshed) {
+            alog('bootstrap: refresh OK');
+            session = refreshed;
+          } else if (!navigator.onLine) {
+            alog('bootstrap: offline + refresh failed; keeping cached session optimistically');
+            // Stay signed-in with the expired session; the SDK will retry
+            // when the network returns. RLS will reject queries until
+            // then, but the user keeps their app shell open.
+          } else {
+            alog('bootstrap: online + refresh failed for expired session; signing out');
+            if (!cancelled) applySignedOut('expired-and-refresh-failed');
+            return;
+          }
+        }
+        if (!cancelled && session) applySession(session);
+        return;
+      }
+
+      // No cached session — but maybe a refresh_token is still around.
+      alog('bootstrap: no cached session; trying refresh as last resort');
+      const recovered = await refreshSession();
+      if (recovered) {
+        alog('bootstrap: recovered session via refresh');
+        if (!cancelled) applySession(recovered);
+        return;
+      }
+
+      // Truly nothing. If offline, keep showing the loading state so a
+      // mid-trip iPad doesn't see the login screen for a momentary blip.
+      if (!navigator.onLine) {
+        alog('bootstrap: offline and no session at all; staying in loading until back online');
+        // We'll re-bootstrap on the `online` event below.
+        return;
+      }
+
+      if (!cancelled) applySignedOut('no-session-and-refresh-failed');
+    }
+
+    bootstrap();
+
+    // Listen for deliberate user-initiated sign-outs.
+    const onManual = () => { manualSignOut = true; };
+    window.addEventListener('ncr:manual-signout', onManual);
+
+    // Re-attempt bootstrap when the device comes back online and we're
+    // still in 'loading' or 'signed-out' but storage might have valid
+    // tokens (race when the device was offline at startup).
+    const onOnline = () => {
+      alog('network online → re-bootstrapping if needed');
+      // Only retry if we're not already signed-in.
+      setAuth(prev => {
+        if (prev.status === 'signed-in') return prev;
+        // Kick off another bootstrap; state will be updated by applySession.
+        bootstrap();
+        return prev;
+      });
+    };
+    window.addEventListener('online', onOnline);
+
+    // SDK auth-state listener.
+    const off = onAuthChange(async (event, session) => {
+      alog('event:', event, 'has session?', !!session);
+
+      switch (event) {
+        case 'SIGNED_IN':
+        case 'TOKEN_REFRESHED':
+        case 'USER_UPDATED':
+        case 'INITIAL_SESSION': {
+          if (session) {
+            if (!cancelled) applySession(session);
+          }
+          // null on INITIAL_SESSION is OK — bootstrap() handles it.
+          return;
+        }
+        case 'SIGNED_OUT': {
+          if (manualSignOut) {
+            manualSignOut = false;
+            if (!cancelled) applySignedOut('manual-signout');
+            return;
+          }
+          // The SDK can emit SIGNED_OUT due to a transient refresh
+          // failure. Try once more before evicting the user.
+          alog('SIGNED_OUT received without manual trigger; verifying via refreshSession()…');
+          const recovered = await refreshSession();
+          if (recovered) {
+            alog('recovery succeeded; staying signed-in');
+            if (!cancelled) applySession(recovered);
+            return;
+          }
+          // If we're offline, hold the line. The SDK's own scheduler
+          // and our `online` listener will retry.
+          if (!navigator.onLine) {
+            alog('SIGNED_OUT but device is offline; refusing to evict to login');
+            return;
+          }
+          if (!cancelled) applySignedOut('refresh-failed-after-signed-out');
+          return;
+        }
+        default: {
+          alog('event ignored:', event);
+        }
       }
     });
 
-    return () => { cancelled = true; off(); };
+    return () => {
+      cancelled = true;
+      window.removeEventListener('ncr:manual-signout', onManual);
+      window.removeEventListener('online', onOnline);
+      off();
+    };
   }, []);
 
   // ── Force selectedBusiness into the unlocked scope ─────────────────────────
-  // If the PIN scope is e.g. ["pista"] but the persisted store still has
-  // selectedBusiness="ganxo", the user would see Ganxo's data even though
-  // they unlocked the L'Esquitx/La Pista book. Snap it to the first
-  // allowed id on every unlock.
   useEffect(() => {
     if (!unlockedBizIds || unlockedBizIds.length === 0) return;
     const current = useAppStore.getState().selectedBusiness as BusinessId;
@@ -93,8 +235,6 @@ export default function App() {
   }, [unlockedBizIds]);
 
   // ── App-wide effects (backup + cloud sync) ──────────────────────────────────
-  // Run only when the PIN gate is unlocked AND (Supabase Auth gate
-  // satisfied OR disabled).
   const supabaseReady =
     !SUPABASE_AUTH_ENABLED ||
     auth.status === 'unconfigured' ||
@@ -119,7 +259,6 @@ export default function App() {
   }, [ready]);
 
   // ── Render flow ─────────────────────────────────────────────────────────────
-  // 1. Supabase Auth (only when the flag is on AND env vars are present)
   if (SUPABASE_AUTH_ENABLED && isAuthRequired()) {
     if (auth.status === 'loading') return <SplashFrame />;
     if (auth.status === 'signed-out') {
@@ -127,19 +266,13 @@ export default function App() {
     }
   }
 
-  // 2. PIN setup — only appears if defaults are missing AND no localStorage
-  //    config exists. With baked defaults this branch is effectively dead
-  //    but stays in place for future PIN-reset flows.
   if (!pinConfigured) {
     return <PinSetupView onComplete={() => setPinConfigured(true)} />;
   }
-
-  // 3. PIN unlock — ALWAYS required on a fresh load.
   if (unlockedBizIds === null) {
     return <PinLockView />;
   }
 
-  // 4. Normal shell
   if (isMobile || isTablet) return <TouchShell />;
   return <DesktopShell />;
 }

@@ -8,8 +8,17 @@
  *     wrappers and a typed view of `app_metadata.biz_ids`.
  *   • biz_ids are server-controlled (writable only with the service_role
  *     key) — the client cannot escalate by editing user_metadata.
+ *
+ * Resilience:
+ *   • `refreshSession()` returns the *refreshed* session or null. Used by
+ *     the app's auth gate to recover from transient refresh failures
+ *     (network blips, slow servers) without bouncing the user to login.
+ *   • `signOut()` dispatches a window event `ncr:manual-signout` BEFORE
+ *     calling the SDK, so the gate's auth listener can distinguish a
+ *     genuine user-initiated sign-out from a transient SIGNED_OUT event
+ *     fired by the SDK during refresh trouble. Treat that as the truth.
  */
-import type { Session } from '@supabase/supabase-js';
+import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 export type AuthState =
@@ -36,11 +45,32 @@ export async function getSession(): Promise<Session | null> {
   return data.session ?? null;
 }
 
+/**
+ * Force a refresh against the auth endpoint using the persisted refresh
+ * token. Returns the refreshed session on success, or null on failure
+ * (network OR auth error — caller decides what to do).
+ *
+ * Use this BEFORE concluding "the user is signed out" on initial load
+ * or on a SIGNED_OUT event we suspect is a transient hiccup.
+ */
+export async function refreshSession(): Promise<Session | null> {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) return null;
+    return data.session ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Subscribe to auth changes. Returns an unsubscribe fn. */
-export function onAuthChange(cb: (s: Session | null) => void): () => void {
+export function onAuthChange(
+  cb: (event: AuthChangeEvent, s: Session | null) => void,
+): () => void {
   if (!supabase) return () => { /* no-op */ };
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    cb(session);
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    cb(event, session);
   });
   return () => data.subscription.unsubscribe();
 }
@@ -78,8 +108,19 @@ export async function signIn(email: string, password: string): Promise<string | 
   return null;
 }
 
-/** Sign out and clear the persisted session. */
+/**
+ * Sign out and clear the persisted session.
+ *
+ * Dispatches `ncr:manual-signout` BEFORE the SDK call so the App's
+ * auth-state listener knows this SIGNED_OUT event came from a deliberate
+ * user action (not from a transient refresh failure). Without that
+ * signal, the listener would have to treat every SIGNED_OUT as truth
+ * and could kick the user out on a network hiccup.
+ */
 export async function signOut(): Promise<void> {
   if (!supabase) return;
+  if (typeof window !== 'undefined') {
+    try { window.dispatchEvent(new Event('ncr:manual-signout')); } catch { /* noop */ }
+  }
   try { await supabase.auth.signOut(); } catch { /* swallow — best-effort */ }
 }
