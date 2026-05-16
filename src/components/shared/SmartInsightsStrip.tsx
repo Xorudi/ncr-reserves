@@ -137,8 +137,8 @@ function InsightChip({ ins, onAction, onDismiss }: {
     <div style={{
       position: 'relative',
       flexShrink: 0,
-      maxWidth: 320,
-      padding: '8px 4px 8px 14px',
+      maxWidth: 340,
+      padding: '10px 8px 10px 16px',
       borderRadius: 12,
       // Paper card with a faint tone wash — colored signal comes from the
       // accent bar + foreground color, not a flooded fill.
@@ -173,24 +173,30 @@ function InsightChip({ ins, onAction, onDismiss }: {
           }}>{ins.text}</div>
           {ins.sub && (
             <div style={{
-              fontSize: 10.5, color: p.fg, opacity: .7, marginTop: 2,
-              fontFamily: 'var(--font-mono)', letterSpacing: .04,
+              fontSize: 11.5, color: p.fg, opacity: .72, marginTop: 3,
+              fontFamily: 'var(--font-sans)', letterSpacing: .01,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{ins.sub}</div>
           )}
         </div>
       </button>
-      {/* Dismiss × — separated so a tap on it never fires the main action */}
+      {/* Dismiss × — separated so a tap on it never fires the main action.
+          Sized at 32 px so it's a comfortable target on the counter
+          touchscreen without becoming visually dominant. */}
       <button onClick={onDismiss} aria-label="Descartar"
         style={{
           flexShrink: 0,
-          width: 24, height: 24, alignSelf: 'flex-start',
-          margin: '1px 4px 0 0', padding: 0,
+          width: 32, height: 32, alignSelf: 'flex-start',
+          margin: '-2px 0 0 2px', padding: 0,
           background: 'transparent', border: 'none', cursor: 'pointer',
           color: p.fg, opacity: .55,
           display: 'grid', placeItems: 'center',
-          fontSize: 14, lineHeight: 1, fontFamily: 'inherit',
-        }}>
+          fontSize: 18, lineHeight: 1, fontFamily: 'inherit',
+          borderRadius: 8,
+          transition: 'opacity 140ms var(--ease-out), background 140ms var(--ease-out)',
+        }}
+        onPointerEnter={e => { e.currentTarget.style.opacity = '.9'; e.currentTarget.style.background = 'rgba(60,40,20,.05)'; }}
+        onPointerLeave={e => { e.currentTarget.style.opacity = '.55'; e.currentTarget.style.background = 'transparent'; }}>
         ×
       </button>
     </div>

@@ -1051,15 +1051,20 @@ function TabletTopBar({
         <Icon d={I.chevL} size={18} stroke={2} />
       </button>
 
-      {/* Date label — clicable, opens native date picker */}
+      {/* Date label — clicable, opens native date picker.
+          Use pointer events so the hover-style highlight ALSO fires on
+          desktop touchscreens (they emit pointerenter/leave but no
+          mouseenter/leave from a finger tap). */}
       <label style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
         cursor: 'pointer', position: 'relative',
         padding: '6px 14px', borderRadius: 10,
         transition: 'background 160ms var(--ease-ios)',
       }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        onPointerEnter={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
+        onPointerLeave={e => (e.currentTarget.style.background = 'transparent')}
+        onPointerDown={e => (e.currentTarget.style.background = 'rgba(60,40,20,.08)')}
+        onPointerUp={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
       >
         {isToday && <LiveServicePill />}
         <span key={selIso} className="date-label-in" style={{

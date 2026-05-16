@@ -243,10 +243,11 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                   <button className="press"
                     onClick={() => { setPax(Math.max(1, pax - 1)); setNoTableWarn(false); }}
                     style={{
-                      width:32, height:32, borderRadius:999,
+                      width:40, height:40, borderRadius:999,
                       border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)',
-                      cursor:'pointer', fontSize:16, color:'var(--ink-700)',
+                      cursor:'pointer', fontSize:18, color:'var(--ink-700)',
                       display:'grid', placeItems:'center',
+                      boxShadow:'var(--sh-1)',
                     }}>−</button>
                   <span key={pax} className="number-tween"
                     style={{
@@ -257,10 +258,11 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                   <button className="press"
                     onClick={() => { setPax(p => p + 1); setNoTableWarn(false); }}
                     style={{
-                      width:32, height:32, borderRadius:999,
+                      width:40, height:40, borderRadius:999,
                       border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)',
-                      cursor:'pointer', fontSize:16, color:'var(--ink-700)',
+                      cursor:'pointer', fontSize:18, color:'var(--ink-700)',
                       display:'grid', placeItems:'center',
+                      boxShadow:'var(--sh-1)',
                     }}>+</button>
                 </div>
               </div>

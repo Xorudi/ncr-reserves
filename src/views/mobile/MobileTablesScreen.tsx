@@ -182,7 +182,7 @@ export default function MobileTablesScreen() {
         <span style={{ fontSize:12.5, fontWeight:600, color:'var(--ink-700)' }}>
           {isToday ? 'Avui' : dateLabel}
         </span>
-        <span style={{ fontSize:11.5, color:'var(--ink-400)' }}>· taules del dia</span>
+        <span style={{ fontSize:11.5, color:'var(--ink-600)' }}>· taules del dia</span>
         <span style={{ flex:1 }} />
         <button onClick={() => editMode ? exitEdit() : setEditMode(true)} className="press"
           style={{
@@ -284,8 +284,8 @@ export default function MobileTablesScreen() {
                   {group.label}
                 </span>
                 <span style={{
-                  fontSize:10.5, color:'var(--ink-500)', fontWeight:650,
-                  fontFamily:'var(--font-mono)', letterSpacing:.04,
+                  fontSize:11.5, color:'var(--ink-600)', fontWeight:650,
+                  fontFamily:'var(--font-sans)', letterSpacing:.01,
                 }}>{group.tables.length}</span>
                 <div style={{ flex:1, height:1, background:'rgba(60,40,20,.06)' }} />
               </div>

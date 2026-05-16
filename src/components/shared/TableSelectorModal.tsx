@@ -139,14 +139,17 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
         </div>
 
         {/* Zone filter */}
-        <div style={{ padding:'4px 14px 8px', display:'flex', gap:6, overflowX:'auto', flexShrink:0, scrollbarWidth:'none' }}>
+        <div style={{ padding:'8px 14px 10px', display:'flex', gap:6, overflowX:'auto', flexShrink:0, scrollbarWidth:'none' }}>
           {[{ id:'__all__', label:'Totes' }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => (
             <button key={z.id} onClick={() => setZoneFilter(z.id)}
               style={{
-                flexShrink:0, padding:'4px 12px', borderRadius:8, border:'none',
-                fontFamily:'inherit', fontSize:12.5, fontWeight:600, cursor:'pointer',
+                flexShrink:0, padding:'8px 14px', borderRadius:10, border:'none',
+                fontFamily:'inherit', fontSize:13, fontWeight:600, cursor:'pointer',
+                minHeight: 36,
                 background: zoneFilter === z.id ? 'var(--ink-900)' : 'var(--cream)',
-                color:      zoneFilter === z.id ? 'white' : 'var(--ink-600)',
+                color:      zoneFilter === z.id ? 'white' : 'var(--ink-700)',
+                boxShadow: zoneFilter === z.id ? 'var(--sh-1)' : 'none',
+                transition: 'background 160ms var(--ease-out), color 160ms var(--ease-out)',
               }}>
               {z.label}
             </button>

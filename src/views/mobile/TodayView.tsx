@@ -689,10 +689,22 @@ export default function MobileTodayView({
           </button>
 
           <button onClick={() => setShowCal(true)}
-            style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:8, background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', padding:'4px 0' }}>
+            style={{
+              flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+              background:'var(--paper)',
+              border:'1px solid rgba(60,40,20,.10)',
+              borderRadius: 10,
+              cursor:'pointer', fontFamily:'inherit',
+              padding:'8px 12px',
+              boxShadow:'var(--sh-1)',
+              minHeight: 40,
+            }}>
             {isToday && <LiveServicePill />}
-            <span key={dateStr} className="mono date-label-in" style={{ fontSize:13, fontWeight:600, color:'var(--ink-800)' }}>{dayLabel}</span>
-            <Icon d={I.calendar} size={14} />
+            <span key={dateStr} className="date-label-in" style={{
+              fontFamily:'var(--font-serif)', fontSize:15, fontWeight:500,
+              color:'var(--ink-900)', letterSpacing:-.005, textTransform:'capitalize',
+            }}>{dayLabel}</span>
+            <Icon d={I.calendar} size={15} stroke={1.7} />
           </button>
 
           <button onClick={() => changeDay(1)} className="day-btn"
@@ -794,9 +806,9 @@ export default function MobileTodayView({
                     boxShadow: '0 0 0 2px rgba(200,154,58,.18)',
                   }} />
                   <span style={{
-                    fontSize: 9.5, fontWeight: 700, letterSpacing: .08,
+                    fontSize: 11, fontWeight: 700, letterSpacing: .06,
                     color: '#8a6a10', textTransform: 'uppercase',
-                    fontFamily: 'var(--font-mono)', flexShrink: 0,
+                    fontFamily: 'var(--font-sans)', flexShrink: 0,
                   }}>
                     Nota torn
                   </span>
