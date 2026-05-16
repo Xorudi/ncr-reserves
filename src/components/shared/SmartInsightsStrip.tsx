@@ -183,7 +183,7 @@ function InsightChip({ ins, onAction, onDismiss }: {
       {/* Dismiss × — separated so a tap on it never fires the main action.
           Sized at 32 px so it's a comfortable target on the counter
           touchscreen without becoming visually dominant. */}
-      <button onClick={onDismiss} aria-label="Descartar"
+      <button onClick={onDismiss} aria-label="Descartar" className="press"
         style={{
           flexShrink: 0,
           width: 32, height: 32, alignSelf: 'flex-start',

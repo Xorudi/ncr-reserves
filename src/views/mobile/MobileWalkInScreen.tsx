@@ -240,7 +240,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
               }}>
                 <span style={{ fontSize:11.5, color:'var(--ink-500)', fontWeight:550 }}>Més de 8</span>
                 <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                  <button className="press"
+                  <button className="press" aria-label="Restar comensal"
                     onClick={() => { setPax(Math.max(1, pax - 1)); setNoTableWarn(false); }}
                     style={{
                       width:40, height:40, borderRadius:999,

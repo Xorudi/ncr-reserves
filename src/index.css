@@ -400,29 +400,42 @@ body::before {
   -webkit-backdrop-filter: blur(12px) saturate(120%);
   backdrop-filter: blur(12px) saturate(120%);
   opacity: 0;
+  /* Exit fade — fast (system getting out of the way). */
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.sheet-backdrop.vis {
+  opacity: 1;
+  /* Entrance fade — a hair slower so the dim "lands" alongside the panel. */
   transition: opacity var(--dur-base) var(--ease-out);
 }
-.sheet-backdrop.vis { opacity: 1; }
 /* Safari pre-14 (and any browser without backdrop-filter): fall back to a
    slightly stronger dim so the contrast difference still reads. */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .sheet-backdrop { background: rgba(30, 22, 16, .48); }
 }
 
-/* ── Sheet panel — iOS-like drawer easing (Vaul / Sonner reference) ───── */
+/* ── Sheet panel — iOS-like drawer easing (Vaul / Sonner reference)
+   Asymmetric in/out per Emil Kowalski's "Asymmetric enter/exit timing":
+   the user is deciding while it opens (slow + ease-drawer) but the
+   system is just getting out of the way on close (fast + ease-out). */
 .sheet-panel {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   transform: translateY(100%);
   opacity: 0;
+  /* Default (no .vis) = exit transition: snappy. */
   transition:
-    transform var(--dur-sheet)      var(--ease-drawer),
-    opacity   var(--dur-fast)       linear;
+    transform var(--dur-sheet-exit) var(--ease-out),
+    opacity   var(--dur-press)      linear;
   will-change: transform;
 }
 .sheet-panel.vis {
   transform: translateY(0);
   opacity: 1;
+  /* While entering: the slower iOS-drawer curve. */
+  transition:
+    transform var(--dur-sheet) var(--ease-drawer),
+    opacity   var(--dur-fast)  linear;
 }
 
 /* ── Touch / press feedback — subtle scale, no harsh opacity drop ────── */

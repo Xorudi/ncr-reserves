@@ -141,7 +141,7 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
         {/* Zone filter */}
         <div style={{ padding:'8px 14px 10px', display:'flex', gap:6, overflowX:'auto', flexShrink:0, scrollbarWidth:'none' }}>
           {[{ id:'__all__', label:'Totes' }, ...zones.map(z => ({ id:z.id, label:z.label }))].map(z => (
-            <button key={z.id} onClick={() => setZoneFilter(z.id)}
+            <button key={z.id} onClick={() => setZoneFilter(z.id)} className="press"
               style={{
                 flexShrink:0, padding:'8px 14px', borderRadius:10, border:'none',
                 fontFamily:'inherit', fontSize:13, fontWeight:600, cursor:'pointer',

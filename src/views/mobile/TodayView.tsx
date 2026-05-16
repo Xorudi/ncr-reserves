@@ -688,7 +688,7 @@ export default function MobileTodayView({
             <Icon d={I.chevL} size={16} stroke={2} />
           </button>
 
-          <button onClick={() => setShowCal(true)}
+          <button onClick={() => setShowCal(true)} className="press"
             style={{
               flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:10,
               background:'var(--paper)',
