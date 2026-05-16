@@ -242,6 +242,50 @@ body::before {
   .scroll { scrollbar-width: none; }
 }
 
+/* ─── Large touch screens (counter-top monitors, kiosks) ───────────────────
+   When a coarse-pointer device is also ≥1280 px wide, it's almost certainly
+   a restaurant counter monitor / kiosk — not a phone or iPad. The operator
+   stands further from the screen and taps with a single finger at a time, so
+   we relax the density: bigger base font, taller inputs and buttons, larger
+   minimum tap targets. Targets are scoped to common interactive surfaces to
+   avoid disturbing custom inline-styled widgets that already size themselves
+   based on `isLargeScreen` from useDevice. */
+@media (pointer: coarse) and (min-width: 1280px) {
+  html { font-size: 16.5px; }
+
+  /* Buttons and links rendered as buttons get a comfortable minimum height
+     and a touch of extra padding. Inline-styled buttons (which TouchShell
+     uses heavily) bypass this — those are sized explicitly via railWide. */
+  button:not([data-no-touch-bump]),
+  [role="button"]:not([data-no-touch-bump]) {
+    min-height: 48px;
+  }
+
+  /* Native form fields — give the operator a generous tap zone. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 48px;
+    font-size: 15.5px;
+  }
+
+  /* Status chips and tags scale up slightly so they're still readable from
+     ~70 cm (typical counter viewing distance) without crowding the layout. */
+  .chip   { font-size: 13px; padding: 4px 10px; line-height: 20px; }
+  .chip .dot { width: 7px; height: 7px; }
+  .tag    { font-size: 12.5px; padding: 2px 9px; }
+
+  /* Use the comfortable density preset by default — overrides the "compact"
+     baseline so list rows and cards breathe more. */
+  :root {
+    --density-row-py: 14px;
+    --density-row-gap: 8px;
+    --density-card-py: 16px;
+    --density-card-px: 18px;
+    --density-section-gap: 24px;
+  }
+}
+
 /* ─── Mobile / tablet scroll containers ─── */
 /* Apply to any <div className="scroll mob-scroll"> to get correct bottom
    clearance accounting for the bottom nav + iOS safe area. */

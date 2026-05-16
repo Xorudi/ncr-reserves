@@ -116,7 +116,11 @@ export default function TouchShell() {
   }, [closeOutPastDays]);
   useEffect(() => { closeOutPastDays(); }, [selectedDate, closeOutPastDays]);
 
-  const { isTablet, isStandalone } = useDevice();
+  const { isTablet, isStandalone, isLargeScreen } = useDevice();
+  // Large touch screen (≥1280px wide and touch) — typical restaurant
+  // counter-top monitor or kiosk. Bumps rail width, icon/label sizes and
+  // tap targets so the operator can hit them reliably while standing.
+  const railWide = isLargeScreen;
   const visibleBusinesses = useVisibleBusinesses();
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
@@ -353,18 +357,20 @@ export default function TouchShell() {
               inset shadow on the right edge gives a soft "the content sits
               in front" reading without a hard border. */}
         <nav className="surface-rail" style={{
-          width: 86, flexShrink: 0,
+          width: railWide ? 128 : 86, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
-          paddingTop: 14,
+          paddingTop: railWide ? 18 : 14,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
           {/* ── Brand block — tile gros + nom curt en mono ─────────── */}
           <button onClick={() => setShowBizPicker(true)} title={`${biz.name} — canviar negoci`}
             style={{
               flexShrink: 0,
-              margin: '0 auto 4px', width: 52, height: 52, borderRadius: 14,
+              margin: '0 auto 4px',
+              width: railWide ? 64 : 52, height: railWide ? 64 : 52,
+              borderRadius: railWide ? 16 : 14,
               background: biz.hueSoft, color: biz.hue,
-              fontWeight: 600, fontSize: 18, fontFamily: 'var(--font-serif)',
+              fontWeight: 600, fontSize: railWide ? 22 : 18, fontFamily: 'var(--font-serif)',
               display: 'grid', placeItems: 'center',
               border: `1px solid ${biz.hue}22`,
               cursor: 'pointer', letterSpacing: -.005,
@@ -374,9 +380,9 @@ export default function TouchShell() {
           </button>
           <div style={{
             flexShrink: 0,
-            textAlign: 'center', fontSize: 9, fontFamily: 'var(--font-mono)',
+            textAlign: 'center', fontSize: railWide ? 10.5 : 9, fontFamily: 'var(--font-mono)',
             color: 'var(--ink-500)', fontWeight: 600, letterSpacing: .12,
-            textTransform: 'uppercase', marginBottom: 18,
+            textTransform: 'uppercase', marginBottom: railWide ? 22 : 18,
             padding: '0 4px',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
@@ -435,18 +441,20 @@ export default function TouchShell() {
                 <button key={entry.id} onClick={onClick} className="nav-btn press"
                   style={{
                     position: 'relative', flexShrink: 0,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                    padding: '10px 4px 9px', border: 'none', borderRadius: 12,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: railWide ? 7 : 5,
+                    padding: railWide ? '14px 6px 13px' : '10px 4px 9px',
+                    border: 'none', borderRadius: railWide ? 14 : 12,
                     background: active ? 'var(--surface-elevated)' : 'transparent',
                     boxShadow: active
                       ? 'var(--shadow-md), var(--shadow-ring), var(--shadow-inset-top)'
                       : 'none',
                     color: active ? 'var(--ink-900)' : 'var(--ink-500)',
                     cursor: 'pointer', fontFamily: 'inherit',
+                    minHeight: railWide ? 64 : undefined,
                   }}>
-                  <Icon d={entry.ico} size={22} stroke={active ? 2.1 : 1.6} />
+                  <Icon d={entry.ico} size={railWide ? 28 : 22} stroke={active ? 2.1 : 1.6} />
                   <span style={{
-                    fontSize: 10, fontWeight: active ? 700 : 550,
+                    fontSize: railWide ? 12 : 10, fontWeight: active ? 700 : 550,
                     letterSpacing: .01,
                     color: active ? 'var(--ink-900)' : 'var(--ink-500)',
                   }}>{entry.label}</span>
@@ -472,13 +480,14 @@ export default function TouchShell() {
             <button onClick={() => setShowSearch(true)} title="Cerca global"
               className="press"
               style={{
-                width: 42, height: 42, borderRadius: 12,
+                width: railWide ? 54 : 42, height: railWide ? 54 : 42,
+                borderRadius: railWide ? 14 : 12,
                 display: 'grid', placeItems: 'center',
                 border: '1px solid rgba(60,40,20,.08)', cursor: 'pointer',
                 background: 'var(--paper)', color: 'var(--ink-700)',
                 boxShadow: '0 1px 2px rgba(60,40,20,.04)',
               }}>
-              <Icon d={I.search} size={16} stroke={1.9} />
+              <Icon d={I.search} size={railWide ? 22 : 16} stroke={1.9} />
             </button>
           </div>
 
@@ -490,16 +499,17 @@ export default function TouchShell() {
             }} />
             <button onClick={() => setShowUserPicker(true)} title={activeEmp?.fullName ?? 'Canviar usuari'}
               style={{
-                width: 42, height: 42, borderRadius: 12,
+                width: railWide ? 54 : 42, height: railWide ? 54 : 42,
+                borderRadius: railWide ? 14 : 12,
                 display: 'grid', placeItems: 'center',
                 border: '1px solid rgba(60,40,20,.08)', cursor: 'pointer',
                 background: activeEmp ? 'var(--paper)' : 'var(--ink-100)',
                 color: activeEmp ? 'var(--ink-900)' : 'var(--ink-500)',
-                fontWeight: 700, fontSize: 12, fontFamily: 'var(--font-serif)',
+                fontWeight: 700, fontSize: railWide ? 14 : 12, fontFamily: 'var(--font-serif)',
                 letterSpacing: -.005,
                 boxShadow: '0 1px 2px rgba(60,40,20,.04)',
               }}>
-              {activeEmp ? activeEmp.initials : <Icon d={I.users} size={16} />}
+              {activeEmp ? activeEmp.initials : <Icon d={I.users} size={railWide ? 20 : 16} />}
             </button>
             {activeEmp && (
               <span style={{

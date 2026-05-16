@@ -18,6 +18,14 @@ export interface DeviceInfo {
   /** true when pointer is coarse (finger/stylus) — any touch device */
   isTouch: boolean;
 
+  /**
+   * true when viewport width ≥ 1280 px — flags a "large touch screen"
+   * (restaurant counter-top monitor, kiosk, etc.) when combined with
+   * `isTouch`. Layouts can opt into wider rails, larger icons/labels and
+   * more generous tap targets without affecting iPads or phones.
+   */
+  isLargeScreen: boolean;
+
   /** true when launched from home-screen (PWA standalone / fullscreen) */
   isStandalone: boolean;
 
@@ -113,6 +121,7 @@ function snapshot(): DeviceInfo {
     isTablet:     device === 'tablet',
     isDesktop:    device === 'desktop',
     isTouch,
+    isLargeScreen: w >= 1280,
     isStandalone: detectStandalone(),
     orientation:  h >= w ? 'portrait' : 'landscape',
   };
@@ -168,4 +177,5 @@ export const useIsMobile       = () => useDevice().isMobile;
 export const useIsTablet       = () => useDevice().isTablet;
 export const useIsDesktop      = () => useDevice().isDesktop;
 export const useIsTouch        = () => useDevice().isTouch;
+export const useIsLargeScreen  = () => useDevice().isLargeScreen;
 export const useIsStandalonePWA = () => useDevice().isStandalone;
