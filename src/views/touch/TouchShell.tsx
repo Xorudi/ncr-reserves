@@ -10,7 +10,7 @@
  * Any fix to a screen, sheet, or picker automatically applies to both.
  * Desktop remains fully independent in DesktopShell.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
 import { Icon, I } from '@/components/shared/Icons';
@@ -24,7 +24,11 @@ import SearchSheet from '@/components/shared/SearchSheet';
 import WaitlistSheet from '@/components/shared/WaitlistSheet';
 import WeatherWidget from '@/components/shared/WeatherWidget';
 import { NotesSheet } from '@/views/touch/NotesSystem';
-import type { Employee, EmployeeRole, BusinessId } from '@/types';
+import {
+  fetchForecast, DEFAULT_COORDS,
+  type WeatherForecast, type WxCondition,
+} from '@/lib/weather';
+import type { Employee, EmployeeRole, BusinessId, Reservation } from '@/types';
 
 // ── Touch screens — shared between mobile and tablet ─────────────────────────
 import TouchReservationsScreen, { LiveServicePill } from '@/views/mobile/TodayView';
@@ -640,12 +644,21 @@ export default function TouchShell() {
               cards just give the operator something to glance at when
               looking up from the form. */}
           {capMain && (
-            <LiveSidePanel
-              activeShift={activeShift}
-              totalRes={totalRes}
-              totalPax={totalPax}
-              pendingResCount={pendingResCount}
-            />
+            <>
+              <OpsLeftPanel
+                reservations={dayResAll}
+                waitlistCount={waitlistCountForBiz}
+                onOpenWaitlist={() => setShowWaitlist(true)}
+                onOpenReservation={r => { setSelectedReservation(r); setTab('reservations'); }}
+              />
+              <LiveSidePanel
+                activeShift={activeShift}
+                totalRes={totalRes}
+                totalPax={totalPax}
+                pendingResCount={pendingResCount}
+                selectedDate={selectedDate}
+              />
+            </>
           )}
 
           {/* FAB bottom-right — opens new reservation */}
@@ -1585,12 +1598,13 @@ function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployee
 type ShiftLite = { id: 'M'|'N'; label: string; range: string; emoji: string; tint: string; tintFg: string } | null;
 
 function LiveSidePanel({
-  activeShift, totalRes, totalPax, pendingResCount,
+  activeShift, totalRes, totalPax, pendingResCount, selectedDate,
 }: {
   activeShift: ShiftLite;
   totalRes: number;
   totalPax: number;
   pendingResCount: number;
+  selectedDate: Date;
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -1618,16 +1632,35 @@ function LiveSidePanel({
   const dayNum  = now.getDate();
   const monthShort = now.toLocaleDateString('ca-ES', { month: 'short' });
 
+  // Hourly forecast for the *currently visible date* — useful to glance at
+  // how the next service hours will feel (rain coming in at 20h?).
+  const dateIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+  const [forecast, setForecast] = useState<WeatherForecast | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchForecast({ date: dateIso, lat: DEFAULT_COORDS.lat, lng: DEFAULT_COORDS.lng })
+      .then(f => { if (!cancelled) setForecast(f); });
+    return () => { cancelled = true; };
+  }, [dateIso]);
+
+  // Pick the next 4 hourly slots starting from the current hour (or, if
+  // the user is viewing a future date, the start of the day).
+  const nextHours = useMemo(() => {
+    if (!forecast?.hourly) return [];
+    const now = new Date();
+    const sameDay = isoDateLocal(now) === dateIso;
+    const startHour = sameDay ? now.getHours() : 12;
+    return forecast.hourly.filter(h => h.hour >= startHour).slice(0, 4);
+  }, [forecast, dateIso]);
+
   return (
     <aside
-      aria-hidden
       style={{
         position: 'absolute',
         top: 84,                          // sit below the date header
         right: 18,
-        width: 184,
-        display: 'flex', flexDirection: 'column', gap: 12,
-        pointerEvents: 'none',            // purely decorative; never steals taps
+        width: 192,
+        display: 'flex', flexDirection: 'column', gap: 10,
         zIndex: 5,
       }}>
 
@@ -1699,7 +1732,50 @@ function LiveSidePanel({
         )}
       </div>
 
-      {/* ── Tile 3: Mini KPI strip ─────────────────────────────────────── */}
+      {/* ── Tile 3: Next-hours weather ─────────────────────────────────── */}
+      {nextHours.length > 0 && (
+        <div style={{
+          padding: '12px 14px',
+          background: 'var(--surface-elevated)',
+          border: '1px solid rgba(60,40,20,.08)',
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <div style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: .08,
+            color: 'var(--ink-500)', textTransform: 'uppercase',
+          }}>
+            Pròximes hores
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4 }}>
+            {nextHours.map(h => (
+              <div key={h.hour} style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 4,
+              }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 600, color: 'var(--ink-500)',
+                  fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums',
+                }}>{String(h.hour).padStart(2,'0')}h</div>
+                <div style={{ fontSize: 18, lineHeight: 1 }}>{emojiForCondition(h.condition)}</div>
+                <div style={{
+                  fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 500,
+                  color: 'var(--ink-900)', fontVariantNumeric: 'tabular-nums',
+                }}>{Math.round(h.temp)}°</div>
+                {h.precipProb >= 30 && (
+                  <div style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: .04,
+                    color: 'var(--sky-700)',
+                  }}>{h.precipProb}%</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Tile 4: Mini KPI strip ─────────────────────────────────────── */}
       <div style={{
         padding: '12px 14px',
         background: 'var(--surface-elevated)',
@@ -1713,6 +1789,217 @@ function LiveSidePanel({
         <KpiRow label="Pendents" value={pendingResCount}
                 accent={pendingResCount > 0} />
       </div>
+    </aside>
+  );
+}
+
+// ── Local helpers used by both side panels ──────────────────────────────────
+function isoDateLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function emojiForCondition(c: WxCondition): string {
+  switch (c) {
+    case 'clear':    return '☀️';
+    case 'cloudy':   return '🌤';
+    case 'overcast': return '☁️';
+    case 'fog':      return '🌫';
+    case 'drizzle':
+    case 'rain':
+    case 'showers':  return '🌧';
+    case 'thunder':  return '⛈';
+    case 'snow':     return '❄️';
+    default:         return '·';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OpsLeftPanel — operational widgets pinned to the LEFT margin on large
+// touchscreens: next upcoming reservation (with countdown) and a waitlist
+// preview. Both are interactive — the next-res card opens the reservation
+// detail and the waitlist card opens the waitlist sheet.
+// ─────────────────────────────────────────────────────────────────────────────
+function OpsLeftPanel({
+  reservations, waitlistCount, onOpenWaitlist, onOpenReservation,
+}: {
+  reservations: Reservation[];
+  waitlistCount: number;
+  onOpenWaitlist: () => void;
+  onOpenReservation: (r: Reservation) => void;
+}) {
+  const [now, setNow] = useState(() => new Date());
+  // Recompute the next-reservation countdown every 30 s so the text stays
+  // fresh ("d'aquí 5 min" → "d'aquí 4 min") without jittery 1-Hz updates.
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  // Next upcoming reservation today — first one whose time hasn't passed
+  // and that isn't already seated/completed/cancelled.
+  const todayIso = isoDateLocal(now);
+  const next = useMemo(() => {
+    return reservations
+      .filter(r => r.date === todayIso)
+      .filter(r => r.status === 'pending' || r.status === 'confirmed')
+      .filter(r => {
+        const [h, m] = r.time.split(':').map(Number);
+        const t = new Date(); t.setHours(h, m, 0, 0);
+        return t.getTime() >= now.getTime() - 5 * 60_000; // include reservations within the last 5 min
+      })
+      .sort((a, b) => a.time.localeCompare(b.time))[0] ?? null;
+  }, [reservations, todayIso, now]);
+
+  // Countdown phrase — "d'aquí 1h 6m", "d'aquí 8 min", "ara mateix"
+  function countdown(timeStr: string): string {
+    const [h, m] = timeStr.split(':').map(Number);
+    const t = new Date(); t.setHours(h, m, 0, 0);
+    const diffMin = Math.round((t.getTime() - now.getTime()) / 60_000);
+    if (diffMin <= 0)   return 'Ara mateix';
+    if (diffMin < 60)   return `d'aquí ${diffMin} min`;
+    const h2 = Math.floor(diffMin / 60);
+    const m2 = diffMin % 60;
+    return m2 === 0 ? `d'aquí ${h2}h` : `d'aquí ${h2}h ${m2}m`;
+  }
+
+  return (
+    <aside
+      style={{
+        position: 'absolute',
+        top: 84,
+        left: 18,
+        width: 192,
+        display: 'flex', flexDirection: 'column', gap: 10,
+        zIndex: 5,
+      }}>
+
+      {/* ── Tile: Next reservation ─────────────────────────────────────── */}
+      <button
+        onClick={() => next && onOpenReservation(next)}
+        disabled={!next}
+        className={next ? 'press' : ''}
+        style={{
+          textAlign: 'left',
+          padding: '14px 16px',
+          background: next
+            ? 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 60%), var(--terracotta-50)'
+            : 'var(--surface-base)',
+          border: '1px solid rgba(60,40,20,.08)',
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+          display: 'flex', flexDirection: 'column', gap: 4,
+          cursor: next ? 'pointer' : 'default',
+          fontFamily: 'inherit',
+          position: 'relative', overflow: 'hidden',
+        }}>
+        {next && (
+          <span aria-hidden style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+            background: 'var(--terracotta-600)',
+          }} />
+        )}
+        <div style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: .08,
+          color: 'var(--ink-500)', textTransform: 'uppercase',
+        }}>
+          Pròxima reserva
+        </div>
+        {next ? (
+          <>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 15, fontWeight: 500,
+              color: 'var(--ink-900)', letterSpacing: -.005,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {next.name}
+            </div>
+            <div style={{
+              display: 'flex', alignItems: 'baseline', gap: 6,
+              fontFamily: 'var(--font-mono)', fontSize: 11,
+              color: 'var(--ink-600)', fontWeight: 600,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              <span>{next.time}</span>
+              <span style={{ opacity: .5 }}>·</span>
+              <span>{next.pax}p</span>
+            </div>
+            <div style={{
+              marginTop: 2,
+              fontSize: 11, fontWeight: 650,
+              color: 'var(--terracotta-700)',
+            }}>
+              {countdown(next.time)}
+            </div>
+          </>
+        ) : (
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500,
+            color: 'var(--ink-600)', letterSpacing: -.005,
+          }}>
+            Cap reserva propera
+          </div>
+        )}
+      </button>
+
+      {/* ── Tile: Waitlist preview ─────────────────────────────────────── */}
+      <button
+        onClick={onOpenWaitlist}
+        className="press"
+        style={{
+          textAlign: 'left',
+          padding: '14px 16px',
+          background: waitlistCount > 0
+            ? 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 60%), var(--clay-50)'
+            : 'var(--surface-elevated)',
+          border: '1px solid rgba(60,40,20,.08)',
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+          display: 'flex', flexDirection: 'column', gap: 4,
+          cursor: 'pointer', fontFamily: 'inherit',
+          position: 'relative', overflow: 'hidden',
+        }}>
+        {waitlistCount > 0 && (
+          <span aria-hidden style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+            background: 'var(--clay-600)',
+          }} />
+        )}
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6,
+        }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: .08,
+            color: 'var(--ink-500)', textTransform: 'uppercase',
+          }}>
+            Cua d'espera
+          </span>
+          {waitlistCount > 0 && (
+            <span key={waitlistCount} className="number-tween" style={{
+              fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500,
+              color: 'var(--clay-700)', letterSpacing: -.005,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {waitlistCount}
+            </span>
+          )}
+        </div>
+        <div style={{
+          fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500,
+          color: waitlistCount > 0 ? 'var(--ink-900)' : 'var(--ink-600)',
+          letterSpacing: -.005,
+        }}>
+          {waitlistCount === 0
+            ? 'Cap grup esperant'
+            : waitlistCount === 1
+              ? '1 grup esperant taula'
+              : `${waitlistCount} grups esperant`}
+        </div>
+        <div style={{
+          fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+          letterSpacing: .02,
+        }}>
+          Toca per veure la cua
+        </div>
+      </button>
     </aside>
   );
 }
