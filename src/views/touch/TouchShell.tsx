@@ -108,6 +108,8 @@ export default function TouchShell() {
     showWaitlist, setShowWaitlist,
     setSelectedReservation,
     waitlist,
+    shiftNotes,
+    floorPlans,
   } = useAppStore();
 
   // Close out yesterday automatically — runs once on mount, when the tab
@@ -136,6 +138,28 @@ export default function TouchShell() {
     r.bizId === selectedBusiness && r.date === dayIso,
   );
   const pendingResCount = dayResAll.filter(r => r.status === 'pending').length;
+  // Currently-seated reservations + free table count — used by the live
+  // occupancy tile in the right side panel.
+  const seatedCount = dayResAll.filter(r => r.status === 'seated').length;
+  const plan = floorPlans[selectedBusiness];
+  // A table is "occupied" when at least one seated reservation today claims it.
+  const occupiedTableIds = new Set<string>();
+  for (const r of dayResAll) {
+    if (r.status !== 'seated' || !r.tableIds) continue;
+    for (const id of r.tableIds) occupiedTableIds.add(id);
+  }
+  const totalTables = plan?.tables.length ?? 0;
+  const freeTables  = Math.max(0, totalTables - occupiedTableIds.size);
+  // Latest shift note for the current day + business — newest first.
+  const todayNoteFirst = useMemo(() =>
+    shiftNotes
+      .filter(n => n.bizId === selectedBusiness && n.date === dayIso)
+      .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null,
+    [shiftNotes, selectedBusiness, dayIso],
+  );
+  const todayNoteCount = shiftNotes.filter(
+    n => n.bizId === selectedBusiness && n.date === dayIso,
+  ).length;
   // Queue badge reflects only the currently-viewed day — queues are inherently
   // a per-day, real-time concept.
   const waitlistCountForBiz = waitlist.filter(w => {
@@ -655,6 +679,9 @@ export default function TouchShell() {
                 waitlistCount={waitlistCountForBiz}
                 onOpenWaitlist={() => setShowWaitlist(true)}
                 onOpenReservation={r => { setSelectedReservation(r); setTab('reservations'); }}
+                latestNote={todayNoteFirst}
+                noteCount={todayNoteCount}
+                onOpenNotes={() => setShowNotesSheet(true)}
               />
               <LiveSidePanel
                 activeShift={activeShift}
@@ -662,6 +689,11 @@ export default function TouchShell() {
                 totalPax={totalPax}
                 pendingResCount={pendingResCount}
                 selectedDate={selectedDate}
+                allReservations={reservations}
+                bizId={selectedBusiness}
+                seatedCount={seatedCount}
+                freeTables={freeTables}
+                totalTables={totalTables}
               />
             </>
           )}
@@ -1604,12 +1636,19 @@ type ShiftLite = { id: 'M'|'N'; label: string; range: string; emoji: string; tin
 
 function LiveSidePanel({
   activeShift, totalRes, totalPax, pendingResCount, selectedDate,
+  allReservations, bizId,
+  seatedCount, freeTables, totalTables,
 }: {
   activeShift: ShiftLite;
   totalRes: number;
   totalPax: number;
   pendingResCount: number;
   selectedDate: Date;
+  allReservations: Reservation[];
+  bizId: BusinessId;
+  seatedCount: number;
+  freeTables: number;
+  totalTables: number;
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -1636,6 +1675,31 @@ function LiveSidePanel({
   const weekday = now.toLocaleDateString('ca-ES', { weekday: 'long' });
   const dayNum  = now.getDate();
   const monthShort = now.toLocaleDateString('ca-ES', { month: 'short' });
+
+  // ── Trend vs same weekday over the last 4 weeks ───────────────────────
+  // Mirrors the formula used in SmartInsightsStrip — count reservations on
+  // the same day-of-week for each of the previous 4 weeks (skipping the
+  // current selected date), average, and compute delta percentage.
+  const trend = useMemo(() => {
+    const dayCount = allReservations.filter(r =>
+      r.bizId === bizId && r.date === isoDateLocal(selectedDate)
+      && r.status !== 'cancelled' && r.status !== 'noshow'
+    ).length;
+    const past: number[] = [];
+    for (let w = 1; w <= 4; w++) {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() - w * 7);
+      const iso = isoDateLocal(d);
+      const c = allReservations.filter(r =>
+        r.bizId === bizId && r.date === iso && r.status !== 'cancelled'
+      ).length;
+      past.push(c);
+    }
+    const avg = past.reduce((s, n) => s + n, 0) / 4;
+    if (avg < 1) return null;  // not enough history
+    const delta = ((dayCount - avg) / avg) * 100;
+    return { dayCount, avg, delta, past };
+  }, [allReservations, bizId, selectedDate]);
 
   // Hourly forecast for the *currently visible date* — useful to glance at
   // how the next service hours will feel (rain coming in at 20h?).
@@ -1737,6 +1801,104 @@ function LiveSidePanel({
         )}
       </div>
 
+      {/* ── Tile: Ocupació en directe ──────────────────────────────────── */}
+      {totalTables > 0 && (
+        <div style={{
+          padding: '12px 14px',
+          background: 'var(--surface-elevated)',
+          border: '1px solid rgba(60,40,20,.08)',
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
+          <div style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: .08,
+            color: 'var(--ink-500)', textTransform: 'uppercase',
+          }}>
+            Ara mateix
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 500,
+            color: 'var(--ink-900)', letterSpacing: -.005,
+            display: 'flex', alignItems: 'baseline', gap: 6,
+          }}>
+            <span key={seatedCount} className="number-tween" style={{
+              color: seatedCount > 0 ? 'var(--terracotta-700)' : 'var(--ink-700)',
+              fontVariantNumeric: 'tabular-nums',
+            }}>{seatedCount}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-600)' }}>
+              {seatedCount === 1 ? 'a taula' : 'a taula'}
+            </span>
+          </div>
+          <div style={{
+            fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span key={freeTables} className="number-tween" style={{
+              fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 500,
+              color: freeTables === 0 ? 'var(--terracotta-700)' : 'var(--olive-700)',
+              fontVariantNumeric: 'tabular-nums',
+            }}>{freeTables}</span>
+            <span>de {totalTables} taules lliures</span>
+          </div>
+          {/* Subtle occupancy bar */}
+          <div style={{
+            position: 'relative',
+            height: 4, borderRadius: 999,
+            background: 'rgba(60,40,20,.07)',
+            overflow: 'hidden',
+            marginTop: 2,
+          }}>
+            <div style={{
+              position: 'absolute', inset: '0 auto 0 0',
+              width: `${Math.min(100, (occupiedFraction(totalTables, freeTables)) * 100)}%`,
+              background: 'linear-gradient(90deg, var(--terracotta-500), var(--terracotta-600))',
+              transition: 'width 360ms var(--ease-out)',
+            }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Tile: Tendència vs setmana passada ─────────────────────────── */}
+      {trend && (
+        <div style={{
+          padding: '12px 14px',
+          background: 'var(--surface-elevated)',
+          border: '1px solid rgba(60,40,20,.08)',
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
+          <div style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: .08,
+            color: 'var(--ink-500)', textTransform: 'uppercase',
+          }}>
+            Tendència
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'baseline', gap: 6,
+            fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
+            color: trend.delta >= 0 ? 'var(--olive-700)' : 'var(--clay-700)',
+            letterSpacing: -.005,
+          }}>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {trend.delta >= 0 ? '+' : ''}{Math.round(trend.delta)}%
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink-600)' }}>
+              vs mitjana
+            </span>
+          </div>
+          {/* Sparkline of past 4 weeks + today */}
+          <Sparkline values={[...trend.past.slice().reverse(), trend.dayCount]}
+                     highlight={trend.delta >= 0 ? 'var(--olive-600)' : 'var(--clay-600)'} />
+          <div style={{
+            fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 600,
+          }}>
+            {trend.dayCount} avui · mitjana {trend.avg.toFixed(1)}
+          </div>
+        </div>
+      )}
+
       {/* ── Tile 3: Next-hours weather ─────────────────────────────────── */}
       {nextHours.length > 0 && (
         <div style={{
@@ -1802,6 +1964,39 @@ function LiveSidePanel({
 function isoDateLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+/** Fraction of tables that are occupied (clamped 0..1). */
+function occupiedFraction(total: number, free: number): number {
+  if (total <= 0) return 0;
+  return Math.min(1, Math.max(0, (total - free) / total));
+}
+/** Minimal SVG sparkline — 5 values (4 past weeks + today). The last point
+ *  is highlighted to show "where we are vs the recent trend". */
+function Sparkline({ values, highlight }: { values: number[]; highlight: string }) {
+  const W = 160, H = 26, PAD = 2;
+  const max = Math.max(1, ...values);
+  const min = Math.min(0, ...values);
+  const span = Math.max(1, max - min);
+  const step = (W - PAD * 2) / Math.max(1, values.length - 1);
+  const pts = values.map((v, i) => {
+    const x = PAD + i * step;
+    const y = H - PAD - ((v - min) / span) * (H - PAD * 2);
+    return { x, y };
+  });
+  const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1];
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden style={{ display: 'block' }}>
+      <path d={path} fill="none"
+        stroke="var(--ink-300)" strokeWidth={1.4}
+        strokeLinecap="round" strokeLinejoin="round" />
+      {last && (
+        <circle cx={last.x} cy={last.y} r={2.8}
+          fill={highlight}
+          stroke="var(--surface-elevated)" strokeWidth={1.5} />
+      )}
+    </svg>
+  );
+}
 function emojiForCondition(c: WxCondition): string {
   switch (c) {
     case 'clear':    return '☀️';
@@ -1825,11 +2020,15 @@ function emojiForCondition(c: WxCondition): string {
 // ─────────────────────────────────────────────────────────────────────────────
 function OpsLeftPanel({
   reservations, waitlistCount, onOpenWaitlist, onOpenReservation,
+  latestNote, noteCount, onOpenNotes,
 }: {
   reservations: Reservation[];
   waitlistCount: number;
   onOpenWaitlist: () => void;
   onOpenReservation: (r: Reservation) => void;
+  latestNote: { body: string; author: string; createdAt: number } | null;
+  noteCount: number;
+  onOpenNotes: () => void;
 }) {
   const [now, setNow] = useState(() => new Date());
   // Recompute the next-reservation countdown every 30 s so the text stays
@@ -1876,6 +2075,60 @@ function OpsLeftPanel({
         display: 'flex', flexDirection: 'column', gap: 10,
         zIndex: 5,
       }}>
+
+      {/* ── Tile: Notes del torn (latest) ──────────────────────────────── */}
+      {latestNote && (
+        <button
+          onClick={onOpenNotes} className="press"
+          style={{
+            textAlign: 'left',
+            padding: '14px 16px',
+            background: 'linear-gradient(180deg, #fff8e6 0%, #fbf2d3 100%)',
+            border: '1px solid rgba(180,140,40,.22)',
+            borderRadius: 14,
+            boxShadow: '0 1px 2px rgba(180,140,40,.06), var(--shadow-inset-top)',
+            display: 'flex', flexDirection: 'column', gap: 4,
+            cursor: 'pointer', fontFamily: 'inherit',
+            position: 'relative', overflow: 'hidden',
+          }}>
+          <span aria-hidden style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+            background: '#c89a3a',
+          }} />
+          <div style={{
+            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6,
+          }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: .08,
+              color: '#8a6a10', textTransform: 'uppercase',
+            }}>
+              Nota del torn
+            </span>
+            {noteCount > 1 && (
+              <span style={{
+                fontFamily: 'var(--font-serif)', fontSize: 12, fontWeight: 500,
+                color: '#8a6a10',
+              }}>+{noteCount - 1}</span>
+            )}
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-serif)', fontSize: 13.5, fontWeight: 500,
+            color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.35,
+            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>
+            {latestNote.body}
+          </div>
+          {latestNote.author && (
+            <div style={{
+              fontSize: 10.5, color: '#8a6a10', opacity: .75, fontWeight: 600,
+              fontFamily: 'var(--font-mono)',
+            }}>
+              · {latestNote.author}
+            </div>
+          )}
+        </button>
+      )}
 
       {/* ── Tile: Next reservation ─────────────────────────────────────── */}
       <button
