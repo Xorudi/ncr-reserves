@@ -610,6 +610,9 @@ export default function MobileTodayView({
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
   const [showCal, setShowCal] = useState(false);
   const [shift, setShift]     = useState<'M' | 'N'>(() => new Date().getHours() >= 18 ? 'N' : 'M');
+  // Zone filter — null means "all zones". The reset effect lives further
+  // down, after `dateStr` is in scope.
+  const [zoneFilter, setZoneFilter] = useState<string | null>(null);
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
   // Initialize with the current trigger value so a remount (e.g. user
   // navigates away and back to the Reserves tab) doesn't re-fire the sheet
@@ -629,6 +632,9 @@ export default function MobileTodayView({
   }, [newResTrigger]);
 
   const dateStr  = isoDate(selectedDate);
+  // Reset zone filter whenever the day or shift changes so the operator
+  // always lands on the full list rather than an inherited filter.
+  useEffect(() => { setZoneFilter(null); }, [dateStr, shift]);
   const d        = selectedDate;
   const isToday  = isoDate(new Date()) === dateStr;
   const dayLabel = `${DAYS_CA[d.getDay()]}, ${d.getDate()} de ${MONTHS_CA[d.getMonth()]}`;
@@ -656,7 +662,38 @@ export default function MobileTodayView({
   const effectiveShift = migdia.length === 0 && nit.length > 0 ? 'N'
                        : nit.length   === 0 && migdia.length > 0 ? 'M'
                        : shift;
-  const activeList = effectiveShift === 'N' ? nit : migdia;
+  const shiftList = effectiveShift === 'N' ? nit : migdia;
+
+  // Reservation → zone resolver. A reservation can have multiple tables
+  // (joined tables), but for filter purposes the first table's zone is
+  // representative — adjacent tables in a join always belong to the same
+  // zone. Returns null when the reservation has no table assigned yet.
+  const reservationZone = (r: Reservation): string | null => {
+    if (!plan || !r.tableIds || r.tableIds.length === 0) return null;
+    const t = plan.tables.find(x => x.id === r.tableIds![0]);
+    return t?.zone ?? null;
+  };
+
+  // Build the zone chips from the floor plan. Each chip carries its count
+  // for the current shift so the operator sees at a glance how the night
+  // splits across the dining room / bar / terrace.
+  const zoneCounts = useMemo(() => {
+    const m = new Map<string | null, number>();
+    for (const r of shiftList) {
+      const z = reservationZone(r);
+      m.set(z, (m.get(z) ?? 0) + 1);
+    }
+    return m;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shiftList, plan]);
+
+  // Final filtered list applied to the visible rows.
+  const activeList = useMemo(() => {
+    if (!zoneFilter) return shiftList;
+    if (zoneFilter === '__none__') return shiftList.filter(r => reservationZone(r) === null);
+    return shiftList.filter(r => reservationZone(r) === zoneFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shiftList, zoneFilter, plan]);
 
   const totalRes = dayRes.length;
   const totalPax = dayRes.reduce((s, r) => s + r.pax, 0);
@@ -856,6 +893,46 @@ export default function MobileTodayView({
           </div>
         )}
       </div>
+
+      {/* ── Zone filter chips — horizontal strip, one chip per zone with
+            its count for the current shift. "Totes" resets the filter.
+            Only shown when there is at least one reservation in the
+            current shift AND the floor plan has zones (so we don't
+            render an empty strip on businesses with no plan). */}
+      {shiftList.length > 0 && plan && plan.zones.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '0 16px 12px',
+          overflowX: 'auto', scrollbarWidth: 'none',
+        }}>
+          <ZoneChip
+            label="Totes" count={shiftList.length}
+            active={zoneFilter === null}
+            onClick={() => setZoneFilter(null)}
+            tone="all"
+          />
+          {[...plan.zones].sort((a, b) => a.order - b.order).map(z => {
+            const c = zoneCounts.get(z.id) ?? 0;
+            if (c === 0) return null;
+            return (
+              <ZoneChip key={z.id}
+                label={z.label} count={c}
+                active={zoneFilter === z.id}
+                onClick={() => setZoneFilter(z.id)}
+                tone="zone"
+              />
+            );
+          })}
+          {(zoneCounts.get(null) ?? 0) > 0 && (
+            <ZoneChip
+              label="Sense taula" count={zoneCounts.get(null) ?? 0}
+              active={zoneFilter === '__none__'}
+              onClick={() => setZoneFilter('__none__')}
+              tone="empty"
+            />
+          )}
+        </div>
+      )}
 
       {/* ── Hero stat card — replaces the three flat stat boxes ────────── */}
       {activeList.length > 0 && (() => {
@@ -1249,6 +1326,51 @@ export default function MobileTodayView({
 }
 
 // ─── Status pill (mobile style — no dot, just coloured label) ────────────────
+// ─── Zone filter chip ────────────────────────────────────────────────────────
+// One pill in the horizontal zone-filter strip. Three tonal variants:
+//   - "all"   → the unfiltered "Totes" pill (ink-toned dark active state)
+//   - "zone"  → a real zone (terracotta accent when active)
+//   - "empty" → the "Sense taula" bucket (clay accent — a warning tone for
+//               reservations that haven't been assigned a table yet)
+function ZoneChip({
+  label, count, active, onClick, tone,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  tone: 'all' | 'zone' | 'empty';
+}) {
+  const palette = tone === 'all'
+    ? { bgActive: 'var(--ink-900)',         fgActive: '#fff',                 countActive: 'rgba(255,255,255,.78)' }
+    : tone === 'empty'
+      ? { bgActive: 'var(--clay-600)',       fgActive: '#fff',                 countActive: 'rgba(255,255,255,.82)' }
+      : { bgActive: 'var(--terracotta-600)', fgActive: '#fff',                 countActive: 'rgba(255,255,255,.82)' };
+  return (
+    <button onClick={onClick} className="press"
+      style={{
+        flexShrink: 0,
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '7px 12px', borderRadius: 999,
+        border: active ? 'none' : '1px solid rgba(60,40,20,.12)',
+        background: active ? palette.bgActive : 'var(--paper)',
+        color: active ? palette.fgActive : 'var(--ink-700)',
+        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 650,
+        letterSpacing: .01, cursor: 'pointer',
+        boxShadow: active ? '0 1px 2px rgba(60,40,20,.10), inset 0 1px 0 rgba(255,255,255,.10)' : 'var(--sh-1)',
+        transition: 'background 160ms var(--ease-out), color 160ms var(--ease-out), box-shadow 160ms var(--ease-out)',
+      }}>
+      <span>{label}</span>
+      <span style={{
+        fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 500,
+        color: active ? palette.countActive : 'var(--ink-500)',
+        fontVariantNumeric: 'tabular-nums',
+        letterSpacing: -.005,
+      }}>{count}</span>
+    </button>
+  );
+}
+
 function ResStatePill({ state }: { state: ReservationStatus }) {
   // Each state gets a bg + fg + a "dot" color for the leading indicator.
   // The dot is the same hue as the foreground but at a more saturated mid
