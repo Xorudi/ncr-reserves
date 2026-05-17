@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
+import { useDevice } from '@/hooks/useDevice';
 import TableSelectorModal from '@/components/shared/TableSelectorModal';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
@@ -610,6 +611,10 @@ export default function MobileTodayView({
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
   const [showCal, setShowCal] = useState(false);
   const [shift, setShift]     = useState<'M' | 'N'>(() => new Date().getHours() >= 18 ? 'N' : 'M');
+  // On a large touchscreen the left side panel already shows the Notes
+  // del torn and the Tendència insight — hide their center-content
+  // counterparts to avoid duplicated info.
+  const { isLargeScreen: isLargeTouchScreen } = useDevice();
   // Zone filter — null means "all zones". The reset effect lives further
   // down, after `dateStr` is in scope.
   const [zoneFilter, setZoneFilter] = useState<string | null>(null);
@@ -824,8 +829,10 @@ export default function MobileTodayView({
 
             {/* Notes pill — only on Reserves (where onOpenNotes is provided).
                 Shows the first note inline when there are notes, or a small
-                "+ Nota" ghost when empty. Tap opens the global NotesSheet. */}
-            {onOpenNotes && (
+                "+ Nota" ghost when empty. Tap opens the global NotesSheet.
+                Hidden on large touchscreens where the left side panel
+                already shows the same note as a dedicated tile. */}
+            {onOpenNotes && !isLargeTouchScreen && (
               notesCount > 0 ? (
                 <button onClick={onOpenNotes} className="press"
                   aria-label="Notes del torn"

@@ -1956,8 +1956,10 @@ function LiveSidePanel({
       }}>
         <KpiRow label="Reserves" value={totalRes} />
         <KpiRow label="Comensals" value={totalPax} />
-        <KpiRow label="Pendents" value={pendingResCount}
-                accent={pendingResCount > 0} />
+        {/* Pendents KPI removed — the OpsLeftPanel already surfaces this
+            count (as an interactive "Pendents · toca per revisar-les"
+            card when > 0) and the rail's Reserves icon shows it as a
+            badge. Three places for the same number was noise. */}
       </div>
     </aside>
   );

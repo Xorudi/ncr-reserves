@@ -15,6 +15,7 @@ import {
 } from '@/utils/insights';
 import { fetchForecast, DEFAULT_COORDS, type WeatherForecast } from '@/lib/weather';
 import ReservationsListSheet from './ReservationsListSheet';
+import { useDevice } from '@/hooks/useDevice';
 
 export default function SmartInsightsStrip() {
   const {
@@ -37,12 +38,23 @@ export default function SmartInsightsStrip() {
   // reactive). The counter is incremented from each chip's × handler.
   const [dismissTick, setDismissTick] = useState(0);
 
+  // On a large touchscreen the right side panel already shows the
+  // trend tile (Tendència ±%) — drop the equivalent insight chip
+  // (cmp-up / cmp-down) to avoid duplicating the same number.
+  const { isLargeScreen, isTouch } = useDevice();
+  const dedupForLargeTouch = isLargeScreen && isTouch;
+
   const insights = useMemo(
-    () => generateDayInsights({
-      selectedDate, bizId: selectedBusiness, reservations, customers, waitlist, forecast,
-    }),
+    () => {
+      const all = generateDayInsights({
+        selectedDate, bizId: selectedBusiness, reservations, customers, waitlist, forecast,
+      });
+      return dedupForLargeTouch
+        ? all.filter(i => i.id !== 'cmp-up' && i.id !== 'cmp-down')
+        : all;
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedDate, selectedBusiness, reservations, customers, waitlist, forecast, dismissTick]
+    [selectedDate, selectedBusiness, reservations, customers, waitlist, forecast, dismissTick, dedupForLargeTouch]
   );
 
   // State for the filtered-reservations sheet that some chip actions open.
