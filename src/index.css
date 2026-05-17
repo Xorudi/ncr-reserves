@@ -508,6 +508,35 @@ body::before {
   animation-delay: calc(var(--row-i, 0) * 35ms);
 }
 
+/* ── Side-panel tile stagger — cascades the cards inside both side panels
+   on initial mount. Fires once per session (panels don't remount on tab
+   change). Emil-style: 60 ms between tiles, soft translateY + opacity,
+   strong ease-out curve so each card "lands" rather than slides. */
+@keyframes side-tile-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.side-panel > * {
+  animation: side-tile-in 360ms var(--ease-out) both;
+}
+.side-panel > *:nth-child(1) { animation-delay:   0ms; }
+.side-panel > *:nth-child(2) { animation-delay:  60ms; }
+.side-panel > *:nth-child(3) { animation-delay: 120ms; }
+.side-panel > *:nth-child(4) { animation-delay: 180ms; }
+.side-panel > *:nth-child(5) { animation-delay: 240ms; }
+.side-panel > *:nth-child(6) { animation-delay: 300ms; }
+.side-panel > *:nth-child(n+7) { animation-delay: 360ms; } /* cap at 360 — anything later snaps in */
+
+/* Honour the reduced-motion preference by collapsing the stagger to a
+   plain fade — same Emil rule: keep opacity, drop translateY. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes side-tile-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .side-panel > * { animation-duration: 200ms; }
+}
+
 /* ── Status morph — deeper blur+scale dip so the colour swap is felt, not
    just seen. Increased from 220ms / blur 2px / scale 0.94 after testing. */
 @keyframes status-morph {

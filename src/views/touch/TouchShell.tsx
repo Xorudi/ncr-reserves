@@ -1724,6 +1724,7 @@ function LiveSidePanel({
 
   return (
     <aside
+      className="side-panel"
       style={{
         position: 'absolute',
         top: 84,                          // sit below the date header
@@ -2067,6 +2068,7 @@ function OpsLeftPanel({
 
   return (
     <aside
+      className="side-panel"
       style={{
         position: 'absolute',
         top: 84,
