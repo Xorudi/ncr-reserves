@@ -1897,7 +1897,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   editRes?: Reservation;
 }) {
   const biz = BUSINESSES.find(b => b.id === bizId)!;
-  const { customers, floorPlans, addCustomer, updateReservation, addReservationSeries } = useAppStore();
+  const { customers, floorPlans, addCustomer, updateCustomer, updateReservation, addReservationSeries } = useAppStore();
   const plan = floorPlans[bizId];
   const isEdit = !!editRes;
 
@@ -2078,6 +2078,32 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
         biz:       [bizId],
         notes:     form.notes || '',
       });
+    } else if (existingCustomer) {
+      // The reservation matches an existing client in the cartera. Patch
+      // any fields the operator changed in the form so we don't silently
+      // drop new info — most importantly the phone, which the user
+      // reported as being lost on edit. Only updates fields that DIFFER
+      // and that the operator has explicitly filled in.
+      const updates: Partial<typeof existingCustomer> = {};
+      const formPhone = form.phone.replace(/\s/g, '');
+      const cusPhone  = (existingCustomer.phone || '').replace(/\s/g, '');
+      if (formPhone && formPhone !== cusPhone) {
+        updates.phone = form.phone.trim();
+      }
+      const formName = form.name.trim();
+      if (formName && formName !== existingCustomer.name) {
+        updates.name = formName;
+      }
+      if (form.allergens.length > 0) {
+        const tags = new Set([...(existingCustomer.tags || []), 'allergy']);
+        const next = Array.from(tags);
+        if (next.length !== (existingCustomer.tags || []).length) {
+          updates.tags = next;
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        updateCustomer(existingCustomer.id, updates);
+      }
     }
     setSaved(true);
     setTimeout(onClose, 700);
