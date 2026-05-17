@@ -682,6 +682,8 @@ export default function TouchShell() {
                 latestNote={todayNoteFirst}
                 noteCount={todayNoteCount}
                 onOpenNotes={() => setShowNotesSheet(true)}
+                pendingCount={pendingResCount}
+                onJumpToPending={() => setTab('reservations')}
               />
               <LiveSidePanel
                 activeShift={activeShift}
@@ -2022,6 +2024,7 @@ function emojiForCondition(c: WxCondition): string {
 function OpsLeftPanel({
   reservations, waitlistCount, onOpenWaitlist, onOpenReservation,
   latestNote, noteCount, onOpenNotes,
+  pendingCount, onJumpToPending,
 }: {
   reservations: Reservation[];
   waitlistCount: number;
@@ -2030,6 +2033,8 @@ function OpsLeftPanel({
   latestNote: { body: string; author: string; createdAt: number } | null;
   noteCount: number;
   onOpenNotes: () => void;
+  pendingCount: number;
+  onJumpToPending: () => void;
 }) {
   const [now, setNow] = useState(() => new Date());
   // Recompute the next-reservation countdown every 30 s so the text stays
@@ -2078,57 +2083,141 @@ function OpsLeftPanel({
         zIndex: 5,
       }}>
 
-      {/* ── Tile: Notes del torn (latest) ──────────────────────────────── */}
-      {latestNote && (
+      {/* ── Tile: Notes del torn — always visible, switches to an empty
+            state with "Afegir nota" when there's nothing for the day. ──── */}
+      <button
+        onClick={onOpenNotes} className="press"
+        style={{
+          textAlign: 'left',
+          padding: '14px 16px',
+          background: latestNote
+            ? 'linear-gradient(180deg, #fff8e6 0%, #fbf2d3 100%)'
+            : 'var(--surface-elevated)',
+          border: latestNote
+            ? '1px solid rgba(180,140,40,.22)'
+            : '1px dashed rgba(180,140,40,.30)',
+          borderRadius: 14,
+          boxShadow: latestNote
+            ? '0 1px 2px rgba(180,140,40,.06), var(--shadow-inset-top)'
+            : 'var(--shadow-sm), var(--shadow-inset-top)',
+          display: 'flex', flexDirection: 'column', gap: 4,
+          cursor: 'pointer', fontFamily: 'inherit',
+          position: 'relative', overflow: 'hidden',
+        }}>
+        {latestNote && (
+          <span aria-hidden style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+            background: '#c89a3a',
+          }} />
+        )}
+        <div style={{
+          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6,
+        }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: .08,
+            color: '#8a6a10', textTransform: 'uppercase',
+          }}>
+            Nota del torn
+          </span>
+          {noteCount > 1 && (
+            <span style={{
+              fontFamily: 'var(--font-serif)', fontSize: 12, fontWeight: 500,
+              color: '#8a6a10',
+            }}>+{noteCount - 1}</span>
+          )}
+        </div>
+        {latestNote ? (
+          <>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 13.5, fontWeight: 500,
+              color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.35,
+              display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}>
+              {latestNote.body}
+            </div>
+            {latestNote.author && (
+              <div style={{
+                fontSize: 10.5, color: '#8a6a10', opacity: .75, fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+              }}>
+                · {latestNote.author}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div style={{
+              fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500,
+              color: 'var(--ink-600)', letterSpacing: -.005,
+            }}>
+              Cap nota per avui
+            </div>
+            <div style={{
+              fontSize: 11, color: '#8a6a10', fontWeight: 650,
+              letterSpacing: .02,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}>
+              + Afegir nota
+            </div>
+          </>
+        )}
+      </button>
+
+      {/* ── Tile: Pendents ─────────────────────────────────────────────────
+            Only shows when there are unconfirmed reservations today —
+            otherwise the operator has nothing to do here. Tap opens the
+            Reserves tab where the operator can confirm them one by one. */}
+      {pendingCount > 0 && (
         <button
-          onClick={onOpenNotes} className="press"
+          onClick={onJumpToPending}
+          className="press"
           style={{
             textAlign: 'left',
             padding: '14px 16px',
-            background: 'linear-gradient(180deg, #fff8e6 0%, #fbf2d3 100%)',
-            border: '1px solid rgba(180,140,40,.22)',
+            background: 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 60%), var(--clay-50)',
+            border: '1px solid rgba(60,40,20,.08)',
             borderRadius: 14,
-            boxShadow: '0 1px 2px rgba(180,140,40,.06), var(--shadow-inset-top)',
+            boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
             display: 'flex', flexDirection: 'column', gap: 4,
             cursor: 'pointer', fontFamily: 'inherit',
             position: 'relative', overflow: 'hidden',
           }}>
           <span aria-hidden style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
-            background: '#c89a3a',
+            background: 'var(--clay-600)',
           }} />
           <div style={{
             display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6,
           }}>
             <span style={{
               fontSize: 10, fontWeight: 700, letterSpacing: .08,
-              color: '#8a6a10', textTransform: 'uppercase',
+              color: 'var(--ink-500)', textTransform: 'uppercase',
             }}>
-              Nota del torn
+              Pendents
             </span>
-            {noteCount > 1 && (
-              <span style={{
-                fontFamily: 'var(--font-serif)', fontSize: 12, fontWeight: 500,
-                color: '#8a6a10',
-              }}>+{noteCount - 1}</span>
-            )}
+            <span key={pendingCount} className="number-tween" style={{
+              fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500,
+              color: 'var(--clay-700)', letterSpacing: -.005,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {pendingCount}
+            </span>
           </div>
           <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: 13.5, fontWeight: 500,
-            color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.35,
-            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
+            fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500,
+            color: 'var(--ink-900)', letterSpacing: -.005,
           }}>
-            {latestNote.body}
+            {pendingCount === 1
+              ? '1 reserva sense confirmar'
+              : `${pendingCount} reserves sense confirmar`}
           </div>
-          {latestNote.author && (
-            <div style={{
-              fontSize: 10.5, color: '#8a6a10', opacity: .75, fontWeight: 600,
-              fontFamily: 'var(--font-mono)',
-            }}>
-              · {latestNote.author}
-            </div>
-          )}
+          <div style={{
+            fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
+            letterSpacing: .02,
+          }}>
+            Toca per revisar-les
+          </div>
         </button>
       )}
 
