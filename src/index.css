@@ -816,6 +816,107 @@ button, [role="button"] {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+   Rail nav button — PIN-keypad-tier tactility for the left sidebar.
+
+   At rest: invisible (just icon + label). Hover (precise pointer only):
+   warm-paper pill with the same bezel as a PIN key. Active: terracotta-
+   tinted pill — the brand's accent, not a generic surface-elevated grey.
+   Press: instant scale + inverted inset (the tile "depresses into" the
+   sidebar), then a soft ease-out on release — same timing asymmetry that
+   makes the PIN feel premium.
+   ────────────────────────────────────────────────────────────────────────── */
+.rail-nav-btn {
+  position: relative; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-500);
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background   240ms var(--ease-out),
+    border-color 240ms var(--ease-out),
+    box-shadow   240ms var(--ease-out),
+    color        240ms var(--ease-out),
+    transform    180ms var(--ease-out);
+}
+.rail-nav-btn--wide {
+  border-radius: 14px;
+  gap: 7px;
+}
+
+/* Hover — only on precise pointers (touch users skip the rest state
+   and go straight to active). Warm-paper pill with PIN-key chrome. */
+@media (hover: hover) and (pointer: fine) {
+  .rail-nav-btn:not([data-active="true"]):hover {
+    background: linear-gradient(180deg, var(--paper, #fbf7ee) 0%, #f7eedb 100%);
+    border-color: rgba(60,40,20,.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      inset 0 -1px 0 rgba(60,40,20,.05),
+      0 1px 2px rgba(60,40,20,.04);
+    color: var(--ink-700);
+  }
+}
+
+/* Active — terracotta-tinted pill, always visible. Brand accent
+   replaces the previous generic --surface-elevated. */
+.rail-nav-btn[data-active="true"] {
+  background: linear-gradient(180deg, var(--terracotta-50, #fbeadf) 0%, #f3cbb1 100%);
+  border-color: rgba(168,80,47,.20);
+  color: var(--terracotta-700, #923c1f);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(146,60,31,.10),
+    0 1px 2px rgba(146,60,31,.08),
+    0 4px 12px -4px rgba(146,60,31,.12);
+}
+@media (hover: hover) and (pointer: fine) {
+  .rail-nav-btn[data-active="true"]:hover {
+    background: linear-gradient(180deg, #fbeadf 0%, #f6d2bb 100%);
+  }
+}
+
+/* Press — instant scale + darker face + inverted inset.
+   Same timing asymmetry as a PIN key. */
+.rail-nav-btn:active {
+  transition: none;
+  transform: scale(0.96);
+}
+.rail-nav-btn:not([data-active="true"]):active {
+  background: linear-gradient(180deg, #e9dcc1 0%, #ddcca8 100%);
+  border-color: rgba(60,40,20,.12);
+  box-shadow:
+    inset 0 2px 4px rgba(60,40,20,.14),
+    inset 0 -1px 0 rgba(255,255,255,.25);
+  color: var(--ink-700);
+}
+.rail-nav-btn[data-active="true"]:active {
+  background: linear-gradient(180deg, #ecbfa6 0%, #d8a484 100%);
+  box-shadow:
+    inset 0 2px 5px rgba(146,60,31,.22),
+    inset 0 -1px 0 rgba(255,255,255,.18);
+}
+
+.rail-nav-btn__label {
+  font-size: 10px; font-weight: 550;
+  letter-spacing: .01em;
+}
+.rail-nav-btn--wide .rail-nav-btn__label { font-size: 12px; }
+.rail-nav-btn[data-active="true"] .rail-nav-btn__label {
+  font-weight: 700;
+  color: var(--terracotta-700, #923c1f);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-nav-btn { transition: background 200ms ease, color 200ms ease; }
+  .rail-nav-btn:active { transform: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
    Weather widget — discreet condition-aware animations layered behind the
    icon. Each keyframe is slow and low-amplitude so it never competes with
    the reservation list for attention.

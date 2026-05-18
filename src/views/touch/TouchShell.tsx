@@ -493,26 +493,18 @@ export default function TouchShell() {
                 0;
 
               return (
-                <button key={entry.id} onClick={onClick} className="nav-btn press"
+                <button
+                  key={entry.id}
+                  onClick={onClick}
+                  className={`rail-nav-btn ${railWide ? 'rail-nav-btn--wide' : ''}`}
+                  data-active={active ? 'true' : 'false'}
                   style={{
-                    position: 'relative', flexShrink: 0,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: railWide ? 7 : 5,
                     padding: railWide ? '14px 6px 13px' : '10px 4px 9px',
-                    border: 'none', borderRadius: railWide ? 14 : 12,
-                    background: active ? 'var(--surface-elevated)' : 'transparent',
-                    boxShadow: active
-                      ? 'var(--shadow-md), var(--shadow-ring), var(--shadow-inset-top)'
-                      : 'none',
-                    color: active ? 'var(--ink-900)' : 'var(--ink-500)',
-                    cursor: 'pointer', fontFamily: 'inherit',
                     minHeight: railWide ? 64 : undefined,
-                  }}>
+                  }}
+                >
                   <Icon d={entry.ico} size={railWide ? 28 : 22} stroke={active ? 2.1 : 1.6} />
-                  <span style={{
-                    fontSize: railWide ? 12 : 10, fontWeight: active ? 700 : 550,
-                    letterSpacing: .01,
-                    color: active ? 'var(--ink-900)' : 'var(--ink-500)',
-                  }}>{entry.label}</span>
+                  <span className="rail-nav-btn__label">{entry.label}</span>
                   {badge > 0 && (
                     <span style={{
                       position: 'absolute', top: 6, right: 14,
