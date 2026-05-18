@@ -140,24 +140,28 @@
 
 * { box-sizing: border-box; }
 
-html {
-  /* dvh = dynamic viewport height: shrinks when the browser toolbar hides.
-     Correct usable height on iOS Safari and Android Chrome. */
-  height: 100dvh;
+/* ─── Mobile-app viewport lock ─────────────────────────────────────────────
+   html, body and #root are pinned to 100% of the layout viewport with
+   overflow hidden. Nothing scrolls at this level — scroll only happens
+   inside the in-app scroll containers. Combined with the locked viewport
+   meta (maximum-scale=1, user-scalable=no), this kills the entire class
+   of bugs caused by pinch-zoom + position:fixed + visualViewport drift:
+   when the layout viewport CAN'T be zoomed and CAN'T scroll, the bottom
+   nav is always anchored to the same physical rectangle. */
+html, body, #root {
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
 }
 
 body {
   margin: 0;
   padding: 0;
-  height: 100dvh;
-  min-height: 100dvh;
-  overflow-x: hidden;
   font-family: var(--font-sans);
   font-feature-settings: "ss01","cv11";
   color: var(--ink-800);
   /* Atmospheric canvas — a very subtle warm radial in the top-right and a
-     cool one in the bottom-left, mixed on the base surface. Gives the app
-     depth without saturating any single area. Pure cream as the floor. */
+     cool one in the bottom-left, mixed on the base surface. */
   background:
     radial-gradient(1200px 800px at 100% -10%, rgba(243,220,166,.32) 0%, transparent 55%),
     radial-gradient(900px 700px  at -5% 110%, rgba(236,216,227,.22) 0%, transparent 55%),
@@ -165,8 +169,12 @@ body {
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.005em;
-  /* Stop iOS rubber-band bouncing on the body */
+  /* No iOS rubber-band; prevent text auto-zoom; speed up tap (no 300ms
+     double-tap delay); the locked viewport already blocks pinch zoom. */
   overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
 }
 
 /* ─── Paper grain — gives the cream surface a hand-printed feel ─────────────
@@ -220,9 +228,17 @@ body::before {
   letter-spacing: .02em;
 }
 
-#root {
-  height: 100dvh;
-  overflow: hidden; /* each shell handles its own overflow */
+/* #root already covered by the `html, body, #root` lock above —
+   100% height + overflow hidden. Each in-app shell handles its own scroll. */
+
+/* iOS Safari auto-zooms form fields on focus when their effective font-size
+   is < 16 px, even with user-scalable=no on some versions. Enforce a 16 px
+   floor as a defence in depth; visual sizing can still be smaller via
+   transform: scale(...) if a design ever needs it. */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: max(16px, 1em);
+  }
 }
 
 /* ─── Scrollbars ─── */

@@ -779,24 +779,22 @@ export default function TouchShell() {
     <div style={{
       position: 'relative',                 // FAB anchor
       display: 'flex', flexDirection: 'column',
-      /* Height contract — single source of truth:
-       *   `100dvh` (dynamic viewport height) is what iOS Safari 15.4+ and
-       *   modern Android Chrome report as the live visible area, including
-       *   the auto-hiding toolbar transitions. This is the value the bottom
-       *   nav anchors itself against.
+      /* Height contract — single, stable source of truth:
+       *   The shell inherits height from #root (which is locked to 100%
+       *   of the layout viewport via index.css). The viewport meta tag
+       *   prevents pinch zoom, so the layout viewport == visual viewport
+       *   at all times. No more visualViewport drift, no more dvh races,
+       *   no more nav-floating-mid-screen after a pinch gesture.
        *
-       *   `maxHeight: appH` clamps the shell to never exceed the visual
-       *   viewport on first paint — some iOS releases report `100dvh` as
-       *   the LARGER layout viewport for a few frames before settling,
-       *   which previously left a phantom cream gap below the in-flow nav
-       *   until the user dragged the page (forcing a re-measure). With
-       *   the clamp the gap is impossible: the shell shrinks immediately
-       *   to whatever the visualViewport API reports.
+       *   The auto-hiding iOS Safari toolbar OVERLAYS the bottom of our
+       *   nav when visible — acceptable for our app; the user dismisses
+       *   it with a single scroll and it stays away during the service.
        *
-       *   The JS listener (above) keeps appH and --app-h live so the
-       *   clamp tracks toolbar show/hide and orientation changes. */
-      height: '100dvh',
-      maxHeight: `${appH}px`,
+       *   We still maintain `appH` and `--app-h` via the visualViewport
+       *   listener (above) so consumers that need the LIVE visible height
+       *   (toaster positioning, etc.) have a correct reference, but the
+       *   shell itself does not depend on it. */
+      height: '100%',
       width: '100%',
       overflow: 'hidden',
     }}>
