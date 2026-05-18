@@ -1917,10 +1917,10 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
 
             <div style={{ display:'flex', gap:8, marginBottom:8 }}>
               {r.phone && (
-                <a href={`tel:${r.phone}`}
+                <a href={`tel:${r.phone}`} className="tac-btn"
                   style={{
                     flex:1, padding:'10px', textAlign:'center',
-                    background:'var(--ink-100)', borderRadius:11,
+                    borderRadius:11,
                     textDecoration:'none', fontSize:13, fontWeight:600,
                     color:'var(--ink-800)',
                     display:'flex', alignItems:'center', justifyContent:'center', gap:6,
@@ -1930,11 +1930,11 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
               )}
               {r.status !== 'seated' && (
                 <button onClick={() => { updateReservationStatus(r.id, 'seated'); onClose(); }}
+                  className="tac-btn tac-btn--accent"
                   style={{
                     flex:2, padding:'10px',
-                    background:'var(--ink-900)', color:'var(--cream)',
-                    border:'none', borderRadius:11, cursor:'pointer',
-                    fontFamily:'inherit', fontSize:13, fontWeight:600,
+                    borderRadius:11,
+                    fontSize:13, fontWeight:700,
                   }}>
                   A taula →
                 </button>
@@ -1955,11 +1955,10 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
               }}>
                 {r.tableIds && r.tableIds.length > 0 ? assignedTableNames : 'Sense taula assignada'}
               </span>
-              <button onClick={() => setShowTableSel(true)}
+              <button onClick={() => setShowTableSel(true)} className="tac-btn"
                 style={{
-                  padding:'4px 10px', fontSize:12, background:'transparent',
-                  border:'1px solid rgba(60,40,20,.15)',
-                  borderRadius:7, cursor:'pointer', fontFamily:'inherit',
+                  padding:'4px 10px', fontSize:12,
+                  borderRadius:7,
                   fontWeight:600, color:'var(--ink-700)',
                 }}>
                 {r.tableIds && r.tableIds.length > 0 ? 'Canviar' : 'Assignar taula'}
@@ -1980,12 +1979,12 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
               <span style={{ color:'var(--ink-400)', fontSize:12.5 }}>Aquesta acció no es pot desfer.</span>
             </div>
             <div style={{ display:'flex', gap:10 }}>
-              <button onClick={() => setConfirmDelete(false)}
-                style={{ flex:1, padding:'13px', background:'var(--ink-100)', border:'none', borderRadius:12, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:600, color:'var(--ink-800)' }}>
+              <button onClick={() => setConfirmDelete(false)} className="tac-btn"
+                style={{ flex:1, padding:'13px', borderRadius:12, fontSize:14, fontWeight:600, color:'var(--ink-800)' }}>
                 Cancel·lar
               </button>
-              <button onClick={handleDelete}
-                style={{ flex:1, padding:'13px', background:'#c0392b', border:'none', borderRadius:12, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:700, color:'white' }}>
+              <button onClick={handleDelete} className="tac-btn"
+                style={{ flex:1, padding:'13px', borderRadius:12, fontSize:14, fontWeight:700, color:'#c0392b' }}>
                 Eliminar
               </button>
             </div>

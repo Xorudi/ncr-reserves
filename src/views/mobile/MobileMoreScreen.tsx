@@ -366,22 +366,18 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
           Es tancarà la sessió d'aquest dispositiu. Caldrà introduir l'email i contrasenya per tornar a entrar.
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={() => setConfirmSignOut(false)} className="press"
+          <button onClick={() => setConfirmSignOut(false)} className="tac-btn"
             style={{
               flex: 1, padding: '12px 16px', borderRadius: 12,
-              border: '1px solid rgba(60,40,20,.12)', background: 'var(--surface-base)',
-              color: 'var(--ink-800)', fontFamily: 'inherit',
-              fontSize: 14, fontWeight: 650, cursor: 'pointer', minHeight: 48,
+              color: 'var(--ink-800)',
+              fontSize: 14, fontWeight: 650, minHeight: 48,
             }}>
             Cancel·lar
           </button>
-          <button onClick={async () => { setConfirmSignOut(false); await signOut(); }} className="press"
+          <button onClick={async () => { setConfirmSignOut(false); await signOut(); }} className="tac-btn tac-btn--accent"
             style={{
               flex: 1, padding: '12px 16px', borderRadius: 12,
-              border: 'none', background: 'var(--terracotta-600)',
-              color: '#fff', fontFamily: 'inherit',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer', minHeight: 48,
-              boxShadow: '0 1px 2px rgba(168,74,42,.32), inset 0 1px 0 rgba(255,255,255,.18)',
+              fontSize: 14, fontWeight: 700, minHeight: 48,
             }}>
             Tancar sessió
           </button>
@@ -421,7 +417,8 @@ function AlertsScreen({ onBack }: { onBack: () => void }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ padding: '12px 14px 11px', background: 'var(--paper)', borderBottom: 'var(--hair)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button onClick={onBack} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink-600)', display: 'grid', placeItems: 'center' }}>
+        <button onClick={onBack} className="tac-btn tac-btn--ghost" aria-label="Tornar"
+          style={{ width: 32, height: 32, borderRadius: 8, color: 'var(--ink-600)', display: 'grid', placeItems: 'center' }}>
           <Icon d={I.chevL} size={20} stroke={2} />
         </button>
         <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink-900)', flex: 1 }}>Alertes</span>
@@ -573,7 +570,8 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 14px 10px', borderBottom:'1px solid rgba(60,40,20,.09)', flexShrink:0 }}>
-        <button onClick={onBack} style={{ width:34, height:34, borderRadius:9, border:'1px solid rgba(60,40,20,.14)', background:'transparent', cursor:'pointer', display:'grid', placeItems:'center', color:'var(--ink-700)' }}>
+        <button onClick={onBack} className="tac-btn" aria-label="Tornar"
+          style={{ width:34, height:34, borderRadius:9, display:'grid', placeItems:'center', color:'var(--ink-700)' }}>
           <Icon d={I.chevL} size={18} />
         </button>
         <div style={{ fontFamily:'var(--font-serif)', fontSize:17, fontWeight:500, color:'var(--ink-900)' }}>Còpies de seguretat</div>
@@ -593,16 +591,17 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
           )}
           <div style={{ display:'flex', gap:8 }}>
             <button onClick={doManual} disabled={isWorking}
-              style={{ flex:1, padding:'11px', borderRadius:10, border:'none', background:'var(--terracotta-600)', color:'white', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:isWorking?'not-allowed':'pointer', opacity:isWorking?.6:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+              className="tac-btn tac-btn--accent"
+              style={{ flex:1, padding:'11px', borderRadius:10, fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
               <Icon d={I.shield} size={14} /> {isWorking ? 'Treballant…' : 'Backup ara'}
             </button>
-            <button onClick={exportCurrentToFile}
-              style={{ flex:1, padding:'11px', borderRadius:10, border:'1px solid rgba(60,40,20,.14)', background:'var(--cream)', color:'var(--ink-700)', fontFamily:'inherit', fontSize:13, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+            <button onClick={exportCurrentToFile} className="tac-btn"
+              style={{ flex:1, padding:'11px', borderRadius:10, color:'var(--ink-700)', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
               <Icon d={I.download} size={14} /> Exportar
             </button>
           </div>
-          <button onClick={() => fileInputRef.current?.click()}
-            style={{ marginTop:8, width:'100%', padding:'10px', borderRadius:10, border:'1px solid rgba(60,40,20,.14)', background:'var(--cream)', color:'var(--ink-700)', fontFamily:'inherit', fontSize:13, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+          <button onClick={() => fileInputRef.current?.click()} className="tac-btn"
+            style={{ marginTop:8, width:'100%', padding:'10px', borderRadius:10, color:'var(--ink-700)', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
             <Icon d={I.upload} size={14} /> Importar fitxer JSON
           </button>
           <input ref={fileInputRef} type="file" accept=".json" style={{ display:'none' }} onChange={handleImport} />
@@ -644,13 +643,13 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
                 </div>
               ) : (
                 <div style={{ display:'flex', gap:6 }}>
-                  <button onClick={() => setConfirmId(meta.id)} style={{ flex:1, padding:'8px', borderRadius:8, border:'1px solid rgba(60,40,20,.14)', background:'transparent', fontFamily:'inherit', fontSize:12, fontWeight:600, color:'var(--ink-700)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                  <button onClick={() => setConfirmId(meta.id)} className="tac-btn" style={{ flex:1, padding:'8px', borderRadius:8, fontSize:12, fontWeight:600, color:'var(--ink-700)', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
                     <Icon d={I.history} size={12} /> Restaurar
                   </button>
-                  <button onClick={() => doDownload(meta.id)} style={{ flex:1, padding:'8px', borderRadius:8, border:'1px solid rgba(60,40,20,.14)', background:'transparent', fontFamily:'inherit', fontSize:12, fontWeight:600, color:'var(--ink-700)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+                  <button onClick={() => doDownload(meta.id)} className="tac-btn" style={{ flex:1, padding:'8px', borderRadius:8, fontSize:12, fontWeight:600, color:'var(--ink-700)', display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
                     <Icon d={I.download} size={12} /> Baixar
                   </button>
-                  <button onClick={() => deleteBackupById(meta.id).then(loadHistory)} style={{ width:34, padding:'8px', borderRadius:8, border:'1px solid rgba(60,40,20,.14)', background:'transparent', fontFamily:'inherit', fontSize:12, color:'var(--rose-500)', cursor:'pointer', display:'grid', placeItems:'center' }}>
+                  <button onClick={() => deleteBackupById(meta.id).then(loadHistory)} className="tac-btn" style={{ width:34, padding:'8px', borderRadius:8, fontSize:12, color:'var(--rose-500)', display:'grid', placeItems:'center' }}>
                     <Icon d={I.trash} size={13} />
                   </button>
                 </div>

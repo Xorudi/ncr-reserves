@@ -285,28 +285,23 @@ export default function TimePickerPopover({
           display: 'flex', gap: 8, marginTop: 12,
           paddingTop: 12, borderTop: '1px solid rgba(60,40,20,.08)',
         }}>
-          <button onClick={handleNow} className="press"
+          <button onClick={handleNow} className="tac-btn"
             style={{
               flex: 1, padding: '10px 14px',
-              border: '1px solid rgba(60,40,20,.10)',
-              borderRadius: 10, background: 'var(--surface-base)',
               color: 'var(--terracotta-700)',
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 650,
-              cursor: 'pointer', minHeight: 42,
+              fontSize: 13.5, fontWeight: 650,
+              minHeight: 42,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
             Ara
           </button>
-          <button onClick={onClose} className="press"
+          <button onClick={onClose} className="tac-btn tac-btn--accent"
             aria-label="Confirmar"
             style={{
               padding: '10px 14px',
-              border: 'none', borderRadius: 10,
-              background: 'var(--terracotta-600)', color: '#fff',
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-              cursor: 'pointer', minHeight: 42, minWidth: 56,
+              fontSize: 13.5, fontWeight: 700,
+              minHeight: 42, minWidth: 56,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              boxShadow: '0 1px 2px rgba(168,74,42,.32), inset 0 1px 0 rgba(255,255,255,.18)',
             }}>
             <Icon d={I.check} size={18} stroke={2.4} />
           </button>

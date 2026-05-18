@@ -243,19 +243,13 @@ export function NotesSheet({ open, bizId, date, authorName, onClose }: {
             <span style={{ fontSize: 11, color: 'var(--ink-400)', fontFamily: 'var(--font-mono)' }}>
               {authorName ? `Per ${authorName.split(' ')[0]}` : 'Sense usuari actiu'}
             </span>
-            <button onClick={handleAdd} disabled={!draft.trim()} className="press"
+            <button onClick={handleAdd} disabled={!draft.trim()}
+              className="tac-btn tac-btn--accent"
               style={{
                 marginLeft: 'auto',
                 padding: '8px 14px', borderRadius: 10,
-                border: 'none', cursor: draft.trim() ? 'pointer' : 'not-allowed',
-                background: draft.trim()
-                  ? 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)'
-                  : 'var(--ink-100)',
-                color: draft.trim() ? '#fff' : 'var(--ink-400)',
-                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+                fontSize: 12.5, fontWeight: 700,
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                boxShadow: draft.trim() ? '0 2px 6px rgba(168,74,42,.24)' : 'none',
-                transition: 'background 200ms var(--ease-in-out), box-shadow 200ms var(--ease-in-out), color 200ms var(--ease-in-out)',
               }}>
               <Icon d={I.plus} size={12} stroke={2.6} />
               Afegir nota
