@@ -226,12 +226,12 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
         particles.push({
           x:     Math.random() * w,
           y:     Math.random() * h,
-          vy:    0.08 + Math.random() * 0.20,
+          vy:    0.10 + Math.random() * 0.22,
           phase: Math.random() * Math.PI * 2,
-          sway:  0.6 + Math.random() * 1.6,
-          size:  0.8 + Math.random() * 1.4,
-          alpha: 0.15 + Math.random() * 0.28,
-          hue:   30 + Math.random() * 14,
+          sway:  0.6 + Math.random() * 1.8,
+          size:  1.3 + Math.random() * 2.2,
+          alpha: 0.32 + Math.random() * 0.36,
+          hue:   28 + Math.random() * 14,
         });
       }
     }
@@ -252,13 +252,14 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
           p.x = Math.random() * w;
         }
         // Warm amber glow with soft falloff via radial gradient per mote.
-        const g = ctx.createRadialGradient(sx, p.y, 0, sx, p.y, p.size * 4);
-        g.addColorStop(0,    `hsla(${p.hue}, 70%, 76%, ${p.alpha})`);
-        g.addColorStop(0.5,  `hsla(${p.hue}, 70%, 76%, ${p.alpha * 0.4})`);
-        g.addColorStop(1,    `hsla(${p.hue}, 70%, 76%, 0)`);
+        // Saturated core + warm halo so it reads on a cream background.
+        const g = ctx.createRadialGradient(sx, p.y, 0, sx, p.y, p.size * 5);
+        g.addColorStop(0,    `hsla(${p.hue}, 78%, 56%, ${p.alpha})`);
+        g.addColorStop(0.3,  `hsla(${p.hue}, 72%, 62%, ${p.alpha * 0.6})`);
+        g.addColorStop(1,    `hsla(${p.hue}, 70%, 70%, 0)`);
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.arc(sx, p.y, p.size * 4, 0, Math.PI * 2);
+        ctx.arc(sx, p.y, p.size * 5, 0, Math.PI * 2);
         ctx.fill();
       }
       raf = requestAnimationFrame(tick);
@@ -357,17 +358,17 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
           background:
             /* Inner core — small, hot, follows cursor exactly. */
             radial-gradient(
-              circle 320px at var(--ambient-x) var(--ambient-y),
-              rgba(200, 97, 58, calc(0.22 * var(--ambient-intensity) * var(--ambient-flicker))) 0%,
-              rgba(200, 97, 58, calc(0.10 * var(--ambient-intensity) * var(--ambient-flicker))) 28%,
-              rgba(200, 97, 58, 0) 60%
+              circle 340px at var(--ambient-x) var(--ambient-y),
+              rgba(200, 97, 58, calc(0.30 * var(--ambient-intensity) * var(--ambient-flicker))) 0%,
+              rgba(200, 97, 58, calc(0.14 * var(--ambient-intensity) * var(--ambient-flicker))) 28%,
+              rgba(200, 97, 58, 0) 62%
             ),
             /* Outer halo — large, soft, ambient glow. */
             radial-gradient(
-              circle 820px at var(--ambient-x) var(--ambient-y),
-              rgba(220, 130, 80, calc(0.10 * var(--ambient-intensity) * var(--ambient-flicker))) 0%,
-              rgba(220, 130, 80, calc(0.04 * var(--ambient-intensity) * var(--ambient-flicker))) 36%,
-              rgba(220, 130, 80, 0) 66%
+              circle 880px at var(--ambient-x) var(--ambient-y),
+              rgba(220, 130, 80, calc(0.16 * var(--ambient-intensity) * var(--ambient-flicker))) 0%,
+              rgba(220, 130, 80, calc(0.06 * var(--ambient-intensity) * var(--ambient-flicker))) 36%,
+              rgba(220, 130, 80, 0) 68%
             );
         }
 
@@ -377,18 +378,18 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
         .ambient-bloom {
           background: radial-gradient(
             circle 540px at 50% 38%,
-            rgba(255, 220, 170, calc(0.13 * var(--ambient-intensity))) 0%,
-            rgba(255, 220, 170, calc(0.06 * var(--ambient-intensity))) 38%,
-            rgba(255, 220, 170, 0) 68%
+            rgba(255, 210, 155, calc(0.22 * var(--ambient-intensity))) 0%,
+            rgba(255, 210, 155, calc(0.11 * var(--ambient-intensity))) 38%,
+            rgba(255, 210, 155, 0) 70%
           );
         }
         @media (min-width: 1000px) {
           .ambient-bloom {
             background: radial-gradient(
-              circle 620px at 32% 50%,
-              rgba(255, 220, 170, calc(0.15 * var(--ambient-intensity))) 0%,
-              rgba(255, 220, 170, calc(0.07 * var(--ambient-intensity))) 38%,
-              rgba(255, 220, 170, 0) 68%
+              circle 640px at 32% 50%,
+              rgba(255, 210, 155, calc(0.25 * var(--ambient-intensity))) 0%,
+              rgba(255, 210, 155, calc(0.12 * var(--ambient-intensity))) 38%,
+              rgba(255, 210, 155, 0) 70%
             );
           }
         }
@@ -406,32 +407,32 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
         }
         .ambient-rays[data-ray="a"] {
           background-image: linear-gradient(112deg,
-            transparent 36%,
-            rgba(255,225,185,.055) 40%,
-            rgba(255,225,185,.105) 43%,
-            rgba(255,225,185,.055) 46%,
-            transparent 52%);
+            transparent 34%,
+            rgba(255,220,170,.10) 40%,
+            rgba(255,220,170,.20) 43%,
+            rgba(255,220,170,.10) 46%,
+            transparent 54%);
           background-size: 250% 100%;
           animation: rays-drift 45s linear infinite;
         }
         .ambient-rays[data-ray="b"] {
           background-image: linear-gradient(108deg,
-            transparent 58%,
-            rgba(255,210,170,.045) 62%,
-            rgba(255,210,170,.085) 65%,
-            rgba(255,210,170,.045) 68%,
-            transparent 75%);
+            transparent 56%,
+            rgba(255,205,160,.08) 62%,
+            rgba(255,205,160,.16) 65%,
+            rgba(255,205,160,.08) 68%,
+            transparent 76%);
           background-size: 220% 100%;
           animation: rays-drift 58s linear infinite;
           animation-delay: -19s;
         }
         .ambient-rays[data-ray="c"] {
           background-image: linear-gradient(116deg,
-            transparent 18%,
-            rgba(255,235,200,.030) 22%,
-            rgba(255,235,200,.065) 25%,
-            rgba(255,235,200,.030) 28%,
-            transparent 36%);
+            transparent 16%,
+            rgba(255,232,195,.06) 22%,
+            rgba(255,232,195,.13) 25%,
+            rgba(255,232,195,.06) 28%,
+            transparent 38%);
           background-size: 280% 100%;
           animation: rays-drift 71s linear infinite reverse;
           animation-delay: -33s;
@@ -442,11 +443,13 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
         }
 
         /* ── Dust motes canvas ────────────────────────────────────── */
+        /* No blend mode — saturated amber on cream reads better with
+           normal compositing. Slight multiply tone helps the cores. */
         .ambient-dust {
           width: 100%;
           height: 100%;
-          opacity: .9;
-          mix-blend-mode: screen;
+          opacity: .85;
+          mix-blend-mode: multiply;
         }
 
         /* Static breathing of the secondary layers (does not affect
