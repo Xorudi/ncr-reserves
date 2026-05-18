@@ -33,6 +33,7 @@ import { usePinScope } from '@/store/usePinScope';
 import { getSession, extractBizIds } from '@/lib/auth';
 import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
 import type { BusinessId } from '@/types';
+import PremiumRestaurantAmbient from '@/components/shared/PremiumRestaurantAmbient';
 
 /** Time-aware greeting — adds a subtle Apple-lock-screen touch. */
 function greeting(): string {
@@ -147,6 +148,10 @@ export default function PinLockView() {
 
   return (
     <div className="pin-lock-wrap">
+      {/* Interactive ambient warmth — sits between the wrap's static gradient
+          and the card. Pointer-events: none so PIN input is never blocked. */}
+      <PremiumRestaurantAmbient zIndex={0} />
+
       <div
         className={`pin-lock ${mounted ? 'pin-lock--in' : ''} ${shake ? 'pin-lock--shake' : ''}`}
         role="dialog"
