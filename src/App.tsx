@@ -3,7 +3,17 @@ import TouchShell   from '@/views/touch/TouchShell';
 import SignInView    from '@/views/auth/SignInView';
 import PinSetupView  from '@/views/auth/PinSetupView';
 import PinLockView   from '@/views/auth/PinLockView';
-import MobileLayoutDebug from '@/components/shared/MobileLayoutDebug';
+// Lazy-load the layout debug overlay so it only ships JS to clients that
+// actually visit /?debug=1 (or have ncr.debug=1 in localStorage). Keeps
+// the prod bundle clean while leaving the audit tool one URL away.
+const MobileLayoutDebug = React.lazy(() =>
+  import('@/components/shared/MobileLayoutDebug')
+);
+function debugRequested(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.location.search.includes('debug=1')) return true;
+  try { return localStorage.getItem('ncr.debug') === '1'; } catch { return false; }
+}
 import { startBackupScheduler } from '@/backup/backupScheduler';
 import { useBackupStore } from '@/backup/useBackupStore';
 import {
@@ -279,7 +289,11 @@ export default function App() {
   return (
     <>
       <TouchShell />
-      <MobileLayoutDebug />
+      {debugRequested() && (
+        <React.Suspense fallback={null}>
+          <MobileLayoutDebug />
+        </React.Suspense>
+      )}
     </>
   );
 }

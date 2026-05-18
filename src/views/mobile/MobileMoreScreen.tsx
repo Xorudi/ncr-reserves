@@ -317,6 +317,11 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
       )}
 
       {/* Operational group */}
+      {/* Install hint — only when NOT yet installed as a PWA. iOS Safari
+          reports it via navigator.standalone; modern browsers via the
+          display-mode media query. */}
+      <InstallHint />
+
       <SectionLabel>Operacional</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
         {OPERATIONAL.map(renderItem)}
@@ -385,6 +390,121 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
       </div>
     </AnimatedSheet>
     </>
+  );
+}
+
+/**
+ * InstallHint — gentle nudge to add the app to the Home Screen.
+ *
+ * Hidden when the app is already running as an installed PWA:
+ *   • iOS Safari: navigator.standalone === true
+ *   • Modern browsers: window.matchMedia('(display-mode: standalone)')
+ * Also hidden once dismissed (localStorage flag) — we ask once.
+ *
+ * On iOS we can't trigger the install programmatically (Apple doesn't
+ * expose beforeinstallprompt), so the hint just teaches the gesture
+ * "Share → Afegeix a la pantalla d'inici". On Android Chrome, if a
+ * beforeinstallprompt event was captured, the button triggers it; else
+ * we show the same text-only hint.
+ */
+function InstallHint() {
+  const [show, setShow] = useState(false);
+  const [deferred, setDeferred] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (localStorage.getItem('ncr.hideInstallHint') === '1') return;
+
+    // Already installed?
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as any).standalone === true;
+    if (isStandalone) return;
+
+    setShow(true);
+
+    // Capture Android Chrome's install prompt if available
+    function onBeforeInstall(e: Event) {
+      e.preventDefault();
+      setDeferred(e);
+    }
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+  }, []);
+
+  function dismiss() {
+    try { localStorage.setItem('ncr.hideInstallHint', '1'); } catch { /* noop */ }
+    setShow(false);
+  }
+  async function tryInstall() {
+    if (deferred && typeof deferred.prompt === 'function') {
+      deferred.prompt();
+      try {
+        const choice = await deferred.userChoice;
+        if (choice?.outcome === 'accepted') dismiss();
+      } catch { /* noop */ }
+    }
+  }
+
+  if (!show) return null;
+
+  // Detect iOS for the share-icon copy
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !(window as any).MSStream;
+
+  return (
+    <div style={{
+      position: 'relative',
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+      padding: '14px 14px 14px 16px',
+      borderRadius: 14,
+      background: 'linear-gradient(180deg, #fff8e6 0%, #fbf2d3 100%)',
+      border: '1px solid rgba(180,140,40,.22)',
+      boxShadow: '0 1px 2px rgba(180,140,40,.06)',
+      marginBottom: 18, overflow: 'hidden',
+    }}>
+      <span aria-hidden style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: 3, background: '#c89a3a',
+      }} />
+      <span style={{
+        flexShrink: 0, fontSize: 22, lineHeight: 1,
+      }}>📱</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 13, fontWeight: 700, color: '#5e4708',
+          letterSpacing: -.005, marginBottom: 4,
+        }}>
+          Afegeix NCR Reserves a la pantalla d'inici
+        </div>
+        <div style={{
+          fontSize: 12, color: '#8a6a10', fontWeight: 500,
+          lineHeight: 1.4,
+        }}>
+          {isIOS
+            ? <>Toca <b>Compartir</b> a Safari · <b>Afegir a la pantalla d'inici</b>. Tindràs pantalla completa, sense barres del navegador.</>
+            : <>Instal·la l'app per usar-la a pantalla completa sense les barres del navegador.</>
+          }
+        </div>
+        {deferred && (
+          <button onClick={tryInstall} className="tac-btn tac-btn--accent"
+            style={{
+              marginTop: 8, padding: '7px 12px', borderRadius: 8,
+              fontSize: 12, fontWeight: 700,
+            }}>
+            Instal·lar
+          </button>
+        )}
+      </div>
+      <button onClick={dismiss} aria-label="Tancar"
+        className="tac-btn tac-btn--ghost"
+        style={{
+          width: 26, height: 26, borderRadius: 999,
+          color: '#8a6a10', fontSize: 14,
+          display: 'grid', placeItems: 'center', flexShrink: 0,
+        }}>
+        ×
+      </button>
+    </div>
   );
 }
 
