@@ -1409,8 +1409,12 @@ export default function MobileTodayView({
         })}
       </div>
 
-      {/* Spacer so the last row clears the FAB + bottom nav. */}
-      <div aria-hidden style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }} />
+      {/* Spacer so the last row clears the FAB. The bottom nav lives
+          OUTSIDE this scrollable and handles env(safe-area-inset-bottom)
+          itself — NEVER duplicate the safe-area inset here. The FAB
+          (60 px) floats ~18 px above the nav so 28 px gives the last row
+          comfortable air without producing a phantom cream gap. */}
+      <div aria-hidden style={{ height: 28 }} />
       </div>{/* /scrollable canvas */}
 
       {/* ── Sheets — AnimatedSheet handles slide-up/down with backdrop ── */}

@@ -779,9 +779,25 @@ export default function TouchShell() {
     <div style={{
       position: 'relative',                 // FAB anchor
       display: 'flex', flexDirection: 'column',
-      height: `${appH}px`,                  // tracks visualViewport.height live
+      /* Height contract — single source of truth:
+       *   `100dvh` (dynamic viewport height) is what iOS Safari 15.4+ and
+       *   modern Android Chrome report as the live visible area, including
+       *   the auto-hiding toolbar transitions. This is the value the bottom
+       *   nav anchors itself against.
+       *
+       *   `maxHeight: appH` clamps the shell to never exceed the visual
+       *   viewport on first paint — some iOS releases report `100dvh` as
+       *   the LARGER layout viewport for a few frames before settling,
+       *   which previously left a phantom cream gap below the in-flow nav
+       *   until the user dragged the page (forcing a re-measure). With
+       *   the clamp the gap is impossible: the shell shrinks immediately
+       *   to whatever the visualViewport API reports.
+       *
+       *   The JS listener (above) keeps appH and --app-h live so the
+       *   clamp tracks toolbar show/hide and orientation changes. */
+      height: '100dvh',
+      maxHeight: `${appH}px`,
       width: '100%',
-      // Transparent so the body's atmospheric gradient shows through.
       overflow: 'hidden',
     }}>
 
@@ -887,16 +903,16 @@ export default function TouchShell() {
         {screenContent}
       </main>
 
-      {/* ── In-flow bottom nav ──────────────────────────────────────── */}
-      {/*   flexShrink:0 keeps it at exact tab height at the bottom.    */}
-      {/*   paddingBottom fills the home-indicator / gesture-bar zone.  */}
+      {/* ── In-flow bottom nav ────────────────────────────────────────
+            Single source of truth for the bottom safe-area inset. Nothing
+            else in the mobile layout should add env(safe-area-inset-bottom):
+            the nav already covers the home-indicator zone with its own
+            paddingBottom. Translucency raised to .92 so the home-indicator
+            band reads as part of the nav, not as a cream gap below it. */}
       <nav style={{
         flexShrink: 0,
         zIndex: 50,
-        // Glass material — translucent paper + backdrop blur, so the canvas
-        // gradient shows through softly. Replaces the flat white + hairline
-        // top border.
-        background: 'rgba(255,255,255,.78)',
+        background: 'rgba(253,249,242,.92)',
         WebkitBackdropFilter: 'blur(20px) saturate(140%)',
         backdropFilter: 'blur(20px) saturate(140%)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,.6), 0 -8px 24px rgba(40,28,16,.06)',
