@@ -816,6 +816,117 @@ button, [role="button"] {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+   Tactile button utility — PIN-keypad-tier feel for any pressable surface.
+
+   Use `.tac-btn` on any button to inherit the premium chrome:
+     • At rest: cream gradient face + bezel inset + soft 1px drop shadow
+     • Hover (precise pointer only): lighter face, stronger border
+     • Press: instant scale(0.96) + darker face + INVERTED inset (pressed-in)
+     • Release: 180ms ease-out — same snap-then-settle as PIN keys.
+
+   Variants:
+     • `.tac-btn--ghost`  — transparent at rest, full chrome only on
+                            hover/press. For nav, search, avatar.
+     • `.tac-btn--accent` — terracotta brand variant. For primary actions
+                            ("Avui", "Confirmar", "Desar").
+
+   The class controls only visuals (background, border, shadow, color,
+   transition + transform on press). Layout (display, padding, size)
+   stays in the caller's inline style or its own class.
+   ────────────────────────────────────────────────────────────────────────── */
+.tac-btn {
+  border: 1px solid rgba(60,40,20,.08);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--paper, #fbf7ee), #f4e9d2);
+  color: var(--ink-700);
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -1px 0 rgba(60,40,20,.05),
+    0 1px 2px rgba(60,40,20,.04);
+  transition:
+    background   220ms var(--ease-out),
+    border-color 220ms var(--ease-out),
+    box-shadow   220ms var(--ease-out),
+    color        220ms var(--ease-out),
+    transform    180ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tac-btn:hover:not(:disabled) {
+    background: linear-gradient(180deg, #fdf6e5, #f1e5c9);
+    border-color: rgba(60,40,20,.12);
+  }
+}
+.tac-btn:active:not(:disabled) {
+  transition: none;
+  transform: scale(0.96);
+  background: linear-gradient(180deg, #e9dcc1, #ddcca8);
+  border-color: rgba(60,40,20,.12);
+  box-shadow:
+    inset 0 2px 4px rgba(60,40,20,.14),
+    inset 0 -1px 0 rgba(255,255,255,.25);
+}
+.tac-btn:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+/* Ghost variant: transparent at rest, premium chrome only on hover/press. */
+.tac-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ink-500);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tac-btn--ghost:hover:not(:disabled) {
+    background: linear-gradient(180deg, var(--paper, #fbf7ee), #f7eedb);
+    border-color: rgba(60,40,20,.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      inset 0 -1px 0 rgba(60,40,20,.05),
+      0 1px 2px rgba(60,40,20,.04);
+    color: var(--ink-700);
+  }
+}
+.tac-btn--ghost:active:not(:disabled) {
+  background: linear-gradient(180deg, #e9dcc1, #ddcca8);
+  border-color: rgba(60,40,20,.12);
+  color: var(--ink-700);
+}
+
+/* Accent variant: terracotta brand color — primary actions. */
+.tac-btn--accent {
+  background: linear-gradient(180deg, var(--terracotta-50, #fbeadf), #f3cbb1);
+  border-color: rgba(168,80,47,.20);
+  color: var(--terracotta-700, #923c1f);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -1px 0 rgba(146,60,31,.10),
+    0 1px 2px rgba(146,60,31,.08),
+    0 3px 8px -3px rgba(146,60,31,.12);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tac-btn--accent:hover:not(:disabled) {
+    background: linear-gradient(180deg, #fbeadf, #f6d2bb);
+  }
+}
+.tac-btn--accent:active:not(:disabled) {
+  transform: scale(0.96);
+  background: linear-gradient(180deg, #ecbfa6, #d8a484);
+  box-shadow:
+    inset 0 2px 5px rgba(146,60,31,.22),
+    inset 0 -1px 0 rgba(255,255,255,.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tac-btn { transition: background 180ms ease, color 180ms ease; }
+  .tac-btn:active { transform: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
    Rail nav button — PIN-keypad-tier tactility for the left sidebar.
 
    At rest: invisible (just icon + label). Hover (precise pointer only):

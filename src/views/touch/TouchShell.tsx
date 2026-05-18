@@ -525,14 +525,11 @@ export default function TouchShell() {
           {/* ── Search button — sits just above the avatar ───────── */}
           <div style={{ flexShrink: 0, padding: '0 12px 10px', display: 'flex', justifyContent: 'center' }}>
             <button onClick={() => setShowSearch(true)} title="Cerca global"
-              className="press"
+              className="tac-btn"
               style={{
                 width: railWide ? 54 : 42, height: railWide ? 54 : 42,
                 borderRadius: railWide ? 14 : 12,
                 display: 'grid', placeItems: 'center',
-                border: '1px solid rgba(60,40,20,.08)', cursor: 'pointer',
-                background: 'var(--paper)', color: 'var(--ink-700)',
-                boxShadow: '0 1px 2px rgba(60,40,20,.04)',
               }}>
               <Icon d={I.search} size={railWide ? 22 : 16} stroke={1.9} />
             </button>
@@ -545,16 +542,14 @@ export default function TouchShell() {
               background: 'rgba(60,40,20,.07)', marginBottom: 10,
             }} />
             <button onClick={() => setShowUserPicker(true)} title={activeEmp?.fullName ?? 'Canviar usuari'}
+              className="tac-btn"
               style={{
                 width: railWide ? 54 : 42, height: railWide ? 54 : 42,
                 borderRadius: railWide ? 14 : 12,
                 display: 'grid', placeItems: 'center',
-                border: '1px solid rgba(60,40,20,.08)', cursor: 'pointer',
-                background: activeEmp ? 'var(--paper)' : 'var(--ink-100)',
                 color: activeEmp ? 'var(--ink-900)' : 'var(--ink-500)',
                 fontWeight: 700, fontSize: railWide ? 14 : 12, fontFamily: 'var(--font-serif)',
                 letterSpacing: -.005,
-                boxShadow: '0 1px 2px rgba(60,40,20,.04)',
               }}>
               {activeEmp ? activeEmp.initials : <Icon d={I.users} size={railWide ? 20 : 16} />}
             </button>
@@ -952,30 +947,26 @@ export default function TouchShell() {
   );
 }
 
-// ─── Mobile nav button (new design: dark icon when active, terracotta label) ──
+// ─── Mobile nav button — bottom bar, same tactile language as the rail.
+//     At rest: just icon + label. Active: terracotta pill. Press: scale+invert. ──
 function MobNavBtn({ id, tab, setTab, label, ico }: {
   id: TouchTab; tab: TouchTab; setTab: (t: TouchTab) => void;
   label: string; ico: React.ReactNode;
 }) {
   const active = tab === id;
   return (
-    <button onClick={() => setTab(id)} className="nav-btn press"
+    <button
+      onClick={() => setTab(id)}
+      className="rail-nav-btn"
+      data-active={active ? 'true' : 'false'}
       style={{
-        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', gap: 3,
-        background: 'transparent', border: 'none', padding: '8px 0 6px',
-        cursor: 'pointer', minHeight: 50,
-        WebkitTapHighlightColor: 'transparent',
-        color: active ? 'var(--ink-900)' : 'var(--ink-400)',
+        flex: 1,
+        padding: '6px 0 5px',
+        minHeight: 50,
+        margin: '0 4px',
       }}>
-      <div style={{ height: 24, display: 'flex', alignItems: 'center' }}>
-        <Icon d={ico} size={22} stroke={active ? 2.1 : 1.6} />
-      </div>
-      <span style={{
-        fontSize: 10.5, fontWeight: active ? 650 : 500,
-        color: active ? 'var(--terracotta-700)' : 'var(--ink-500)',
-        letterSpacing: 0.05, lineHeight: 1,
-      }}>{label}</span>
+      <Icon d={ico} size={22} stroke={active ? 2.1 : 1.6} />
+      <span className="rail-nav-btn__label">{label}</span>
     </button>
   );
 }
@@ -1129,14 +1120,11 @@ function TabletTopBar({
       position: 'relative', zIndex: 5,
     }}>
       {/* Prev day */}
-      <button onClick={() => shiftDay(-1)} className="day-btn press"
+      <button onClick={() => shiftDay(-1)} className="tac-btn"
         aria-label="Dia anterior"
         style={{
-          width: 38, height: 38, borderRadius: 10,
-          background: 'var(--paper)', border: '1px solid rgba(60,40,20,.10)',
-          color: 'var(--ink-700)', cursor: 'pointer',
+          width: 38, height: 38,
           display: 'grid', placeItems: 'center', flexShrink: 0,
-          boxShadow: 'var(--sh-1)',
         }}>
         <Icon d={I.chevL} size={18} stroke={2} />
       </button>
@@ -1180,14 +1168,11 @@ function TabletTopBar({
       />
 
       {/* Next day */}
-      <button onClick={() => shiftDay(1)} className="day-btn press"
+      <button onClick={() => shiftDay(1)} className="tac-btn"
         aria-label="Dia següent"
         style={{
-          width: 38, height: 38, borderRadius: 10,
-          background: 'var(--paper)', border: '1px solid rgba(60,40,20,.10)',
-          color: 'var(--ink-700)', cursor: 'pointer',
+          width: 38, height: 38,
           display: 'grid', placeItems: 'center', flexShrink: 0,
-          boxShadow: 'var(--sh-1)',
         }}>
         <Icon d={I.chevR} size={18} stroke={2} />
       </button>
@@ -1198,15 +1183,10 @@ function TabletTopBar({
       {/* Avui button — only when not today */}
       <button onClick={() => setSelectedDate(new Date())}
         disabled={isToday}
-        className="press"
+        className="tac-btn tac-btn--accent"
         style={{
-          padding: '0 16px', height: 38, borderRadius: 10,
-          border: '1.5px solid var(--terracotta-500)',
-          background: isToday ? 'transparent' : 'var(--terracotta-50)',
-          color: 'var(--terracotta-700)',
-          fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-          cursor: isToday ? 'default' : 'pointer',
-          opacity: isToday ? .5 : 1,
+          padding: '0 16px', height: 38,
+          fontSize: 13, fontWeight: 700,
           flexShrink: 0,
         }}>
         Avui
