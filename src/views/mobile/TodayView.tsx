@@ -611,6 +611,36 @@ export default function MobileTodayView({
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
   const [showCal, setShowCal] = useState(false);
   const [shift, setShift]     = useState<'M' | 'N'>(() => new Date().getHours() >= 18 ? 'N' : 'M');
+
+  // ── Scroll-driven density mode ────────────────────────────────────────
+  // When the operator scrolls into the list, dispatch a window event so
+  // TouchShell can collapse its top "Reserves d'avui" header. We also
+  // toggle a local `compact` flag to show the sticky 1-liner summary
+  // strip that replaces the hero card visually. Hysteresis: enter at
+  // 56 px, exit at 12 px — prevents jitter when the list bounces at top.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const lastScrolledRef = useRef(false);
+  function onScroll(e: React.UIEvent<HTMLDivElement>) {
+    const y = (e.target as HTMLDivElement).scrollTop;
+    const next = lastScrolledRef.current ? y > 12 : y > 56;
+    if (next !== lastScrolledRef.current) {
+      lastScrolledRef.current = next;
+      setScrolled(next);
+      try {
+        window.dispatchEvent(new CustomEvent('app:reserves-scrolled', { detail: { scrolled: next } }));
+      } catch { /* noop */ }
+    }
+  }
+  // Make sure the shell knows we're no longer scrolled when this view
+  // unmounts (e.g. switching tabs) so the header expands back cleanly.
+  useEffect(() => {
+    return () => {
+      try {
+        window.dispatchEvent(new CustomEvent('app:reserves-scrolled', { detail: { scrolled: false } }));
+      } catch { /* noop */ }
+    };
+  }, []);
   // On a large touchscreen the left side panel already shows the Notes
   // del torn and the Tendència insight — hide their center-content
   // counterparts to avoid duplicated info.
@@ -935,6 +965,84 @@ export default function MobileTodayView({
         </div>
       )}
 
+      {/* ─── Scrollable canvas ────────────────────────────────────────────
+            The hero summary, smart-insights strip, waitlist banner AND the
+            row list now scroll together as a single column. The operator
+            can pull the summary card out of view to gain ~225 px of list
+            density on long days. A scroll listener dispatches a window
+            event so TouchShell can collapse its big top header in sync. */}
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className={`scroll mob-scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
+        style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
+      >
+
+      {/* Sticky compact summary strip — only when scrolled past the hero.
+          One-line replacement for the hero card while in dense scroll mode. */}
+      {activeList.length > 0 && (() => {
+        const cap = getDailyServiceCapacity(selectedBusiness, businessConfigs);
+        const confirmed = activeList.filter(r => r.status === 'confirmed').length;
+        const pending   = activeList.filter(r => r.status === 'pending').length;
+        const seated    = activeList.filter(r => r.status === 'seated').length;
+        const completed = activeList.filter(r => r.status === 'completed').length;
+        const occupancy = cap > 0 ? Math.min(100, Math.round((activePax / cap) * 100)) : 0;
+        return (
+          <div
+            aria-hidden={!scrolled}
+            style={{
+              position: 'sticky', top: 0, zIndex: 6,
+              padding: '6px 14px',
+              background: 'rgba(253,249,242,.86)',
+              WebkitBackdropFilter: 'blur(14px) saturate(140%)',
+              backdropFilter:       'blur(14px) saturate(140%)',
+              boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06)',
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 11.5, fontWeight: 600,
+              opacity: scrolled ? 1 : 0,
+              transform: scrolled ? 'translateY(0)' : 'translateY(-4px)',
+              pointerEvents: scrolled ? 'auto' : 'none',
+              transition: 'opacity 180ms var(--ease-out), transform 180ms var(--ease-out)',
+              minHeight: 30,
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: .02,
+              color: 'var(--ink-700)',
+              whiteSpace: 'nowrap',
+              overflowX: 'auto', scrollbarWidth: 'none',
+            }}>
+            <span style={{ color: 'var(--ink-900)', fontWeight: 700 }}>{activeList.length}</span>
+            <span style={{ color: 'var(--ink-400)' }}>res</span>
+            <span style={{ color: 'var(--ink-300)' }}>·</span>
+            <span style={{ color: 'var(--ink-900)', fontWeight: 700 }}>{activePax}</span>
+            <span style={{ color: 'var(--ink-400)' }}>pax</span>
+            <span style={{ color: 'var(--ink-300)' }}>·</span>
+            <span style={{
+              color: occupancy >= 85 ? 'var(--terracotta-700)'
+                   : occupancy >= 60 ? 'var(--clay-700)'
+                   : occupancy >= 30 ? 'var(--olive-700)'
+                   : 'var(--ink-700)',
+              fontWeight: 700,
+            }}>{occupancy}%</span>
+            {confirmed > 0 && (<>
+              <span style={{ color: 'var(--ink-300)' }}>·</span>
+              <span style={{ color: 'var(--olive-700)' }}>{confirmed} conf</span>
+            </>)}
+            {pending > 0 && (<>
+              <span style={{ color: 'var(--ink-300)' }}>·</span>
+              <span style={{ color: 'var(--clay-700)' }}>{pending} pend</span>
+            </>)}
+            {seated > 0 && (<>
+              <span style={{ color: 'var(--ink-300)' }}>·</span>
+              <span style={{ color: 'var(--terracotta-700)' }}>{seated} taula</span>
+            </>)}
+            {completed > 0 && (<>
+              <span style={{ color: 'var(--ink-300)' }}>·</span>
+              <span style={{ color: 'var(--ink-500)' }}>{completed} acab</span>
+            </>)}
+          </div>
+        );
+      })()}
+
       {/* ── Hero stat card — replaces the three flat stat boxes ────────── */}
       {activeList.length > 0 && (() => {
         const cap = getDailyServiceCapacity(selectedBusiness, businessConfigs);
@@ -1201,11 +1309,13 @@ export default function MobileTodayView({
         );
       })()}
 
-      {/* ── Reservation list ────────────────────────────────────────────── */}
+      {/* ── Reservation list (inside the outer scroll) ───────────────────
+            Keeps the day/shift key so the row-stagger animation fires on
+            day or shift change — no overflow of its own, the outer wrapper
+            scrolls everything together. */}
       <div
         key={`${dateStr}-${effectiveShift}`}
-        className={`scroll mob-scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
-        style={{ flex:1, overflowY:'auto' }}
+        className={dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}
       >
         {dayRes.length === 0 && (
           <EmptyDayState dateStr={dateStr} effectiveShift={effectiveShift} variant="day" />
@@ -1298,6 +1408,10 @@ export default function MobileTodayView({
           );
         })}
       </div>
+
+      {/* Spacer so the last row clears the FAB + bottom nav. */}
+      <div aria-hidden style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }} />
+      </div>{/* /scrollable canvas */}
 
       {/* ── Sheets — AnimatedSheet handles slide-up/down with backdrop ── */}
       <ResDetailSheet
@@ -1460,19 +1574,17 @@ function ResRow({ res: r, selected, onSel, plan, loyalty }: {
     <button onClick={() => onSel(r)} className="press"
       style={{
         position: 'relative',
-        width: 'calc(100% - 16px)', margin: '0 8px 6px',
+        width: 'calc(100% - 16px)', margin: '0 8px 5px',
         textAlign: 'left',
         background: selected ? 'var(--terracotta-50)' : 'var(--surface-elevated)',
         border: 'none', borderRadius: 12,
         boxShadow: selected
           ? '0 0 0 1.5px var(--terracotta-500), var(--shadow-md), var(--shadow-inset-top)'
           : 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
-        padding: '13px 16px 13px 18px',
-        // The colored accent bar sits at the left edge — implemented as an
-        // inset left shadow so it doesn't take layout space.
+        padding: '10px 14px 10px 16px',
         overflow: 'hidden',
         cursor: 'pointer',
-        display: 'flex', gap: 14, alignItems: 'flex-start',
+        display: 'flex', gap: 12, alignItems: 'flex-start',
         transition:
           'background 160ms var(--ease-ios), ' +
           'box-shadow 160ms var(--ease-ios), ' +
@@ -1484,26 +1596,27 @@ function ResRow({ res: r, selected, onSel, plan, loyalty }: {
         width: 3, background: accentColor,
       }} />
 
-      {/* Pax tile — bigger, with "pax" label, status ring */}
+      {/* Pax tile — denser (46×46 vs 54×54) keeps signal without robbing
+          ~8 px of vertical per row. */}
       <div style={{
-        width:54, height:54, borderRadius:13, flexShrink:0,
+        width:46, height:46, borderRadius:11, flexShrink:0,
         background: tint.paxBg,
         boxShadow: `inset 0 0 0 1.5px ${tint.paxRing}`,
         display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
         gap:0,
       }}>
         <span style={{
-          fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500,
+          fontFamily:'var(--font-serif)', fontSize:19, fontWeight:500,
           color: tint.paxFg, lineHeight:1,
         }}>{r.pax}</span>
         <span style={{
-          fontSize:8.5, fontWeight:700, color: tint.paxFg, opacity:.7,
-          letterSpacing:.08, marginTop:2,
+          fontSize:8, fontWeight:700, color: tint.paxFg, opacity:.7,
+          letterSpacing:.08, marginTop:1,
         }}>PAX</span>
       </div>
 
-      {/* Body — name, meta, zone, allergens, notes */}
-      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:4 }}>
+      {/* Body — name, meta, zone, allergens, notes (tighter gap) */}
+      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:3 }}>
 
         {/* Name line + tags */}
         <div style={{ display:'flex', alignItems:'center', gap:7, flexWrap:'wrap' }}>

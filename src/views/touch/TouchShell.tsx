@@ -83,6 +83,22 @@ export default function TouchShell() {
   const [showNotesSheet, setShowNotesSheet] = useState(false);
   const [showSearch,     setShowSearch]     = useState(false);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
+  // Mobile header collapses when the operator scrolls into the list. The
+  // event is dispatched by MobileTodayView's outer scrollable. We only
+  // honour it on the reservations tab — other tabs keep the big header.
+  const [headerCompact, setHeaderCompact] = useState(false);
+  useEffect(() => {
+    function onScrolled(e: Event) {
+      const det = (e as CustomEvent).detail as { scrolled?: boolean } | undefined;
+      setHeaderCompact(!!det?.scrolled);
+    }
+    window.addEventListener('app:reserves-scrolled', onScrolled as EventListener);
+    return () => window.removeEventListener('app:reserves-scrolled', onScrolled as EventListener);
+  }, []);
+  // When the tab changes away from reservations, reset to expanded.
+  useEffect(() => {
+    if (tab !== 'reservations') setHeaderCompact(false);
+  }, [tab]);
   // Read the Visual Viewport height synchronously so the container height
   // is correct on the very first paint. visualViewport.height tracks the
   // ACTUAL visible area (under the Safari toolbar / above the home bar) —
@@ -771,39 +787,45 @@ export default function TouchShell() {
 
 
       {/* ── Top header ── glass material so the canvas gradient shows
-            through with a soft blur. Bottom inset shadow replaces the
-            hairline border for a softer plane separation. */}
+            through with a soft blur. Collapses on scroll into a compact
+            sticky band on the reservations tab: title fades out, padding
+            and avatar shrink — saves ~60 px of vertical real estate for
+            the list. */}
       <header style={{
-        paddingTop:    isStandalone ? 'calc(env(safe-area-inset-top) + 14px)' : '54px',
-        paddingBottom: '14px',
+        paddingTop:    isStandalone
+          ? `calc(env(safe-area-inset-top) + ${headerCompact ? 6 : 14}px)`
+          : (headerCompact ? '20px' : '54px'),
+        paddingBottom: headerCompact ? '8px' : '14px',
         paddingLeft:   '18px',
         paddingRight:  '18px',
-        background:    'rgba(255,255,255,.55)',
+        background:    headerCompact ? 'rgba(255,255,255,.78)' : 'rgba(255,255,255,.55)',
         WebkitBackdropFilter: 'blur(16px) saturate(140%)',
         backdropFilter:       'blur(16px) saturate(140%)',
         boxShadow:     'inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4)',
         flexShrink:    0,
         display:       'flex',
-        alignItems:    'flex-end',
+        alignItems:    'center',
         gap:           12,
         position:      'relative',
         zIndex:        5,
+        transition:
+          'padding-top 220ms var(--ease-out), padding-bottom 220ms var(--ease-out), background 220ms linear',
       }}>
         <button onClick={() => setShowUserPicker(true)}
           style={{
-            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-            // Soft ink gradient + ring instead of solid terracotta — the
-            // avatar identifies WHO without screaming a brand color.
+            width: headerCompact ? 30 : 36, height: headerCompact ? 30 : 36,
+            borderRadius: '50%', flexShrink: 0,
             background: activeEmp
               ? 'linear-gradient(160deg, var(--ink-700) 0%, var(--ink-800) 100%)'
               : 'var(--ink-200)',
             color: activeEmp ? '#fef9ee' : 'var(--ink-600)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-serif)',
+            fontWeight: 600, fontSize: headerCompact ? 12 : 13, fontFamily: 'var(--font-serif)',
             border: 'none', cursor: 'pointer',
             boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
+            transition: 'width 220ms var(--ease-out), height 220ms var(--ease-out), font-size 220ms var(--ease-out)',
           }}>
-          {activeEmp ? activeEmp.initials : <Icon d={I.users} size={16} />}
+          {activeEmp ? activeEmp.initials : <Icon d={I.users} size={headerCompact ? 14 : 16} />}
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -815,9 +837,17 @@ export default function TouchShell() {
           }}>
             {biz.name.toUpperCase()}
           </button>
+          {/* Big serif title collapses to zero height when compact. */}
           <div style={{
             fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 500,
-            color: 'var(--ink-900)', letterSpacing: -0.3, lineHeight: 1.1, marginTop: 2,
+            color: 'var(--ink-900)', letterSpacing: -0.3, lineHeight: 1.1,
+            marginTop: headerCompact ? 0 : 2,
+            opacity: headerCompact ? 0 : 1,
+            maxHeight: headerCompact ? 0 : 32,
+            transform: headerCompact ? 'translateY(-6px)' : 'translateY(0)',
+            overflow: 'hidden',
+            transition:
+              'opacity 200ms var(--ease-out), max-height 220ms var(--ease-out), transform 220ms var(--ease-out), margin-top 220ms var(--ease-out)',
           }}>
             {TAB_TITLES[tab]}
           </div>
