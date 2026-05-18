@@ -88,9 +88,8 @@ export default function ReservationsListSheet({ open, filter, title, onClose }: 
               fontFamily: 'var(--font-mono)', letterSpacing: .04,
             }}>{matched.length} {matched.length === 1 ? 'reserva' : 'reserves'}</div>
           </div>
-          <button onClick={onClose} style={{
-            background: 'var(--paper)', border: '1px solid rgba(60,40,20,.10)',
-            cursor: 'pointer', color: 'var(--ink-700)', fontFamily: 'inherit',
+          <button onClick={onClose} className="tac-btn" style={{
+            color: 'var(--ink-700)',
             fontSize: 13, fontWeight: 650, padding: '7px 14px',
             borderRadius: 999, flexShrink: 0,
           }}>Tancar</button>

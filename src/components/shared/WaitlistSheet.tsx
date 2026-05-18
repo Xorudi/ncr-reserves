@@ -126,10 +126,9 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
               {bizQueue.length === 0 ? 'cap grup esperant' : `${bizQueue.length} grups en cua`}
             </div>
           </div>
-          <button onClick={onClose} style={{
-            background: 'transparent', border: 'none', cursor: 'pointer',
-            color: 'var(--ink-600)', fontFamily: 'inherit', fontSize: 14,
-            fontWeight: 600, padding: '4px 6px',
+          <button onClick={onClose} className="tac-btn tac-btn--ghost" style={{
+            color: 'var(--ink-600)', fontSize: 14,
+            fontWeight: 600, padding: '6px 12px', borderRadius: 999,
           }}>Tancar</button>
         </div>
 
@@ -181,11 +180,10 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
               }}
             />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button onClick={() => setPax(p => Math.max(1, p - 1))} className="press"
+              <button onClick={() => setPax(p => Math.max(1, p - 1))} className="tac-btn"
                 style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  border: '1px solid rgba(60,40,20,.14)', background: 'var(--paper)',
-                  color: 'var(--ink-700)', cursor: 'pointer',
+                  width: 36, height: 36,
+                  color: 'var(--ink-700)',
                   display: 'grid', placeItems: 'center',
                 }}>
                 <Icon d={I.chevL} size={14} stroke={2.4} />
@@ -195,11 +193,10 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
                 fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
                 color: 'var(--ink-900)',
               }}>{pax}p</div>
-              <button onClick={() => setPax(p => Math.min(20, p + 1))} className="press"
+              <button onClick={() => setPax(p => Math.min(20, p + 1))} className="tac-btn"
                 style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  border: '1px solid rgba(60,40,20,.14)', background: 'var(--paper)',
-                  color: 'var(--ink-700)', cursor: 'pointer',
+                  width: 36, height: 36,
+                  color: 'var(--ink-700)',
                   display: 'grid', placeItems: 'center',
                 }}>
                 <Icon d={I.chevR} size={14} stroke={2.4} />
@@ -216,13 +213,11 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
                 }}
               />
             </div>
-            <button onClick={handleAdd} className="press"
+            <button onClick={handleAdd} className="tac-btn tac-btn--accent"
               disabled={!name.trim()}
               style={{
-                padding: '11px 0', borderRadius: 11, border: 'none',
-                background: name.trim() ? 'var(--terracotta-600)' : 'var(--ink-200)',
-                color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-                cursor: name.trim() ? 'pointer' : 'not-allowed',
+                padding: '11px 0', borderRadius: 11,
+                fontSize: 14, fontWeight: 700,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               }}>
               <Icon d={I.plus} size={14} stroke={2.4} /> Afegir a la cua
@@ -327,10 +322,10 @@ function QueueRow({ w, rank, isNext, plan, onNotify, onSeat, onRemove }: QueueRo
           )}
           <span style={{ flex: 1 }} />
           <button onClick={onRemove} aria-label="Eliminar"
+            className="tac-btn tac-btn--ghost"
             style={{
               width: 28, height: 28, borderRadius: 999,
-              border: 'none', background: 'transparent',
-              color: 'var(--ink-400)', cursor: 'pointer',
+              color: 'var(--ink-400)',
               display: 'grid', placeItems: 'center',
             }}>
             <Icon d={I.x} size={14} />
@@ -388,28 +383,21 @@ function QueueRow({ w, rank, isNext, plan, onNotify, onSeat, onRemove }: QueueRo
 
         {/* Action row */}
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={onNotify} disabled={isNotified} className="press"
+          <button onClick={onNotify} disabled={isNotified} className="tac-btn"
             style={{
               flex: 1, padding: '10px 0', borderRadius: 10,
-              border: '1px solid rgba(60,40,20,.12)',
-              background: isNotified ? 'transparent' : 'var(--paper)',
               color: isNotified ? 'var(--ink-400)' : 'var(--ink-800)',
-              cursor: isNotified ? 'default' : 'pointer',
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 650,
+              fontSize: 13, fontWeight: 650,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              opacity: isNotified ? .6 : 1,
             }}>
             <Icon d={I.phone} size={13} stroke={2} />
             {isNotified ? 'Avisat' : 'Avisar'}
           </button>
-          <button onClick={onSeat} className="press"
+          <button onClick={onSeat} className="tac-btn tac-btn--accent"
             style={{
-              flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
-              background: 'var(--terracotta-600)', color: '#fff',
-              cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+              flex: 1, padding: '10px 0', borderRadius: 10,
+              fontSize: 13, fontWeight: 700,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              boxShadow: '0 2px 6px rgba(168,74,42,.28)',
             }}>
             <Icon d={I.users} size={13} stroke={2} /> Asseure
           </button>
@@ -467,36 +455,30 @@ function QueueRow({ w, rank, isNext, plan, onNotify, onSeat, onRemove }: QueueRo
           {waitMin === 0 ? 'ara' : `${waitMin} min`}
         </span>
         <button onClick={onRemove} aria-label="Eliminar"
+          className="tac-btn tac-btn--ghost"
           style={{
             width: 26, height: 26, borderRadius: 999,
-            border: 'none', background: 'transparent',
-            color: 'var(--ink-400)', cursor: 'pointer',
+            color: 'var(--ink-400)',
             display: 'grid', placeItems: 'center',
           }}>
           <Icon d={I.x} size={13} />
         </button>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={onNotify} disabled={isNotified} className="press"
+        <button onClick={onNotify} disabled={isNotified} className="tac-btn"
           style={{
             flex: 1, padding: '7px 0', borderRadius: 9,
-            border: '1px solid rgba(60,40,20,.10)',
-            background: isNotified ? 'transparent' : 'var(--paper)',
             color: isNotified ? 'var(--ink-400)' : 'var(--ink-800)',
-            cursor: isNotified ? 'default' : 'pointer',
-            fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+            fontSize: 12, fontWeight: 600,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            opacity: isNotified ? .6 : 1,
           }}>
           <Icon d={I.phone} size={11} stroke={2} />
           {isNotified ? 'Avisat' : 'Avisar'}
         </button>
-        <button onClick={onSeat} className="press"
+        <button onClick={onSeat} className="tac-btn tac-btn--accent"
           style={{
-            flex: 1, padding: '7px 0', borderRadius: 9, border: 'none',
-            background: 'var(--terracotta-600)', color: '#fff',
-            cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+            flex: 1, padding: '7px 0', borderRadius: 9,
+            fontSize: 12, fontWeight: 700,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}>
           <Icon d={I.users} size={11} stroke={2} /> Asseure

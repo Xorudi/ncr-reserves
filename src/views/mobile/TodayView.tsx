@@ -2289,10 +2289,9 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 {biz.name}
               </div>
             </div>
-            <button onClick={onClose} className="press"
+            <button onClick={onClose} className="tac-btn"
               aria-label="Tancar"
-              style={{ background:'var(--cream)', border:'1px solid rgba(60,40,20,.08)',
-                       cursor:'pointer', color:'var(--ink-600)',
+              style={{ color:'var(--ink-600)',
                        width:36, height:36, borderRadius:999,
                        display:'grid', placeItems:'center', flexShrink:0 }}>
               <Icon d={I.x} size={16} />

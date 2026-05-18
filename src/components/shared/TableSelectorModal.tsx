@@ -229,12 +229,13 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
           padding:'12px 14px calc(env(safe-area-inset-bottom) + 12px)',
           borderTop:'var(--hair)', display:'flex', gap:8, flexShrink:0,
         }}>
-          <button onClick={onClose}
-            style={{ flex:1, padding:'11px', background:'var(--ink-100)', border:'none', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:600, color:'var(--ink-800)' }}>
+          <button onClick={onClose} className="tac-btn"
+            style={{ flex:1, padding:'11px', borderRadius:11, fontSize:14, fontWeight:600, color:'var(--ink-800)' }}>
             Cancel·lar
           </button>
           <button onClick={() => { onSave(selected); onClose(); }}
-            style={{ flex:2, padding:'11px', background:'var(--terracotta-600)', border:'none', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:700, color:'white' }}>
+            className="tac-btn tac-btn--accent"
+            style={{ flex:2, padding:'11px', borderRadius:11, fontSize:14, fontWeight:700 }}>
             {btnLabel}
           </button>
         </div>

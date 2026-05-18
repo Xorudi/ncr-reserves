@@ -613,8 +613,8 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
             <div style={{ fontSize:13, fontWeight:700, color:'var(--terracotta-800)', marginBottom:8 }}>Aplicar backup importat?</div>
             <div style={{ fontSize:12.5, color:'var(--terracotta-700)', marginBottom:12 }}>Això reemplaçarà totes les dades actuals.</div>
             <div style={{ display:'flex', gap:8 }}>
-              <button onClick={confirmImport} style={{ flex:1, padding:'10px', borderRadius:9, border:'none', background:'var(--terracotta-600)', color:'white', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer' }}>Aplicar</button>
-              <button onClick={() => { setConfirmId(null); delete (window as any).__pendingImport; }} style={{ flex:1, padding:'10px', borderRadius:9, border:'1px solid rgba(60,40,20,.14)', background:'transparent', color:'var(--ink-700)', fontFamily:'inherit', fontSize:13, cursor:'pointer' }}>Cancel·lar</button>
+              <button onClick={confirmImport} className="tac-btn tac-btn--accent" style={{ flex:1, padding:'10px', borderRadius:9, fontSize:13, fontWeight:700 }}>Aplicar</button>
+              <button onClick={() => { setConfirmId(null); delete (window as any).__pendingImport; }} className="tac-btn" style={{ flex:1, padding:'10px', borderRadius:9, fontSize:13 }}>Cancel·lar</button>
             </div>
           </div>
         )}
@@ -639,8 +639,8 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
               </div>
               {confirmId === meta.id ? (
                 <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={() => doRestore(meta.id)} style={{ flex:2, padding:'9px', borderRadius:9, border:'none', background:'var(--terracotta-600)', color:'white', fontFamily:'inherit', fontSize:13, fontWeight:700, cursor:'pointer' }}>Restaurar</button>
-                  <button onClick={() => setConfirmId(null)} style={{ flex:1, padding:'9px', borderRadius:9, border:'1px solid rgba(60,40,20,.14)', background:'transparent', color:'var(--ink-700)', fontFamily:'inherit', fontSize:12, cursor:'pointer' }}>Cancel·lar</button>
+                  <button onClick={() => doRestore(meta.id)} className="tac-btn tac-btn--accent" style={{ flex:2, padding:'9px', borderRadius:9, fontSize:13, fontWeight:700 }}>Restaurar</button>
+                  <button onClick={() => setConfirmId(null)} className="tac-btn" style={{ flex:1, padding:'9px', borderRadius:9, fontSize:12 }}>Cancel·lar</button>
                 </div>
               ) : (
                 <div style={{ display:'flex', gap:6 }}>

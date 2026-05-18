@@ -704,11 +704,10 @@ function TableActionSheet({
               </span>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Tancar"
+          <button onClick={onClose} aria-label="Tancar" className="tac-btn"
             style={{
               width:34, height:34, borderRadius:999,
-              background:'var(--cream)', border:'1px solid rgba(60,40,20,.08)',
-              cursor:'pointer', color:'var(--ink-600)',
+              color:'var(--ink-600)',
               display:'grid', placeItems:'center', flexShrink:0,
             }}>
             <Icon d={I.x} size={15} />

@@ -195,20 +195,17 @@ function InsightChip({ ins, onAction, onDismiss }: {
       {/* Dismiss × — separated so a tap on it never fires the main action.
           Sized at 32 px so it's a comfortable target on the counter
           touchscreen without becoming visually dominant. */}
-      <button onClick={onDismiss} aria-label="Descartar" className="press"
+      <button onClick={onDismiss} aria-label="Descartar"
+        className="tac-btn tac-btn--ghost"
         style={{
           flexShrink: 0,
           width: 32, height: 32, alignSelf: 'flex-start',
           margin: '-2px 0 0 2px', padding: 0,
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          color: p.fg, opacity: .55,
+          color: p.fg,
           display: 'grid', placeItems: 'center',
-          fontSize: 18, lineHeight: 1, fontFamily: 'inherit',
+          fontSize: 18, lineHeight: 1,
           borderRadius: 8,
-          transition: 'opacity 140ms var(--ease-out), background 140ms var(--ease-out)',
-        }}
-        onPointerEnter={e => { e.currentTarget.style.opacity = '.9'; e.currentTarget.style.background = 'rgba(60,40,20,.05)'; }}
-        onPointerLeave={e => { e.currentTarget.style.opacity = '.55'; e.currentTarget.style.background = 'transparent'; }}>
+        }}>
         ×
       </button>
     </div>
