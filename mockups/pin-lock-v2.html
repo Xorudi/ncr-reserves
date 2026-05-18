@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>NCR Reserves — Lock screen v2 mockup</title>
+<style>
+  /* ─── Design tokens ───────────────────────────────────────────────── */
+  :root {
+    --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-cinema: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-spring: cubic-bezier(0.34, 1.52, 0.64, 1);
+
+    --paper:      #fbf7ee;
+    --paper-warm: #f7eedb;
+    --cream:      #fdf9f2;
+    --ink-900:    #1d1612;
+    --ink-700:    #3a2a1f;
+    --ink-600:    #5a4a3a;
+    --ink-500:    #7a6a5a;
+    --ink-400:    #9a8a7a;
+    --terra-500:  #c8613a;
+    --terra-600:  #a8502f;
+    --terra-700:  #923c1f;
+
+    /* Per-business identity */
+    --ganxo-bg:      #0e0a08;
+    --ganxo-bg-2:    #1a110a;
+    --ganxo-fg:      #f5ede0;
+    --ganxo-fg-dim:  rgba(245,237,224,.55);
+    --ganxo-accent:  #d4843d;
+    --ganxo-accent-2:#f3c581;
+
+    --pista-bg:      #1f3a2a;
+    --pista-bg-2:    #2a4d38;
+    --pista-fg:      #f7f4ea;
+    --pista-fg-dim:  rgba(247,244,234,.55);
+    --pista-accent:  #79b46a;
+    --pista-accent-2:#c8a04a;
+
+    --esq-bg:        #2d5e6b;
+    --esq-bg-2:      #3a7282;
+    --esq-fg:        #f7f4ea;
+    --esq-fg-dim:    rgba(247,244,234,.55);
+    --esq-accent:    #6ec3d4;
+    --esq-accent-2:  #e8b54a;
+
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Inter", "Geist", sans-serif;
+    --font-serif: ui-serif, "Iowan Old Style", "Apple Garamond", Georgia, serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    color: var(--ink-900);
+    background: #ece2c8;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Passage (cream room) ────────────────────────────────────────── */
+  .passage {
+    position: relative;
+    min-height: 100dvh;
+    isolation: isolate;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    gap: 16px;
+    padding: 20px 20px 16px;
+    background:
+      radial-gradient(ellipse 70% 55% at 78% 6%, rgba(200, 97, 58, .16) 0%, transparent 62%),
+      radial-gradient(ellipse 55% 45% at 18% 96%, rgba(54, 32, 18, .14) 0%, transparent 65%),
+      radial-gradient(ellipse 120% 100% at 50% 50%, #f6ecd9 0%, #ece2c8 55%, #d6cbb1 100%);
+  }
+  /* Paper grain */
+  .passage::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0 0.12  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: .045;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Stage ───────────────────────────────────────────────────────── */
+  /* Mobile / narrow: vertical stack (lock then doors).
+     Desktop ≥ 1000px: 2-column — lock on the left, doors stacked on the right. */
+  .stage {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: 22px;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 8px 0 4px;
+  }
+  @media (min-width: 1000px) {
+    .stage {
+      grid-template-columns: minmax(380px, 440px) minmax(380px, 520px);
+      align-items: center;
+      justify-items: stretch;
+      gap: 36px;
+      padding: 0;
+    }
+  }
+
+  /* ─── Lock card (Double-Bezel) ────────────────────────────────────── */
+  .lock {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    padding: 6px;
+    border-radius: 32px;
+    background: linear-gradient(180deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.32) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      0 0 0 1px rgba(60,40,20,.05),
+      0 38px 80px -22px rgba(60,40,20,.32),
+      0 14px 32px -12px rgba(60,40,20,.16);
+  }
+  .lock__inner {
+    position: relative;
+    border-radius: 26px;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--paper), var(--paper-warm));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.55),
+      inset 0 -1px 0 rgba(60,40,20,.05);
+  }
+
+  /* Header — espresso plate */
+  .lock__head {
+    position: relative;
+    padding: 22px 26px 20px;
+    text-align: center;
+    color: var(--cream);
+    background:
+      radial-gradient(ellipse 110% 90% at 100% 0%, rgba(200,97,58,.22), transparent 60%),
+      linear-gradient(180deg, #2a2018 0%, #1a120d 100%);
+  }
+  .lock__head::after {
+    content: '';
+    position: absolute; top: 0; left: 12%; right: 12%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.20), transparent);
+  }
+  .eyebrow {
+    display: inline-block;
+    padding: 4px 11px 5px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(251,247,238,.62);
+    margin-bottom: 12px;
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .monogram-n {
+    width: 36px; height: 36px;
+    border-radius: 12px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.20), rgba(255,255,255,0) 55%),
+      linear-gradient(180deg, #d5703f, #c8613a);
+    color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 19px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.4),
+      inset 0 -1px 0 rgba(0,0,0,.15),
+      0 4px 10px -2px rgba(146,60,31,.45),
+      0 0 0 1px rgba(146,60,31,.5);
+  }
+  .wordmark {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    opacity: .68;
+  }
+  .title {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1.02;
+    letter-spacing: -.018em;
+  }
+  .subtitle {
+    margin: 7px 0 0;
+    font-size: 12px;
+    color: rgba(251,247,238,.56);
+    letter-spacing: .005em;
+  }
+
+  /* PIN dots */
+  .dots {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    gap: 11px;
+    padding: 20px 16px 6px;
+  }
+  .dots::after {
+    content: '';
+    position: absolute; bottom: 0; left: 50%;
+    width: 28px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200,97,58,.55), transparent);
+    transform: translateX(-50%) scaleX(0);
+    transition: transform 320ms var(--ease-out);
+  }
+  .dots[data-filled="true"]::after { transform: translateX(-50%) scaleX(1); }
+  .dot {
+    width: 46px;
+    aspect-ratio: 1 / 1.2;
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--cream), #f7ecd6);
+    border: 1px solid rgba(60,40,20,.10);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      inset 0 -1px 0 rgba(60,40,20,.05),
+      0 1px 2px rgba(60,40,20,.05);
+    display: grid; place-items: center;
+    transition: border-color 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
+  }
+  .dot[data-active="true"] {
+    border-color: var(--terra-500);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      inset 0 -1px 0 rgba(60,40,20,.05),
+      0 0 0 4px rgba(200, 97, 58, .12),
+      0 0 28px -4px rgba(200, 97, 58, .42);
+  }
+  .dot-fill {
+    font-family: var(--font-serif);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--ink-900);
+    opacity: 0;
+    transform: scale(0.35);
+    transition: opacity 220ms var(--ease-out), transform 320ms var(--ease-spring);
+  }
+  .dot[data-filled="true"] .dot-fill { opacity: 1; transform: scale(1); }
+
+  .status {
+    min-height: 22px;
+    padding: 6px 24px 0;
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--ink-500);
+  }
+
+  /* Keypad */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+    padding: 8px 22px 18px;
+  }
+  .key {
+    padding: 12px 0;
+    background: linear-gradient(180deg, var(--cream), #f4e9d2);
+    border: 1px solid rgba(60,40,20,.08);
+    border-radius: 13px;
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-900);
+    cursor: pointer;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      inset 0 -1px 0 rgba(60,40,20,.05);
+    transition: transform 180ms var(--ease-out), background 220ms;
+  }
+  .key:hover { background: linear-gradient(180deg, #fdf6e5, #f1e5c9); }
+  .key:active { transform: scale(0.96); }
+  .key--del { font-size: 18px; color: var(--ink-600); }
+
+  /* ─── BUSINESS DOORS ──────────────────────────────────────────────── */
+  .doors-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .doors-eyebrow {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+  }
+  /* Three-up by default (mobile + tablet); column at desktop ≥ 1000. */
+  .doors {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 560px) { .doors { grid-template-columns: 1fr; } }
+  @media (min-width: 1000px) {
+    .doors { grid-template-columns: 1fr; gap: 12px; }
+  }
+
+  .door {
+    position: relative;
+    padding: 6px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.25));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      0 0 0 1px rgba(60,40,20,.05),
+      0 18px 30px -16px rgba(60,40,20,.20),
+      0 5px 12px -8px rgba(60,40,20,.10);
+    transform-origin: 50% 100%;
+    /* Cards are informational previews — not clickable. */
+    transition:
+      transform   720ms var(--ease-cinema),
+      opacity     380ms var(--ease-cinema),
+      filter      380ms var(--ease-cinema),
+      box-shadow  720ms var(--ease-cinema);
+  }
+  /* Very subtle informational hover only — never lifts. */
+  @media (hover: hover) and (pointer: fine) {
+    .door:hover {
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.7),
+        0 0 0 1px rgba(60,40,20,.06),
+        0 24px 42px -18px rgba(60,40,20,.24),
+        0 7px 16px -10px rgba(60,40,20,.12);
+    }
+  }
+
+  /* Inner core — compact card. Default: vertical (mobile 3-up). */
+  .door__inner {
+    position: relative;
+    border-radius: 15px;
+    overflow: hidden;
+    padding: 14px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 160px;
+  }
+
+  /* Desktop column: switch to a horizontal landscape card. */
+  @media (min-width: 1000px) {
+    .door__inner {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      grid-template-rows: auto auto;
+      column-gap: 14px;
+      row-gap: 4px;
+      padding: 14px 16px;
+      min-height: 0;
+      align-items: center;
+    }
+    /* Dissolve the wrapping divs so children participate in the grid. */
+    .door__top, .door__heading { display: contents; }
+
+    .door__mono     { grid-row: 1 / span 2; }
+    .door__name     { grid-column: 2; grid-row: 1; }
+    .door__sub      { grid-column: 2; grid-row: 2; margin-top: 0; }
+    .door__state    { grid-column: 3; grid-row: 1; align-self: start; justify-self: end; }
+    .door__kpi      {
+      grid-column: 3; grid-row: 2;
+      padding-top: 0; border-top: none;
+      gap: 6px; justify-content: flex-end; align-items: baseline;
+    }
+    .door__kpi-label { display: none; }
+  }
+
+  /* Each door's atmosphere */
+  .door--ganxo .door__inner {
+    background:
+      radial-gradient(ellipse 90% 60% at 100% 0%, rgba(212,132,61,.35), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 0% 100%, rgba(212,132,61,.10), transparent 60%),
+      linear-gradient(180deg, var(--ganxo-bg-2), var(--ganxo-bg));
+    color: var(--ganxo-fg);
+    box-shadow: inset 0 1px 0 rgba(255,221,180,.08), inset 0 -1px 0 rgba(0,0,0,.4);
+  }
+  .door--pista .door__inner {
+    background:
+      radial-gradient(ellipse 80% 60% at 0% 0%, rgba(121,180,106,.30), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, rgba(200,160,74,.12), transparent 60%),
+      linear-gradient(180deg, var(--pista-bg-2), var(--pista-bg));
+    color: var(--pista-fg);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -1px 0 rgba(0,0,0,.3);
+  }
+  .door--esq .door__inner {
+    background:
+      radial-gradient(ellipse 80% 70% at 50% 0%, rgba(110,195,212,.28), transparent 65%),
+      radial-gradient(ellipse 50% 50% at 90% 100%, rgba(232,181,74,.18), transparent 60%),
+      linear-gradient(180deg, var(--esq-bg-2), var(--esq-bg));
+    color: var(--esq-fg);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 -1px 0 rgba(0,0,0,.3);
+  }
+
+  .door__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .door__mono {
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    display: grid; place-items: center;
+    font-size: 19px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 4px 12px -2px rgba(0,0,0,.35);
+  }
+  .door--ganxo .door__mono {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    background: linear-gradient(180deg, #e09454, var(--ganxo-accent));
+    color: #2a1a0e;
+  }
+  .door--pista .door__mono {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    background: linear-gradient(180deg, #8cc97c, var(--pista-accent));
+    color: #122a1c;
+  }
+  .door--esq .door__mono {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    background: linear-gradient(180deg, #82d2e2, var(--esq-accent));
+    color: #0e3540;
+  }
+
+  .door__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px 4px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.10);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .door__state .pulse {
+    width: 5px; height: 5px;
+    border-radius: 999px;
+    background: currentColor;
+    box-shadow: 0 0 0 0 currentColor;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  .door__state[data-closed="true"] .pulse { animation: none; opacity: .35; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.5); }
+    50%      { box-shadow: 0 0 0 5px rgba(255,255,255,0); }
+  }
+  .door--ganxo .door__state { color: var(--ganxo-accent-2); }
+  .door--pista .door__state { color: var(--pista-accent); }
+  .door--esq   .door__state { color: var(--esq-accent); }
+
+  .door__name {
+    margin: 0;
+    line-height: 1;
+  }
+  .door--ganxo .door__name {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: -.01em;
+  }
+  .door--pista .door__name {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -.02em;
+    text-transform: uppercase;
+  }
+  .door--esq .door__name {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 21px;
+    letter-spacing: -.01em;
+  }
+
+  .door__sub {
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .03em;
+    margin-top: 4px;
+  }
+  .door--ganxo .door__sub { color: var(--ganxo-fg-dim); }
+  .door--pista .door__sub { color: var(--pista-fg-dim); }
+  .door--esq   .door__sub { color: var(--esq-fg-dim); }
+
+  .door__kpi {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,.10);
+  }
+  .door__kpi-big {
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -.01em;
+    line-height: 1;
+  }
+  .kpi-frac {
+    font-size: 12px;
+    opacity: .55;
+    margin-left: 1px;
+  }
+  .door--ganxo .door__kpi-big { color: var(--ganxo-accent-2); }
+  .door--pista .door__kpi-big { color: var(--pista-accent); }
+  .door--esq   .door__kpi-big { color: var(--esq-accent); }
+  .door__kpi-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    opacity: .55;
+  }
+
+  .door__quote {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: .82;
+  }
+
+  /* ─── Bottom status line ─────────────────────────────────────────── */
+  .panel-foot {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    color: var(--ink-500);
+    font-size: 10.5px;
+    line-height: 1.55;
+    padding-top: 4px;
+  }
+  .panel-foot .last {
+    font-style: italic;
+    color: var(--ink-600);
+  }
+
+  /* ─── BOOK-OPENING SEQUENCE ───────────────────────────────────────── */
+  /* Triggered when the PIN matches a biz. The chosen card grows to
+     viewport center; everything else fades; the local's atmosphere
+     floods; the bookplate (mono + name) appears. */
+
+  /* When the body is in opening mode, dim/blur everything except the
+     chosen card. */
+  body.book-opening .lock,
+  body.book-opening .doors-eyebrow,
+  body.book-opening .door:not(.door--opening),
+  body.book-opening .panel-foot,
+  body.book-opening .hint {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(0.96);
+    pointer-events: none;
+    transition:
+      opacity   420ms var(--ease-cinema),
+      filter    420ms var(--ease-cinema),
+      transform 420ms var(--ease-cinema);
+  }
+
+  /* The chosen card — two-phase: tilt (cover lift) → migrate to center. */
+  .door--opening {
+    position: relative;
+    z-index: 220;
+    /* Heavier shadow as it gains physical weight. */
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.7),
+      0 0 0 1px rgba(60,40,20,.06),
+      0 80px 140px -20px rgba(0,0,0,.55),
+      0 28px 56px -12px rgba(0,0,0,.32) !important;
+    animation: book-open-card 900ms var(--ease-cinema) forwards;
+  }
+  @keyframes book-open-card {
+    0% {
+      transform: perspective(1200px) rotateX(0deg) translate(0, 0) scale(1);
+    }
+    18% {
+      /* Cover-lift moment: tilts forward as if someone is opening it. */
+      transform: perspective(1200px) rotateX(-9deg) translateY(-6px) scale(1.02);
+    }
+    100% {
+      /* Migrate to viewport center + scale up. */
+      transform:
+        perspective(1200px)
+        rotateX(0deg)
+        translate(var(--flip-dx, 0px), var(--flip-dy, 0px))
+        scale(var(--flip-scale, 1.6));
+    }
+  }
+
+  /* Inside the opening card, the operational details fade — only the
+     monogram and name remain. */
+  .door--opening .door__state,
+  .door--opening .door__sub,
+  .door--opening .door__kpi {
+    opacity: 0;
+    transition: opacity 320ms var(--ease-out) 360ms;
+  }
+
+  /* Card itself fades out at the end, revealing the atmosphere + bookplate. */
+  .door--gone {
+    opacity: 0;
+    transform:
+      perspective(1200px)
+      translate(var(--flip-dx, 0px), var(--flip-dy, 0px))
+      scale(var(--flip-scale, 1.6))
+      translateY(-12px) !important;
+    transition:
+      opacity   480ms var(--ease-cinema),
+      transform 480ms var(--ease-cinema) !important;
+    animation: none !important;
+  }
+
+  /* ─── Atmosphere flood — biz-colored backdrop INSIDE passage ─────── */
+  /* Placed inside .passage at z:0 so the .stage (z:1) and the chosen
+     card (z:220 within stage) sit on top of it. The faded lock/doors
+     stay in flow but at opacity 0, so the atmosphere shows through. */
+  .atmosphere {
+    position: absolute; inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 700ms var(--ease-cinema) 380ms;
+  }
+  .atmosphere[data-biz="ganxo"] {
+    background:
+      radial-gradient(ellipse 90% 65% at 50% 42%, rgba(212,132,61,.38), rgba(14,10,8,.0) 60%),
+      linear-gradient(180deg, #1a110a 0%, #0e0a08 100%);
+  }
+  .atmosphere[data-biz="pista"] {
+    background:
+      radial-gradient(ellipse 90% 65% at 50% 42%, rgba(121,180,106,.32), rgba(31,58,42,.0) 60%),
+      linear-gradient(180deg, #2a4d38 0%, #1f3a2a 100%);
+  }
+  .atmosphere[data-biz="esq"] {
+    background:
+      radial-gradient(ellipse 90% 65% at 50% 42%, rgba(110,195,212,.30), rgba(45,94,107,.0) 60%),
+      linear-gradient(180deg, #3a7282 0%, #2d5e6b 100%);
+  }
+  body.book-opening .atmosphere { opacity: 1; }
+
+  /* ─── Bookplate — centered mono + name + caption ────────────────── */
+  .bookplate {
+    position: fixed; inset: 0;
+    z-index: 240;
+    pointer-events: none;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.96);
+    transition:
+      opacity   500ms var(--ease-cinema) 1100ms,
+      transform 700ms var(--ease-cinema) 1100ms;
+  }
+  body.book-opening .bookplate {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .bookplate__mono {
+    display: inline-grid; place-items: center;
+    width: 92px; height: 92px;
+    border-radius: 22px;
+    margin: 0 auto 26px;
+    font-size: 48px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.25),
+      0 22px 50px -10px rgba(0,0,0,.55);
+  }
+  .bookplate[data-biz="ganxo"] .bookplate__mono {
+    background: linear-gradient(180deg, #e09454, var(--ganxo-accent));
+    color: #2a1a0e;
+    font-family: var(--font-serif); font-style: italic; font-weight: 500;
+  }
+  .bookplate[data-biz="pista"] .bookplate__mono {
+    background: linear-gradient(180deg, #8cc97c, var(--pista-accent));
+    color: #122a1c;
+    font-family: var(--font-sans); font-weight: 800;
+  }
+  .bookplate[data-biz="esq"] .bookplate__mono {
+    background: linear-gradient(180deg, #82d2e2, var(--esq-accent));
+    color: #0e3540;
+    font-family: var(--font-sans); font-weight: 600;
+  }
+  .bookplate__title {
+    margin: 0;
+    color: #f7f4ea;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -.01em;
+  }
+  .bookplate[data-biz="ganxo"] .bookplate__title {
+    font-family: var(--font-serif); font-style: italic; font-weight: 500;
+  }
+  .bookplate[data-biz="pista"] .bookplate__title {
+    font-family: var(--font-sans); font-weight: 800; text-transform: uppercase;
+  }
+  .bookplate[data-biz="esq"] .bookplate__title {
+    font-family: var(--font-sans); font-weight: 500;
+  }
+  .bookplate__sub {
+    margin: 18px 0 0;
+    font-size: 10.5px;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    color: rgba(247,244,234,.55);
+    font-weight: 600;
+  }
+
+  /* Shake feedback for wrong PIN. */
+  .lock.shake { animation: shake 460ms; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    15%, 75% { transform: translateX(-7px); }
+    35%, 55% { transform: translateX(7px); }
+  }
+
+  /* Resize knob for testing */
+  .hint {
+    position: fixed;
+    bottom: 12px; right: 14px;
+    z-index: 50;
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-500);
+    background: rgba(255,255,255,.5);
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(60,40,20,.08);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="passage">
+  <!-- Atmosphere flood — sits inside passage as a backdrop layer.
+       Fades in to flood-color when book-opening is active. -->
+  <div class="atmosphere" id="atmosphere" aria-hidden="true"></div>
+
+  <div class="stage">
+
+    <!-- ─── LOCK CARD ─────────────────────────────────────────── -->
+    <div class="lock">
+      <div class="lock__inner">
+        <header class="lock__head">
+          <span class="eyebrow">Dilluns · 18 Maig · 3 locals · 109 cobertes</span>
+          <div class="brand">
+            <span class="monogram-n">N</span>
+            <span class="wordmark">NCR Reserves</span>
+          </div>
+          <h1 class="title">Bona tarda</h1>
+          <p class="subtitle">Introdueix el PIN per continuar</p>
+        </header>
+
+        <div class="dots" id="dots" data-filled="false">
+          <span class="dot" data-active="true"  data-filled="false"><span class="dot-fill">●</span></span>
+          <span class="dot" data-active="false" data-filled="false"><span class="dot-fill">●</span></span>
+          <span class="dot" data-active="false" data-filled="false"><span class="dot-fill">●</span></span>
+          <span class="dot" data-active="false" data-filled="false"><span class="dot-fill">●</span></span>
+        </div>
+
+        <div class="status">&nbsp;</div>
+
+        <div class="keypad">
+          <button class="key" data-d="1">1</button>
+          <button class="key" data-d="2">2</button>
+          <button class="key" data-d="3">3</button>
+          <button class="key" data-d="4">4</button>
+          <button class="key" data-d="5">5</button>
+          <button class="key" data-d="6">6</button>
+          <button class="key" data-d="7">7</button>
+          <button class="key" data-d="8">8</button>
+          <button class="key" data-d="9">9</button>
+          <span></span>
+          <button class="key" data-d="0">0</button>
+          <button class="key key--del" data-del="1">⌫</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BUSINESS DOORS ────────────────────────────────────── -->
+    <div class="doors-wrap">
+      <div class="doors-eyebrow">— Estat dels locals avui —</div>
+      <div class="doors">
+
+        <!-- El Ganxo · pub musical -->
+        <div class="door door--ganxo" data-biz="ganxo">
+          <div class="door__inner">
+            <div class="door__top">
+              <div class="door__mono">G</div>
+              <span class="door__state" data-closed="true"><span class="pulse"></span> obre 22:00</span>
+            </div>
+            <div class="door__heading">
+              <h3 class="door__name">El Ganxo</h3>
+              <div class="door__sub">Pub musical · DJ Xavi aquesta nit</div>
+            </div>
+            <div class="door__kpi">
+              <span class="door__kpi-big">180<span class="kpi-frac">/240</span></span>
+              <span class="door__kpi-label">aforament lliure</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- La Pista · restaurant + pavelló hoquei -->
+        <div class="door door--pista" data-biz="pista">
+          <div class="door__inner">
+            <div class="door__top">
+              <div class="door__mono">P</div>
+              <span class="door__state"><span class="pulse"></span> obert</span>
+            </div>
+            <div class="door__heading">
+              <h3 class="door__name">La Pista</h3>
+              <div class="door__sub">Restaurant · partit hoquei 19:30</div>
+            </div>
+            <div class="door__kpi">
+              <span class="door__kpi-big">62<span class="kpi-frac">/110</span></span>
+              <span class="door__kpi-label">cobertes avui</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- L'Esquitx · restaurant + piscines + futbol -->
+        <div class="door door--esq" data-biz="esq">
+          <div class="door__inner">
+            <div class="door__top">
+              <div class="door__mono">E</div>
+              <span class="door__state"><span class="pulse"></span> obert · sol 24°</span>
+            </div>
+            <div class="door__heading">
+              <h3 class="door__name">L'Esquitx</h3>
+              <div class="door__sub">Restaurant · dinar familiar a la terrassa</div>
+            </div>
+            <div class="door__kpi">
+              <span class="door__kpi-big">34<span class="kpi-frac">/80</span></span>
+              <span class="door__kpi-label">cobertes avui</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="panel-foot">
+    <span class="last">Última porta · El Ganxo · fa 2 h 14 min</span><br/>
+    Si t'equivoques no passa res — torna a teclejar.
+  </footer>
+</div>
+
+<!-- ─── BOOKPLATE OVERLAY (mono + name, top-level) ─────────────── -->
+<div class="bookplate" id="bookplate" aria-hidden="true">
+  <div>
+    <div class="bookplate__mono" id="bookplateMono">G</div>
+    <h2 class="bookplate__title" id="bookplateTitle">El Ganxo</h2>
+    <p class="bookplate__sub" id="bookplateSub">Obrint el llibre · El Ganxo</p>
+  </div>
+</div>
+
+<div class="hint">Prova els PINs · <b>1234</b> Ganxo · <b>5678</b> Pista · <b>9012</b> Esquitx</div>
+
+<script>
+  // ─── PIN keypad ─────────────────────────────────────────────────
+  let pin = '';
+  let busy = false;
+  const dotsEl  = document.getElementById('dots');
+  const dots    = dotsEl.querySelectorAll('.dot');
+  const lockEl  = document.querySelector('.lock');
+  const statusEl = document.querySelector('.status');
+
+  function paint() {
+    dots.forEach((d, i) => {
+      d.dataset.active = (pin.length === i).toString();
+      d.dataset.filled = (i < pin.length).toString();
+    });
+    dotsEl.dataset.filled = (pin.length > 0).toString();
+  }
+
+  // Demo PIN → biz mapping
+  const PIN_MAP = {
+    '1234': 'ganxo',
+    '5678': 'pista',
+    '9012': 'esq',
+  };
+  const NAMES = {
+    ganxo: ['G', 'El Ganxo'],
+    pista: ['P', 'La Pista'],
+    esq:   ['E', "L'Esquitx"],
+  };
+
+  function tryUnlock() {
+    if (pin.length !== 4) return;
+    const biz = PIN_MAP[pin];
+    if (biz) {
+      busy = true;
+      openBookOf(biz);
+    } else {
+      // Wrong PIN — shake and clear
+      busy = true;
+      lockEl.classList.add('shake');
+      statusEl.textContent = 'PIN incorrecte. Torna-ho a provar.';
+      statusEl.style.color = 'var(--terra-700)';
+      setTimeout(() => {
+        lockEl.classList.remove('shake');
+        pin = ''; paint();
+        statusEl.textContent = '';
+        statusEl.style.color = '';
+        busy = false;
+      }, 720);
+    }
+  }
+
+  document.querySelectorAll('.key[data-d]').forEach(k => {
+    k.addEventListener('click', () => {
+      if (busy || pin.length >= 4) return;
+      pin += k.dataset.d;
+      paint();
+      if (pin.length === 4) setTimeout(tryUnlock, 160);
+    });
+  });
+  document.querySelector('.key[data-del]').addEventListener('click', () => {
+    if (busy) return;
+    pin = pin.slice(0, -1);
+    paint();
+  });
+
+  // ─── Book-opening sequence ──────────────────────────────────────
+  const atmosphere    = document.getElementById('atmosphere');
+  const bookplate     = document.getElementById('bookplate');
+  const bookplateMono = document.getElementById('bookplateMono');
+  const bookplateTitle= document.getElementById('bookplateTitle');
+  const bookplateSub  = document.getElementById('bookplateSub');
+
+  function openBookOf(biz) {
+    const card = document.querySelector(`.door[data-biz="${biz}"]`);
+    const rect = card.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top  + rect.height / 2;
+    const tx = (window.innerWidth  / 2) - cx;
+    const ty = (window.innerHeight / 2) - cy;
+    const scale = Math.min(
+      (window.innerHeight * 0.50) / rect.height,
+      (window.innerWidth  * 0.42) / rect.width,
+      2.6,
+    );
+
+    card.style.setProperty('--flip-dx',    `${tx}px`);
+    card.style.setProperty('--flip-dy',    `${ty}px`);
+    card.style.setProperty('--flip-scale', scale.toFixed(3));
+
+    const [mono, name] = NAMES[biz];
+    atmosphere.dataset.biz   = biz;
+    bookplate.dataset.biz    = biz;
+    bookplateMono.textContent  = mono;
+    bookplateTitle.textContent = name;
+    bookplateSub.textContent   = `Obrint el llibre · ${name}`;
+
+    document.body.classList.add('book-opening');
+    card.classList.add('door--opening');
+
+    // After the card has reached center + content faded, fade it out
+    // so the bookplate (mono + name) takes the stage clean.
+    setTimeout(() => card.classList.add('door--gone'), 1100);
+
+    // Mockup reset (in real app: this is where the app mounts).
+    setTimeout(() => {
+      document.body.classList.remove('book-opening');
+      card.classList.remove('door--opening', 'door--gone');
+      pin = ''; paint();
+      busy = false;
+    }, 2700);
+  }
+</script>
+</body>
+</html>
