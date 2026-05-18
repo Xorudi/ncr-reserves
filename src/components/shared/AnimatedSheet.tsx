@@ -1,13 +1,27 @@
 /**
- * AnimatedSheet — iOS-style bottom sheet with slide-up entrance and slide-down exit.
+ * AnimatedSheet — adaptive sheet primitive.
  *
- * Uses ReactDOM.createPortal to render directly in document.body, bypassing any
- * overflow:hidden ancestors (which on iOS Safari clip position:fixed children).
+ *   • iPad / touch / phone → iOS-style bottom drawer that slides up from
+ *     the bottom edge, full viewport width, with the heavy drawer
+ *     easing curve (ease-drawer at 380 ms).
+ *
+ *   • Non-touch PC desktop  → centered floating modal capped at a
+ *     sensible max-width (default 620 px) with a soft descent: scale
+ *     0.96 + translateY(-12px) → 1, ease-out at 220 ms. Modals carry
+ *     no thumb metaphor — slide-up from the bottom on a 1920 × 1080
+ *     mouse session overwhelms the rail layout.
+ *
+ * Rendered via createPortal into document.body to bypass any
+ * overflow:hidden ancestors (iOS Safari clips position:fixed children
+ * inside overflow-hidden scrollers).
+ *
+ * Events: dispatches `app:sheet:opened` / `app:sheet:closed` on the
+ * window for FAB + bottom-nav suppression (kept intact).
  *
  * Usage:
- *   <AnimatedSheet open={show} onClose={close} zIndex={100}>
- *     <div style={{ borderRadius:'18px 18px 0 0', background:'var(--paper)', ... }}>
- *       ...content...
+ *   <AnimatedSheet open={show} onClose={close} zIndex={100} desktopMaxWidth={620}>
+ *     <div style={{ borderRadius:'18px 18px 0 0', background:'var(--paper)', … }}>
+ *       …content…
  *     </div>
  *   </AnimatedSheet>
  */
@@ -21,26 +35,45 @@ interface Props {
   onClose: () => void;
   /** z-index of the panel. Backdrop gets zIndex - 1. */
   zIndex?: number;
+  /**
+   * Max-width when rendered as a centered modal on non-touch desktop.
+   * Defaults to 620 px (good for forms and detail views). Pass 540 for
+   * compact forms or 720 for content-heavy sheets (search, weather).
+   */
+  desktopMaxWidth?: number;
   children: React.ReactNode;
 }
 
-export default function AnimatedSheet({ open, onClose, zIndex = 100, children }: Props) {
+export default function AnimatedSheet({
+  open,
+  onClose,
+  zIndex = 100,
+  desktopMaxWidth = 620,
+  children,
+}: Props) {
   const [mounted, setMounted] = useState(open);
   const [vis, setVis]         = useState(false);
 
-  // On large touchscreens (≥1280 px wide AND touch — typical restaurant
-  // counter monitor or hybrid PC with touchscreen), cap the sheet content
-  // width and center it so PAX grids and form fields don't stretch into
-  // tap-uncomfortable giants. JS detection matches useDevice exactly — CSS
-  // `pointer: coarse` returns false on hybrid PCs where the mouse is the
-  // primary pointer despite the screen being touch-capable.
-  const { isLargeScreen, isTouch } = useDevice();
+  const { isLargeScreen, isTouch, isDesktop } = useDevice();
+
+  /**
+   * Modal mode: a non-touch PC browser ≥1100 px wide. The sheet becomes
+   * a centered, capped-width floating card instead of a bottom drawer.
+   * Touch kiosks (isTouch + isLargeScreen) keep the bottom-sheet
+   * behaviour because a thumb-driven user still benefits from the
+   * familiar bottom-anchor gesture, even on a large monitor.
+   */
+  const modalMode = isDesktop && !isTouch;
+
+  /** Legacy width-cap for touch kiosks. Only applies in bottom-sheet
+   *  mode to keep PAX grids and form fields tap-sized on a 1920 px
+   *  touchscreen monitor. */
   const capContent = isLargeScreen && isTouch;
 
   useEffect(() => {
     if (open) {
       setMounted(true);
-      // Double rAF: first frame applies initial CSS (translateY(100%), opacity 0),
+      // Double rAF: first frame applies initial CSS (translateY/scale + opacity 0),
       // second frame flips to .vis so the CSS transition fires correctly.
       const r1 = requestAnimationFrame(() => requestAnimationFrame(() => setVis(true)));
       return () => cancelAnimationFrame(r1);
@@ -51,16 +84,39 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
     }
   }, [open]);
 
-  // Separate effect: notify chrome (FAB, bottom-nav) about open/close so it
-  // can move out of the way. Using a dedicated effect with paired open/close
-  // dispatches via cleanup keeps the counter balanced under rapid toggles.
+  // Notify chrome (FAB, bottom-nav) about open/close so it can move out
+  // of the way. Paired open/close dispatches via cleanup keep the
+  // counter balanced under rapid toggles.
   useEffect(() => {
     if (!open) return;
     window.dispatchEvent(new CustomEvent('app:sheet:opened'));
     return () => { window.dispatchEvent(new CustomEvent('app:sheet:closed')); };
   }, [open]);
 
+  // ESC key support — only when in modal mode (touch users have no kbd).
+  useEffect(() => {
+    if (!open || !modalMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, modalMode, onClose]);
+
   if (!mounted) return null;
+
+  // sheet-content inline styles vary by mode:
+  //   modal      → cap width to desktopMaxWidth, all corners rounded
+  //   touch kiosk → cap width to 880 px so PAX grids stay tap-sized
+  //   otherwise  → fill (default)
+  const contentStyle: React.CSSProperties | undefined = modalMode
+    ? { maxWidth: desktopMaxWidth, marginLeft: 'auto', marginRight: 'auto' }
+    : capContent
+      ? { maxWidth: 880, marginLeft: 'auto', marginRight: 'auto' }
+      : undefined;
 
   return createPortal(
     <>
@@ -69,21 +125,18 @@ export default function AnimatedSheet({ open, onClose, zIndex = 100, children }:
         className={`sheet-backdrop ${vis ? 'vis' : ''}`}
         style={{ zIndex: zIndex - 1 }}
         onClick={onClose}
+        aria-hidden="true"
       />
-      {/* Panel — children supply all visual styles (bg, radius, padding, etc.)
-          The inner `.sheet-content` wrapper is just a sizing container: on a
-          large touch screen it caps the visible width to ~880 px and centers
-          it (so 8-column PAX grids stay tap-sized on a 1920 px monitor),
-          while on iPad / phone it stays width:100% to keep the existing
-          full-width bottom-sheet behaviour. */}
+      {/* Panel — data-mode switches the CSS variant. Children supply
+          their own background/padding; we just position and clip them. */}
       <div
         className={`sheet-panel ${vis ? 'vis' : ''}`}
+        data-mode={modalMode ? 'modal' : 'sheet'}
         style={{ zIndex }}
+        role="dialog"
+        aria-modal="true"
       >
-        <div
-          className="sheet-content"
-          style={capContent ? { maxWidth: 880, marginLeft: 'auto', marginRight: 'auto' } : undefined}
-        >
+        <div className="sheet-content" style={contentStyle}>
           {children}
         </div>
       </div>

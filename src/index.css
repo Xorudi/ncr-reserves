@@ -468,6 +468,60 @@ body::before {
    primary pointer despite the screen being touch-capable. */
 .sheet-content { width: 100%; }
 
+/* ── Modal mode (non-touch desktop) ────────────────────────────────────
+   On a mouse-driven PC ≥1100 px wide the sheet becomes a centered
+   floating modal instead of a bottom drawer. The container changes
+   anchor (centered both axes), gets a snappier ease-out curve, and the
+   inner content is clipped to a fully-rounded card with a soft shadow.
+   The bottom-sheet variant is untouched. */
+.sheet-panel[data-mode="modal"] {
+  /* Override the default bottom anchor. */
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  top: 50%;
+  /* Initial state: slightly above + scaled down + transparent.
+     transform-origin is center because modals carry no trigger. */
+  transform: translate(-50%, calc(-50% - 12px)) scale(0.96);
+  transform-origin: center center;
+  opacity: 0;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity   120ms linear;
+}
+.sheet-panel[data-mode="modal"].vis {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  transition:
+    transform 220ms var(--ease-out),
+    opacity   180ms linear;
+}
+.sheet-panel[data-mode="modal"] .sheet-content {
+  /* Force fully-rounded corners regardless of what the child requests
+     (most children style as bottom sheets with `borderRadius: '18px 18px 0 0'`).
+     overflow:hidden clips the bottom-flat corners to round them too. */
+  border-radius: 18px;
+  overflow: hidden;
+  /* Soft layered shadow — fits the warm-cream design vocabulary. */
+  box-shadow:
+    0 28px 72px -16px rgba(60, 40, 20, .30),
+    0 10px 24px -8px  rgba(60, 40, 20, .14),
+    0 0 0 1px rgba(60, 40, 20, .06);
+  /* Height ceiling so the modal never reaches the top of the viewport. */
+  max-height: calc(100dvh - 80px);
+  /* Inner content can scroll if it overflows the cap. */
+  display: flex;
+  flex-direction: column;
+}
+.sheet-panel[data-mode="modal"] .sheet-content > * {
+  /* Let the immediate child claim the available height and manage its
+     own internal scroll. Without this, very tall forms would let the
+     modal grow past the viewport. */
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
 /* ── Touch / press feedback — subtle scale, no harsh opacity drop ────── */
 .press {
   -webkit-tap-highlight-color: transparent;
