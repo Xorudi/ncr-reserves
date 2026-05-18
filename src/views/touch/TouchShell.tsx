@@ -902,18 +902,26 @@ export default function TouchShell() {
       </main>
 
       {/* ── In-flow bottom nav ────────────────────────────────────────
-            Single source of truth for the bottom safe-area inset. Nothing
-            else in the mobile layout should add env(safe-area-inset-bottom):
-            the nav already covers the home-indicator zone with its own
-            paddingBottom. Translucency raised to .92 so the home-indicator
-            band reads as part of the nav, not as a cream gap below it. */}
+            The nav must clearly separate from the page beneath it AND
+            paint the home-indicator safe-area band with the same colour
+            as its labelled body so the band reads as 'part of the nav',
+            not as 'a cream gap below the nav'.
+
+            Previous translucent paper-cream (.92) was visually
+            indistinguishable from the body cream gradient — so the
+            safe-area portion of the nav looked like wasted space.
+
+            Now: a near-solid warm-white surface, a 1px hairline divider
+            painted as a separate inner element (NOT a translucent
+            box-shadow that could let the cream bleed through), and a
+            soft elevation shadow above. The safe-area band is now
+            unambiguously the bottom of the nav. */}
       <nav style={{
         flexShrink: 0,
         zIndex: 50,
-        background: 'rgba(253,249,242,.92)',
-        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-        backdropFilter: 'blur(20px) saturate(140%)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,.6), 0 -8px 24px rgba(40,28,16,.06)',
+        position: 'relative',
+        background: '#fffefb',          // near-solid warm white — opaque, no cream bleed
+        boxShadow: '0 -8px 24px rgba(40,28,16,.05), 0 -1px 0 rgba(40,28,16,.06)',
         display: 'flex', alignItems: 'flex-start',
         paddingTop: 6,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
