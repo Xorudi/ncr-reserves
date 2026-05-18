@@ -194,11 +194,14 @@ export default function PinLockView() {
     if (busy || errorPulse || openingBiz) return;
     setError(null);
     setPin(p => (p + d).slice(0, 4));
+    // Warm the room — ambient catches the tap.
+    try { window.dispatchEvent(new Event('ncr:ambient-pulse')); } catch {}
   }
   function backspace() {
     if (busy || errorPulse || openingBiz) return;
     setError(null);
     setPin(p => p.slice(0, -1));
+    try { window.dispatchEvent(new Event('ncr:ambient-pulse')); } catch {}
   }
 
   // Hardware keyboard support.
