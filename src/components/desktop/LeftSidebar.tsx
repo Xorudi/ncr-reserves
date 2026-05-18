@@ -41,15 +41,6 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
         </div>
       </div>
 
-      {/* Search */}
-      <div style={{ padding:'0 12px 10px' }}>
-        <div style={{ display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:'var(--paper)',border:'var(--hair)',color:'var(--ink-500)',fontSize:12 }}>
-          <Icon d={I.search} size={14} />
-          <span style={{ flex:1 }}>Cerca reserves…</span>
-          <span style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:18,height:18,padding:'0 5px',borderRadius:4,fontFamily:'var(--font-mono)',fontSize:10.5,color:'var(--ink-600)',background:'var(--paper)',border:'1px solid rgba(60,40,20,.1)',boxShadow:'0 1px 0 rgba(60,40,20,.05)' }}>⌘K</span>
-        </div>
-      </div>
-
       {/* Business selector */}
       <div style={{ padding:'10px 12px 6px' }}>
         <div style={{ fontSize:10.5,fontWeight:600,letterSpacing:.08,textTransform:'uppercase',color:'var(--ink-500)',padding:'0 4px 8px' }}>Negocis</div>
@@ -138,12 +129,35 @@ export function LeftSidebar({ activeBizId, onChangeBiz, stats, activePage = 'tod
           const active = (n as {id:string}).id === activePage;
           return (
             <button key={(n as {id:string}).id} onClick={() => onNavigate?.((n as {id:string}).id)}
-              style={{ display:'flex',alignItems:'center',gap:10,padding:'7px 10px',borderRadius:8,fontSize:13,fontWeight:500,color:active?'var(--ink-900)':'var(--ink-700)',background:active?'var(--ink-100)':'transparent',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'background .12s',letterSpacing:'-0.005em' }}
+              style={{
+                display:'flex', alignItems:'center', gap:10,
+                padding:'8px 10px', borderRadius:9,
+                fontSize:13, fontWeight: active ? 600 : 500,
+                color: active ? 'var(--ink-900)' : 'var(--ink-700)',
+                background: active ? 'var(--paper)' : 'transparent',
+                boxShadow: active
+                  ? 'var(--sh-1), inset 3px 0 0 var(--terracotta-500)'
+                  : 'none',
+                border:'none', cursor:'pointer', fontFamily:'inherit',
+                textAlign:'left',
+                transition:'background 160ms var(--ease-out), box-shadow 160ms var(--ease-out)',
+                letterSpacing:'-0.005em',
+              }}
               onMouseEnter={e=>{if(!active)(e.currentTarget as HTMLElement).style.background='rgba(60,40,20,0.04)';}}
               onMouseLeave={e=>{if(!active)(e.currentTarget as HTMLElement).style.background='transparent';}}>
-              <span style={{ color:active?'var(--ink-800)':'var(--ink-500)' }}><Icon d={(n as {ico:React.ReactNode}).ico} size={15} /></span>
+              <span style={{ color: active ? 'var(--terracotta-600)' : 'var(--ink-500)', transition: 'color 160ms var(--ease-out)' }}>
+                <Icon d={(n as {ico:React.ReactNode}).ico} size={15} />
+              </span>
               <span style={{ flex:1 }}>{(n as {label:string}).label}</span>
-              {(n as {count?:number}).count !== undefined && <span style={{ fontSize:11,color:'var(--ink-500)' }}>{(n as {count?:number}).count}</span>}
+              {(n as {count?:number}).count !== undefined && (
+                <span style={{
+                  fontSize:10.5, fontWeight:600,
+                  color: active ? 'var(--terracotta-700)' : 'var(--ink-500)',
+                  background: active ? 'var(--terracotta-50)' : 'var(--ink-100)',
+                  padding:'2px 7px', borderRadius:999,
+                  fontFamily:'var(--font-mono)', letterSpacing:.02,
+                }}>{(n as {count?:number}).count}</span>
+              )}
             </button>
           );
         })}

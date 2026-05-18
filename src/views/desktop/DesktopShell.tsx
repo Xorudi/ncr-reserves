@@ -43,6 +43,20 @@ export default function DesktopShell() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // The DailyView's composed empty state dispatches these events so its
+  // CTAs can open the same flows as the sidebar buttons without
+  // prop-drilling. Keep the handlers identical to the sidebar bindings.
+  React.useEffect(() => {
+    const openNew    = () => { setShowForm(true);   setShowWalkin(false); setPage('today'); };
+    const openWalkin = () => { setShowWalkin(true); setShowForm(false);   setPage('today'); };
+    window.addEventListener('app:new-reservation', openNew);
+    window.addEventListener('app:open-walkin',     openWalkin);
+    return () => {
+      window.removeEventListener('app:new-reservation', openNew);
+      window.removeEventListener('app:open-walkin',     openWalkin);
+    };
+  }, [setShowWalkin]);
+
   const biz   = BUSINESSES.find(b => b.id === selectedBusiness)!;
   const stats = getStats(selectedBusiness);
 
