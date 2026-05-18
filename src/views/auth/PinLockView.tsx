@@ -605,16 +605,20 @@ export default function PinLockView() {
             inset 0 -1px 0 rgba(60,40,20,.05);
         }
 
-        /* Header — espresso plate */
+        /* Header — espresso plate, vertical flex stack */
         .pin-lock__header {
           position: relative;
-          padding: 22px 26px 20px;
+          padding: 26px 26px 22px;
           background:
             radial-gradient(ellipse 110% 90% at 100% 0%, rgba(200,97,58,.22) 0%, transparent 60%),
             linear-gradient(180deg, #2a2018 0%, #1a120d 100%);
           color: var(--cream);
-          text-align: center;
           overflow: hidden;
+          /* Vertical stack — each child sits on its own row, centered. */
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
         }
         .pin-lock__header::after {
           content: '';
@@ -622,9 +626,7 @@ export default function PinLockView() {
           background: linear-gradient(90deg, transparent, rgba(255,255,255,.20), transparent);
         }
         .pin-lock__eyebrow {
-          display: inline-block;
-          padding: 4px 11px 5px;
-          margin-bottom: 12px;
+          padding: 4px 12px 5px;
           border-radius: 999px;
           background: rgba(255,255,255,.05);
           border: 1px solid rgba(255,255,255,.08);
@@ -634,13 +636,17 @@ export default function PinLockView() {
           text-transform: uppercase;
           color: rgba(251,247,238,.62);
         }
+
+        /* Brand: monogram centered, wordmark below as a small caps line. */
         .pin-lock__brand {
-          display: inline-flex; align-items: center; gap: 10px;
-          margin-bottom: 10px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
         }
         .pin-lock__monogram {
-          width: 36px; height: 36px;
-          border-radius: 11px;
+          width: 44px; height: 44px;
+          border-radius: 13px;
           background:
             linear-gradient(180deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,0) 55%),
             linear-gradient(180deg, #d5703f 0%, var(--terra-500) 100%);
@@ -648,33 +654,46 @@ export default function PinLockView() {
           display: grid; place-items: center;
           font-family: var(--font-serif);
           font-weight: 500;
-          font-size: 19px;
+          font-size: 22px;
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,.4),
             inset 0 -1px 0 rgba(0,0,0,.15),
-            0 4px 10px -2px rgba(146,60,31,.45),
+            0 6px 14px -3px rgba(146,60,31,.55),
             0 0 0 1px rgba(146,60,31,.5);
         }
         .pin-lock__wordmark {
-          font-size: 10.5px;
+          font-size: 9px;
           font-weight: 700;
-          letter-spacing: .18em;
+          letter-spacing: .32em;
           text-transform: uppercase;
-          opacity: .68;
+          color: rgba(251,247,238,.45);
         }
+
+        /* Title block: tight stack with a hairline divider above. */
         .pin-lock__title {
-          margin: 0;
+          margin: 6px 0 0;
           font-family: var(--font-serif);
           font-weight: 400;
-          font-size: clamp(24px, 5.4vw, 28px);
+          font-size: clamp(26px, 5.6vw, 30px);
           line-height: 1.02;
           letter-spacing: -.018em;
+          text-align: center;
+          position: relative;
+        }
+        .pin-lock__title::before {
+          content: '';
+          position: absolute;
+          left: 50%; top: -10px;
+          width: 22px; height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+          transform: translateX(-50%);
         }
         .pin-lock__subtitle {
-          margin: 7px 0 0;
+          margin: 6px 0 0;
           font-size: clamp(11px, 2.2vw, 12px);
           color: rgba(251,247,238,.56);
           line-height: 1.45;
+          text-align: center;
         }
 
         /* PIN dots */
