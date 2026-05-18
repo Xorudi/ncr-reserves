@@ -3,6 +3,7 @@ import TouchShell   from '@/views/touch/TouchShell';
 import SignInView    from '@/views/auth/SignInView';
 import PinSetupView  from '@/views/auth/PinSetupView';
 import PinLockView   from '@/views/auth/PinLockView';
+import MobileLayoutDebug from '@/components/shared/MobileLayoutDebug';
 import { startBackupScheduler } from '@/backup/backupScheduler';
 import { useBackupStore } from '@/backup/useBackupStore';
 import {
@@ -275,7 +276,12 @@ export default function App() {
   // browsers also get this layout for visual cohesion. The previous
   // DesktopShell (3-column sidebar + main + right panel) has been
   // retired; its files were removed alongside this change.
-  return <TouchShell />;
+  return (
+    <>
+      <TouchShell />
+      <MobileLayoutDebug />
+    </>
+  );
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────

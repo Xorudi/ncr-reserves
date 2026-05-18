@@ -776,7 +776,7 @@ export default function TouchShell() {
   //   from above — the classic "FAB centered on tab bar top" pattern.
   // ══════════════════════════════════════════════════════════════════════════
   return (
-    <div style={{
+    <div data-mobile-shell style={{
       position: 'relative',                 // FAB anchor
       display: 'flex', flexDirection: 'column',
       /* Height contract — single, stable source of truth:
@@ -893,6 +893,7 @@ export default function TouchShell() {
 
       {/* ── Main content ────────────────────────────────────────────── */}
       <main
+        data-mobile-main
         style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -916,7 +917,7 @@ export default function TouchShell() {
             box-shadow that could let the cream bleed through), and a
             soft elevation shadow above. The safe-area band is now
             unambiguously the bottom of the nav. */}
-      <nav style={{
+      <nav data-bottom-nav style={{
         flexShrink: 0,
         zIndex: 50,
         position: 'relative',

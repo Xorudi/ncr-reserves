@@ -972,6 +972,7 @@ export default function MobileTodayView({
             density on long days. A scroll listener dispatches a window
             event so TouchShell can collapse its big top header in sync. */}
       <div
+        data-mobile-scroll
         ref={scrollRef}
         onScroll={onScroll}
         className={`scroll mob-scroll ${dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}`}
