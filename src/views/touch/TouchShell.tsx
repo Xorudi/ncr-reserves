@@ -697,22 +697,15 @@ export default function TouchShell() {
           {/* FAB bottom-right — opens new reservation */}
           <button
             onClick={openNewReservation}
-            className={`press fab-tablet ${fabSuppressed ? 'fab-hidden' : ''}`}
+            className={`tac-fab fab-tablet ${fabSuppressed ? 'fab-hidden' : ''}`}
             aria-label="Nova reserva"
             style={{
               position: 'absolute',
               right: 28,
               bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
-              width: 64, height: 64, borderRadius: 999,
+              width: 64, height: 64,
               zIndex: 60,
-              background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
-              color: '#fff',
-              border: 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 8px 24px rgba(168,74,42,.38), 0 2px 6px rgba(168,74,42,.18)',
-              WebkitTapHighlightColor: 'transparent',
-              transition: 'transform 280ms var(--ease-out), opacity 220ms var(--ease-out), box-shadow 220ms var(--ease-out)',
             }}>
             <Icon d={I.plus} size={28} stroke={2.4} />
           </button>
@@ -1246,11 +1239,10 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
             </div>
           </div>
           <button onClick={onClose} aria-label="Tancar"
-            className="press"
+            className="tac-btn"
             style={{
               width: 34, height: 34, borderRadius: 999,
-              background: 'var(--cream)', border: '1px solid rgba(60,40,20,.08)',
-              cursor: 'pointer', color: 'var(--ink-600)',
+              color: 'var(--ink-600)',
               display: 'grid', placeItems: 'center', flexShrink: 0,
             }}>
             <Icon d={I.x} size={15} />
@@ -1449,11 +1441,10 @@ function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployee
               )}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Tancar" className="press"
+          <button onClick={onClose} aria-label="Tancar" className="tac-btn"
             style={{
               width: 34, height: 34, borderRadius: 999,
-              background: 'var(--cream)', border: '1px solid rgba(60,40,20,.08)',
-              cursor: 'pointer', color: 'var(--ink-600)',
+              color: 'var(--ink-600)',
               display: 'grid', placeItems: 'center', flexShrink: 0,
             }}>
             <Icon d={I.x} size={15} />

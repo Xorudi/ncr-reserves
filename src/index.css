@@ -926,6 +926,95 @@ button, [role="button"] {
   .tac-btn:active { transform: none; }
 }
 
+/* ── FAB variant — large terracotta circle with deep press response. ── */
+.tac-fab {
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--terracotta-600, #a8502f) 0%, var(--terracotta-700, #923c1f) 100%);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    inset 0 -1px 0 rgba(0,0,0,.12),
+    0 8px 24px rgba(168,74,42,.38),
+    0 2px 6px rgba(168,74,42,.18);
+  transition:
+    transform   220ms var(--ease-out),
+    background  220ms var(--ease-out),
+    box-shadow  220ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tac-fab:hover:not(:disabled) {
+    background: linear-gradient(180deg, #b86842 0%, #a8502f 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.22),
+      inset 0 -1px 0 rgba(0,0,0,.12),
+      0 10px 28px rgba(168,74,42,.44),
+      0 3px 8px  rgba(168,74,42,.22);
+  }
+}
+.tac-fab:active:not(:disabled) {
+  transition: none;
+  transform: scale(0.94);
+  background: linear-gradient(180deg, #923c1f 0%, #7a3018 100%);
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,.30),
+    inset 0 -1px 0 rgba(255,255,255,.08),
+    0 4px 12px rgba(168,74,42,.28);
+}
+
+/* ── Segmented-control button — track-set segments (Migdia/Nit, etc.) ──
+   Use inside a track div with subtle inset background. Active segment
+   pops with elevation; inactive is transparent. Press inverts the inset
+   on the active segment. */
+.tac-seg-btn {
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-500);
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none;
+  transition:
+    background  200ms var(--ease-out),
+    color       200ms var(--ease-out),
+    box-shadow  200ms var(--ease-out),
+    transform   160ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tac-seg-btn:not([data-active="true"]):hover {
+    background: rgba(255,255,255,.5);
+    color: var(--ink-700);
+  }
+}
+.tac-seg-btn[data-active="true"] {
+  background: linear-gradient(180deg, var(--paper, #fbf7ee) 0%, #f5ecd6 100%);
+  color: var(--ink-900);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -1px 0 rgba(60,40,20,.06),
+    0 1px 3px rgba(60,40,20,.10),
+    0 2px 8px -3px rgba(60,40,20,.12);
+}
+.tac-seg-btn:active:not(:disabled) {
+  transition: none;
+  transform: scale(0.97);
+}
+.tac-seg-btn[data-active="true"]:active {
+  background: linear-gradient(180deg, #e9dcc1 0%, #ddcca8 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(60,40,20,.14),
+    inset 0 -1px 0 rgba(255,255,255,.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tac-fab, .tac-seg-btn { transition: background 200ms ease, color 200ms ease; }
+  .tac-fab:active, .tac-seg-btn:active { transform: none; }
+}
+
 /* ──────────────────────────────────────────────────────────────────────────
    Rail nav button — PIN-keypad-tier tactility for the left sidebar.
 

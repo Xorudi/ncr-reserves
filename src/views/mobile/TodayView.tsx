@@ -787,17 +787,11 @@ export default function MobileTodayView({
                 const a = effectiveShift === o.v;
                 return (
                   <button key={o.v} onClick={() => setShift(o.v as 'M' | 'N')}
-                    className="press"
+                    className="tac-seg-btn"
+                    data-active={a ? 'true' : 'false'}
                     style={{
-                      padding:'7px 14px', borderRadius:999, border:'none',
-                      background: a ? 'var(--surface-elevated)' : 'transparent',
-                      color: a ? 'var(--ink-900)' : 'var(--ink-500)',
-                      fontSize:13, fontWeight:650, cursor:'pointer', fontFamily:'inherit',
-                      // Active pill pops out of the track via real elevation
-                      boxShadow: a
-                        ? 'var(--shadow-md), var(--shadow-ring), var(--shadow-inset-top)'
-                        : 'none',
-                      transition:'background 200ms var(--ease-out), box-shadow 200ms var(--ease-out)',
+                      padding:'7px 14px',
+                      fontSize:13, fontWeight:650,
                       display:'inline-flex', alignItems:'center', gap:6,
                     }}>
                     <span style={{
