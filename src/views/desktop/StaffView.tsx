@@ -1,18 +1,50 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
-import { DAY_NAMES, DAY_NAMES_SHORT, TODAY_DOW, avIdx, timeToMins } from '@/data/mockData';
+import { DAY_NAMES, DAY_NAMES_SHORT, TODAY_DOW, avIdx, timeToMins, BUSINESSES } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import type { Employee, EmployeeRole, EmployeeShift } from '@/types';
 
 export default function StaffView() {
   const [tab, setTab] = useState<'duty' | 'schedule'>('duty');
   const { selectedBusiness } = useAppStore();
+  const biz = BUSINESSES.find(b => b.id === selectedBusiness) ?? BUSINESSES[0];
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--cream)' }}>
-      <div style={{ padding:'14px 24px 0', borderBottom:'var(--hair)', flexShrink:0, display:'flex', gap:0 }}>
+      {/* Page header — editorial eyebrow + serif title, matches DailyView */}
+      <div style={{ padding:'18px 28px 12px', borderBottom:'var(--hair)', flexShrink:0 }}>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:7,
+          fontSize:10.5, fontWeight:700, letterSpacing:.14,
+          color:'var(--ink-500)', textTransform:'uppercase', marginBottom:6,
+        }}>
+          <span aria-hidden="true" style={{
+            width:6, height:6, borderRadius:999, background: biz.hue,
+            boxShadow: `0 0 0 3px ${biz.hueSoft}`,
+          }} />
+          {biz.name} <span style={{ opacity:.4 }}>·</span> Personal del torn
+        </div>
+        <h2 style={{
+          margin:0, fontFamily:'var(--font-serif)', fontSize:30,
+          fontWeight:500, color:'var(--ink-900)',
+          letterSpacing:'-.018em', lineHeight:1.05,
+        }}>Equip</h2>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ padding:'8px 24px 0', borderBottom:'var(--hair)', flexShrink:0, display:'flex', gap:2 }}>
         {([['duty','Equip avui'],['schedule','Horaris setmanals']] as const).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
-            style={{ padding:'10px 18px', border:'none', background:'transparent', cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight: tab===k ? 600 : 500, color: tab===k ? 'var(--ink-900)' : 'var(--ink-600)', borderBottom: tab===k ? '2px solid var(--terracotta-600)' : '2px solid transparent', marginBottom:-1 }}>
+            style={{
+              padding:'9px 16px',
+              border:'none', background:'transparent',
+              cursor:'pointer', fontFamily:'inherit',
+              fontSize:13, fontWeight: tab===k ? 600 : 500,
+              color: tab===k ? 'var(--ink-900)' : 'var(--ink-600)',
+              borderBottom: tab===k ? '2px solid var(--terracotta-600)' : '2px solid transparent',
+              marginBottom:-1,
+              transition:'color 160ms var(--ease-out), border-color 160ms var(--ease-out)',
+              letterSpacing:'-0.005em',
+            }}>
             {l}
           </button>
         ))}

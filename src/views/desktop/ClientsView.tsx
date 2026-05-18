@@ -101,11 +101,31 @@ export default function ClientsView() {
     return base.sort((a, b) => b.visits - a.visits);
   }, [selectedBusiness, query, filter, period, customers, rankMap, visitsByPeriod]);
 
+  const biz = BUSINESSES.find(b => b.id === selectedBusiness) ?? BUSINESSES[0];
   return (
     <div style={{ flex:1,display:'flex',height:'100%',overflow:'hidden' }}>
       <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden',background:'var(--cream)' }}>
+        {/* Page header — editorial eyebrow + serif title */}
+        <div style={{ padding:'18px 24px 12px', borderBottom:'var(--hair)', flexShrink:0 }}>
+          <div style={{
+            display:'inline-flex', alignItems:'center', gap:7,
+            fontSize:10.5, fontWeight:700, letterSpacing:.14,
+            color:'var(--ink-500)', textTransform:'uppercase', marginBottom:6,
+          }}>
+            <span aria-hidden="true" style={{
+              width:6, height:6, borderRadius:999, background: biz.hue,
+              boxShadow: `0 0 0 3px ${biz.hueSoft}`,
+            }} />
+            {biz.name} <span style={{ opacity:.4 }}>·</span> Llibre de clients
+          </div>
+          <h2 style={{
+            margin:0, fontFamily:'var(--font-serif)', fontSize:30,
+            fontWeight:500, color:'var(--ink-900)',
+            letterSpacing:'-.018em', lineHeight:1.05,
+          }}>Clients</h2>
+        </div>
         {/* Toolbar */}
-        <div style={{ padding:'14px 24px',borderBottom:'var(--hair)',display:'flex',alignItems:'center',gap:10,flexShrink:0 }}>
+        <div style={{ padding:'12px 24px',borderBottom:'var(--hair)',display:'flex',alignItems:'center',gap:10,flexShrink:0 }}>
           <div style={{ display:'flex',alignItems:'center',gap:8,padding:'7px 12px',borderRadius:8,background:'var(--paper)',border:'var(--hair)',flex:'0 0 280px' }}>
             <Icon d={I.search} size={14} />
             <input value={query} onChange={e => setQuery(e.target.value)}

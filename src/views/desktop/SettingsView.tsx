@@ -31,16 +31,43 @@ export default function SettingsView() {
   return (
     <div style={{ flex:1, display:'flex', height:'100%', overflow:'hidden', background:'var(--cream)' }}>
       {/* Sidebar */}
-      <aside style={{ width:196, padding:'20px 10px', borderRight:'var(--hair)', flexShrink:0, background:'var(--paper)' }}>
-        <div style={{ fontSize:10.5, fontWeight:700, letterSpacing:.08, textTransform:'uppercase', color:'var(--ink-500)', padding:'0 10px 12px' }}>
+      <aside style={{ width:212, padding:'22px 10px', borderRight:'var(--hair)', flexShrink:0, background:'var(--paper)' }}>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:7,
+          padding:'0 10px 14px',
+          fontSize:10.5, fontWeight:700, letterSpacing:.18,
+          color:'var(--ink-500)', textTransform:'uppercase',
+        }}>
+          <span aria-hidden="true" style={{
+            width:5, height:5, borderRadius:999,
+            background:'var(--terracotta-500)',
+            boxShadow:'0 0 0 3px var(--terracotta-50)',
+          }} />
           Configuració
         </div>
-        {TABS.map(({ k, label }) => (
-          <button key={k} onClick={() => setTab(k)}
-            style={{ display:'block', width:'100%', padding:'8px 10px', background: tab===k ? 'var(--terracotta-50)' : 'transparent', border:'none', borderRadius:7, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight: tab===k ? 600 : 500, color: tab===k ? 'var(--terracotta-700)' : 'var(--ink-700)', textAlign:'left', marginBottom:1, borderLeft: tab===k ? '2.5px solid var(--terracotta-500)' : '2.5px solid transparent' }}>
-            {label}
-          </button>
-        ))}
+        {TABS.map(({ k, label }) => {
+          const active = tab === k;
+          return (
+            <button key={k} onClick={() => setTab(k)}
+              style={{
+                display:'block', width:'100%',
+                padding:'9px 11px',
+                background: active ? 'var(--terracotta-50)' : 'transparent',
+                border:'none', borderRadius:8,
+                cursor:'pointer', fontFamily:'inherit',
+                fontSize:13, fontWeight: active ? 600 : 500,
+                color: active ? 'var(--terracotta-700)' : 'var(--ink-700)',
+                textAlign:'left', marginBottom:2,
+                borderLeft: active ? '3px solid var(--terracotta-500)' : '3px solid transparent',
+                transition: 'background 160ms var(--ease-out), color 160ms var(--ease-out)',
+                letterSpacing:'-0.005em',
+              }}
+              onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(60,40,20,.04)'; }}
+              onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
+              {label}
+            </button>
+          );
+        })}
       </aside>
 
       {/* Content */}

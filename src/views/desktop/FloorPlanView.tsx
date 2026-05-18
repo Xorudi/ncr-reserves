@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
-import { isoDate } from '@/data/mockData';
+import { isoDate, BUSINESSES } from '@/data/mockData';
 import type { FloorTable, FloorZone, TableShape, TableStatus, Reservation } from '@/types';
 
 function effectiveTable(t: FloorTable, dayRes: Reservation[]): FloorTable {
@@ -219,8 +219,30 @@ export default function FloorPlanView() {
       onClick={() => { setPopover(null); }}>
 
       {/* ── Header ───────────────────────────────────────────── */}
-      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
-        <span style={{ fontFamily:'var(--font-serif)', fontSize:22, fontWeight:500, color:'var(--ink-900)', letterSpacing:-.4 }}>Planta</span>
+      <div style={{ display:'flex', alignItems:'flex-end', gap:14, marginBottom:18 }}>
+        <div style={{ minWidth:0 }}>
+          {(() => {
+            const biz = BUSINESSES.find(b => b.id === selectedBusiness) ?? BUSINESSES[0];
+            return (
+              <div style={{
+                display:'inline-flex', alignItems:'center', gap:7,
+                fontSize:10.5, fontWeight:700, letterSpacing:.14,
+                color:'var(--ink-500)', textTransform:'uppercase', marginBottom:6,
+              }}>
+                <span aria-hidden="true" style={{
+                  width:6, height:6, borderRadius:999, background: biz.hue,
+                  boxShadow: `0 0 0 3px ${biz.hueSoft}`,
+                }} />
+                {biz.name} <span style={{ opacity:.4 }}>·</span> Distribució física
+              </div>
+            );
+          })()}
+          <span style={{
+            display:'block',
+            fontFamily:'var(--font-serif)', fontSize:30, fontWeight:500,
+            color:'var(--ink-900)', letterSpacing:'-.018em', lineHeight:1.05,
+          }}>Planta</span>
+        </div>
         <div style={{ flex:1 }} />
         {editMode ? (
           <>
