@@ -25,12 +25,38 @@ export default function WalkinView({ onClose }: { onClose: () => void }) {
     <div style={{ flex:1,display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',background:'var(--cream)' }}>
       {/* Header */}
       <div style={{ padding:'18px 28px 14px',borderBottom:'var(--hair)',display:'flex',alignItems:'center',gap:14,flexShrink:0 }}>
-        <button onClick={onClose} style={{ display:'flex',alignItems:'center',gap:6,padding:'6px 10px',background:'transparent',border:'1px solid rgba(60,40,20,.14)',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:12.5,fontWeight:550,color:'var(--ink-700)' }}>
+        <button onClick={onClose}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--cream)'; e.currentTarget.style.boxShadow = 'var(--sh-2)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--paper)'; e.currentTarget.style.boxShadow = 'var(--sh-1)'; }}
+          style={{
+            display:'flex', alignItems:'center', gap:6,
+            padding:'7px 12px',
+            background:'var(--paper)',
+            border:'1px solid rgba(60,40,20,.10)', borderRadius:9,
+            cursor:'pointer', fontFamily:'inherit',
+            fontSize:12.5, fontWeight:600, color:'var(--ink-700)',
+            boxShadow:'var(--sh-1)',
+            transition:'background 160ms var(--ease-out), box-shadow 160ms var(--ease-out)',
+          }}>
           <Icon d={I.chevL} size={14} /> Tornar
         </button>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:11,fontWeight:600,color:'var(--ink-500)',textTransform:'uppercase',letterSpacing:.06 }}>Arribada sense reserva · {biz.name}</div>
-          <h2 style={{ margin:'2px 0 0',fontFamily:'var(--font-serif)',fontWeight:500,fontSize:22,color:'var(--ink-900)' }}>Walk-in</h2>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{
+            display:'inline-flex', alignItems:'center', gap:7,
+            fontSize:10.5, fontWeight:700, letterSpacing:.14,
+            color:'var(--ink-500)', textTransform:'uppercase',
+          }}>
+            <span aria-hidden="true" style={{
+              width:6, height:6, borderRadius:999, background: biz.hue,
+              boxShadow: `0 0 0 3px ${biz.hueSoft}`,
+            }} />
+            {biz.name} <span style={{ opacity:.4 }}>·</span> Arribada sense reserva
+          </div>
+          <h2 style={{
+            margin:'4px 0 0', fontFamily:'var(--font-serif)', fontWeight:500,
+            fontSize:26, color:'var(--ink-900)',
+            letterSpacing:'-.018em', lineHeight:1.05,
+          }}>Walk-in</h2>
         </div>
         {/* Step indicators */}
         <div style={{ display:'flex',alignItems:'center',gap:6 }}>

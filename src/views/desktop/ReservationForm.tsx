@@ -25,9 +25,23 @@ export default function ReservationForm({ onClose }: { onClose?: () => void }) {
 
   return (
     <div style={{ flex:1,display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',background:'var(--cream)' }}>
-      <div style={{ padding:'18px 28px 14px',borderBottom:'var(--hair)',flexShrink:0 }}>
-        <div style={{ fontSize:11,fontWeight:600,color:'var(--ink-500)',textTransform:'uppercase',letterSpacing:.08,marginBottom:4 }}>{biz.name}</div>
-        <h2 style={{ margin:0,fontFamily:'var(--font-serif)',fontSize:26,fontWeight:500,color:'var(--ink-900)' }}>Nova reserva</h2>
+      <div style={{ padding:'18px 28px 16px', borderBottom:'var(--hair)', flexShrink:0 }}>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:7,
+          fontSize:10.5, fontWeight:700, letterSpacing:.14,
+          color:'var(--ink-500)', textTransform:'uppercase', marginBottom:6,
+        }}>
+          <span aria-hidden="true" style={{
+            width:6, height:6, borderRadius:999, background: biz.hue,
+            boxShadow: `0 0 0 3px ${biz.hueSoft}`,
+          }} />
+          {biz.name} <span style={{ opacity:.4 }}>·</span> Nova entrada al llibre
+        </div>
+        <h2 style={{
+          margin:0, fontFamily:'var(--font-serif)', fontSize:30,
+          fontWeight:500, color:'var(--ink-900)',
+          letterSpacing:'-.018em', lineHeight:1.05,
+        }}>Nova reserva</h2>
       </div>
 
       <form onSubmit={handleSubmit} style={{ flex:1,overflowY:'auto',padding:'24px 28px' }}>

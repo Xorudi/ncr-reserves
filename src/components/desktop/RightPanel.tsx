@@ -135,8 +135,24 @@ function AlertsPanel({ biz }: { biz: Business }) {
   return (
     <aside style={{ width:312, flex:'none', borderLeft:'var(--hair)', background:'var(--cream)', display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
       <div style={{ padding:'18px 20px 14px', borderBottom:'var(--hair)' }}>
-        <div style={{ fontSize:10.5, fontWeight:600, letterSpacing:.08, color:'var(--ink-500)', textTransform:'uppercase' }}>Context del dia</div>
-        <h3 style={{ margin:'4px 0 0', fontSize:15, fontFamily:'var(--font-serif)', fontWeight:500, color:'var(--ink-900)' }}>Alertes i notes</h3>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:7,
+          fontSize:10.5, fontWeight:700, letterSpacing:.14,
+          color:'var(--ink-500)', textTransform:'uppercase',
+        }}>
+          <span aria-hidden="true" style={{
+            width:5, height:5, borderRadius:999,
+            background:'var(--terracotta-500)',
+            boxShadow:'0 0 0 3px var(--terracotta-50)',
+          }} />
+          Context del dia
+        </div>
+        <h3 style={{
+          margin:'6px 0 0', fontSize:17,
+          fontFamily:'var(--font-serif)', fontWeight:500,
+          color:'var(--ink-900)', letterSpacing:'-.012em',
+          lineHeight:1.15,
+        }}>Alertes i notes</h3>
       </div>
       <div className="scroll" style={{ overflowY:'auto', flex:1, padding:'14px 16px' }}>
 
@@ -152,7 +168,9 @@ function AlertsPanel({ biz }: { biz: Business }) {
         {/* ── Notes del torn ── */}
         <Section title="Notes del torn"
           action={<button onClick={() => { setEditingNote(null); setNoteBody(''); setNoteAuthor(''); setShowNoteForm(v => !v); }}
-            style={{ display:'flex', alignItems:'center', gap:4, padding:'2px 7px', fontSize:11, fontWeight:600, color:'var(--terracotta-700)', background:'var(--terracotta-50)', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}>
+            style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 9px', fontSize:11, fontWeight:600, color:'var(--terracotta-700)', background:'var(--terracotta-50)', border:'1px solid rgba(200,97,58,.18)', borderRadius:7, cursor:'pointer', fontFamily:'inherit', boxShadow:'inset 0 1px 0 rgba(255,255,255,.5)', transition:'background 160ms var(--ease-out), border-color 160ms var(--ease-out)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f5d6c1'; e.currentTarget.style.borderColor = 'rgba(200,97,58,.32)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--terracotta-50)'; e.currentTarget.style.borderColor = 'rgba(200,97,58,.18)'; }}>
             <Icon d={I.plus} size={11} /> Nova nota
           </button>}>
 
@@ -180,7 +198,7 @@ function AlertsPanel({ biz }: { biz: Business }) {
           )}
 
           {dayNotes.length === 0 && !showNoteForm && (
-            <div style={{ fontSize:12, color:'var(--ink-400)', fontStyle:'italic', padding:'4px 2px' }}>Cap nota per a aquest torn.</div>
+            <EmptyLine ico="✍︎" text="Cap nota per a aquest torn." />
           )}
           {dayNotes.map(n => (
             <NoteCard key={n.id} note={n}
@@ -199,7 +217,9 @@ function AlertsPanel({ biz }: { biz: Business }) {
         {/* ── Esdeveniments ── */}
         <Section title="Esdeveniments"
           action={<button onClick={() => { setEvDate(dateStr); setShowEvForm(v => !v); }}
-            style={{ display:'flex', alignItems:'center', gap:4, padding:'2px 7px', fontSize:11, fontWeight:600, color:'var(--terracotta-700)', background:'var(--terracotta-50)', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'inherit' }}>
+            style={{ display:'flex', alignItems:'center', gap:5, padding:'4px 9px', fontSize:11, fontWeight:600, color:'var(--terracotta-700)', background:'var(--terracotta-50)', border:'1px solid rgba(200,97,58,.18)', borderRadius:7, cursor:'pointer', fontFamily:'inherit', boxShadow:'inset 0 1px 0 rgba(255,255,255,.5)', transition:'background 160ms var(--ease-out), border-color 160ms var(--ease-out)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f5d6c1'; e.currentTarget.style.borderColor = 'rgba(200,97,58,.32)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--terracotta-50)'; e.currentTarget.style.borderColor = 'rgba(200,97,58,.18)'; }}>
             <Icon d={I.plus} size={11} /> Nou event
           </button>}>
 
@@ -233,7 +253,7 @@ function AlertsPanel({ biz }: { biz: Business }) {
           )}
 
           {upcomingEvents.length === 0 && !showEvForm && (
-            <div style={{ fontSize:12, color:'var(--ink-400)', fontStyle:'italic', padding:'4px 2px' }}>Cap esdeveniment proper.</div>
+            <EmptyLine ico="✦" text="Cap esdeveniment proper." />
           )}
           {upcomingEvents.map(e => (
             <EventCard key={e.id} event={e} fmtDate={fmtEventDate}
@@ -253,15 +273,55 @@ function AlertsPanel({ biz }: { biz: Business }) {
 }
 
 // ─── Shared section wrapper ──────────────────────────────────────
+// Editorial-eyebrow header: tighter tracking, mono count badge, and a
+// hairline divider running to the action button so the section reads
+// as one composed block, not three loose lines.
 function Section({ title, count, action, children }: { title: string; count?: number; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom:18 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:6, padding:'0 2px 8px' }}>
-        <span style={{ fontSize:11, fontWeight:600, letterSpacing:.06, color:'var(--ink-600)', textTransform:'uppercase', flex:1 }}>{title}</span>
-        {count !== undefined && <span style={{ fontSize:10.5, color:'var(--ink-500)' }}>· {count}</span>}
+    <div style={{ marginBottom:20 }}>
+      <div style={{
+        display:'flex', alignItems:'center', gap:8,
+        padding:'0 2px 10px',
+        borderBottom:'1px dashed rgba(60,40,20,.10)',
+        marginBottom:10,
+      }}>
+        <span style={{
+          fontSize:10.5, fontWeight:700, letterSpacing:.18,
+          color:'var(--ink-600)', textTransform:'uppercase', flex:1,
+        }}>{title}</span>
+        {count !== undefined && (
+          <span style={{
+            fontSize:10, fontWeight:600,
+            color:'var(--ink-500)',
+            fontFamily:'var(--font-mono)',
+            background:'var(--ink-100)',
+            padding:'2px 6px', borderRadius:999,
+            letterSpacing:.02,
+          }}>{count}</span>
+        )}
         {action}
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap:6 }}>{children}</div>
+    </div>
+  );
+}
+
+// ─── Composed empty-state line ──────────────────────────────────
+// Replaces the previous flat italic line. Used inside Section blocks
+// where there's no content yet — keeps the panel from looking dead.
+function EmptyLine({ ico, text }: { ico: string; text: string }) {
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap:9,
+      padding:'8px 10px',
+      background:'var(--cream)',
+      border:'1px dashed rgba(60,40,20,.12)',
+      borderRadius:9,
+      fontSize:12, color:'var(--ink-500)',
+      fontStyle:'italic', letterSpacing:.01,
+    }}>
+      <span aria-hidden="true" style={{ fontSize:13, opacity:.7 }}>{ico}</span>
+      <span style={{ flex:1 }}>{text}</span>
     </div>
   );
 }
