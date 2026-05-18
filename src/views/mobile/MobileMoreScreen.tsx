@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate, BUSINESSES } from '@/data/mockData';
-import type { MobileTab } from './MobileShell';
+import type { TouchTab as MobileTab } from '@/views/touch/TouchShell';
 import { useBackupStore } from '@/backup/useBackupStore';
 import {
   createLocalBackup, restoreFromId, exportCurrentToFile, exportBackupToFile,

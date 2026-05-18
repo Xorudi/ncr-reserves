@@ -123,10 +123,17 @@ export default function TouchShell() {
   }, [closeOutPastDays]);
   useEffect(() => { closeOutPastDays(); }, [selectedDate, closeOutPastDays]);
 
-  const { isTablet, isStandalone, isLargeScreen } = useDevice();
-  // Large touch screen (≥1280px wide and touch) — typical restaurant
-  // counter-top monitor or kiosk. Bumps rail width, icon/label sizes and
-  // tap targets so the operator can hit them reliably while standing.
+  // useDevice still reports the real device type, but for this shell we
+  // treat every screen ≥ 768 px as "rail layout" regardless of touch.
+  // That includes:
+  //   • iPad / touchscreen kiosk → was already `isTablet`
+  //   • Non-touch PC browser     → now upgraded to rail too (was desktop)
+  // The mobile-bottom-nav layout still applies on narrow viewports.
+  const { isTablet: deviceIsTablet, isDesktop, isStandalone, isLargeScreen } = useDevice();
+  const isTablet = deviceIsTablet || isDesktop;
+  // Large screen (≥1280px) — typical restaurant counter-top monitor or
+  // kiosk. Bumps rail width, icon/label sizes and tap targets so the
+  // operator can hit them reliably while standing.
   const railWide = isLargeScreen;
   const visibleBusinesses = useVisibleBusinesses();
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;

@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useDevice } from '@/hooks/useDevice';
-import DesktopShell from '@/views/desktop/DesktopShell';
 import TouchShell   from '@/views/touch/TouchShell';
 import SignInView    from '@/views/auth/SignInView';
 import PinSetupView  from '@/views/auth/PinSetupView';
@@ -56,7 +54,6 @@ const alog = (...args: unknown[]) => console.info('[ncr-auth]', ...args);
  *   • Going offline never kicks the user out. Cached session stays.
  */
 export default function App() {
-  const { isMobile, isTablet } = useDevice();
   const [auth, setAuth] = useState<AuthState>(() =>
     SUPABASE_AUTH_ENABLED && isAuthRequired()
       ? { status: 'loading' }
@@ -273,8 +270,12 @@ export default function App() {
     return <PinLockView />;
   }
 
-  if (isMobile || isTablet) return <TouchShell />;
-  return <DesktopShell />;
+  // Single shell across all devices — the rail-icon TouchShell that runs
+  // on the restaurant's touchscreen desktop and iPad. Non-touch PC
+  // browsers also get this layout for visual cohesion. The previous
+  // DesktopShell (3-column sidebar + main + right panel) has been
+  // retired; its files were removed alongside this change.
+  return <TouchShell />;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────

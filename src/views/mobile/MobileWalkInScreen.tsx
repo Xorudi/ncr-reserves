@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
-import type { MobileTab } from './MobileShell';
+import type { TouchTab as MobileTab } from '@/views/touch/TouchShell';
 import type { FloorTable } from '@/types';
 import { resLabel } from '@/utils/statusLabels';
 
