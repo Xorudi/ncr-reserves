@@ -543,6 +543,9 @@ export default function PinLockView() {
           margin: 0 auto;
           padding: 8px 0 4px;
         }
+        @media (max-width: 720px) {
+          .pin-stage { gap: 14px; padding: 4px 0 2px; }
+        }
         @media (min-width: 1000px) {
           .pin-stage {
             grid-template-columns: minmax(380px, 440px) minmax(380px, 520px);
@@ -1182,6 +1185,124 @@ export default function PinLockView() {
           text-transform: uppercase;
           color: rgba(247,244,234,.55);
           font-weight: 600;
+        }
+
+        /* ─── Mobile compactation (< 720 px) ────────────────────────────
+              Reduces the lock card footprint so the first viewport on a
+              390x844 device shows the PIN AND a peek of the doors strip
+              without scroll. Targets sizes only; layout structure and
+              animations stay identical. */
+        @media (max-width: 720px) {
+          .pin-lock {
+            max-width: 380px;
+            padding: 5px;
+            border-radius: 26px;
+          }
+          .pin-lock__inner { border-radius: 21px; }
+          .pin-lock__header {
+            padding: 18px 22px 16px;
+            gap: 8px;
+          }
+          .pin-lock__eyebrow {
+            padding: 3px 10px 4px;
+            font-size: 8.5px;
+            letter-spacing: .20em;
+          }
+          .pin-lock__monogram {
+            width: 38px; height: 38px;
+            font-size: 19px;
+            border-radius: 11px;
+          }
+          .pin-lock__wordmark {
+            font-size: 8.5px;
+            letter-spacing: .28em;
+          }
+          .pin-lock__title {
+            font-size: clamp(22px, 5.4vw, 26px);
+            margin-top: 4px;
+          }
+          .pin-lock__title::before { top: -8px; width: 18px; }
+          .pin-lock__subtitle { font-size: 11.5px; margin-top: 4px; }
+          .pin-lock__dots {
+            padding: 14px 16px 4px;
+            gap: 9px;
+          }
+          .pin-lock__dot {
+            width: clamp(38px, 10vw, 42px);
+          }
+          .pin-lock__dot-fill { font-size: 22px; }
+          .pin-lock__status {
+            min-height: 16px;
+            padding: 3px 24px 0;
+            font-size: 11px;
+          }
+          .pin-lock__keypad {
+            gap: 7px;
+            padding: 6px 20px 12px;
+          }
+          .pin-lock__key {
+            padding: 10px 0;
+            font-size: 19px;
+            border-radius: 12px;
+          }
+          .pin-lock__reassurance {
+            padding: 0 24px 12px;
+            font-size: 10.5px;
+          }
+        }
+
+        /* Doors on phones — horizontal scroll-snap carousel.
+           Stacking 3 cards vertically below an already-tall PIN card
+           pushed the first door fully below the fold on a 390x844
+           viewport. As a swipeable strip the section reads as "live
+           preview" while only taking ~150 px of height. */
+        @media (max-width: 560px) {
+          .pin-doors-wrap { width: 100%; gap: 8px; }
+          .pin-doors-eyebrow {
+            font-size: 9px;
+            letter-spacing: .22em;
+            padding: 0 4px;
+          }
+          .pin-doors {
+            display: flex;
+            grid-template-columns: none;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            gap: 10px;
+            padding: 2px 16px 6px;
+            /* Pull the strip edge-to-edge so the last card peek is real,
+               not constrained by the wrap padding. */
+            margin-left: -16px;
+            margin-right: -16px;
+            scroll-padding-left: 16px;
+          }
+          .pin-doors::-webkit-scrollbar { display: none; }
+          .pin-door {
+            flex: 0 0 78%;
+            max-width: 320px;
+            scroll-snap-align: start;
+          }
+          .pin-door__inner {
+            min-height: 132px;
+            padding: 12px 13px;
+            gap: 10px;
+          }
+          .pin-door__mono {
+            width: 34px; height: 34px;
+            font-size: 17px;
+          }
+          .pin-door__name--serif-italic { font-size: 20px; }
+          .pin-door__name--sans-upper   { font-size: 18px; }
+          .pin-door__name--sans-clean   { font-size: 19px; }
+          .pin-door__sub { font-size: 10px; }
+          .pin-door__kpi-big { font-size: 18px; }
+          .pin-doors-foot {
+            font-size: 9.5px;
+            padding: 0 4px;
+            margin-top: 4px;
+          }
         }
 
         /* ── Animations ──────────────────────────────────────────── */
