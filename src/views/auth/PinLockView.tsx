@@ -324,7 +324,17 @@ export default function PinLockView() {
       <div className="pin-atmosphere" data-biz={openingBiz ?? ''} aria-hidden="true" />
 
       <div className="pin-stage">
-        {/* ── LOCK CARD (left on desktop, top on mobile) ─────────── */}
+        {/* ── TOP STRIP — mobile-only editorial greeting + date.
+              On desktop the lock card's espresso header carries this
+              content; on phones the strip lives outside the panel so
+              the PIN can be a true floating element of secondary
+              visual weight. Reordered via CSS `order: -2`. */}
+        <div className="pin-top-strip" aria-hidden="true">
+          <div className="pin-top-strip__greeting">{hello}</div>
+          <div className="pin-top-strip__date">{eyebrow}</div>
+        </div>
+
+        {/* ── LOCK CARD (left on desktop, bottom on mobile) ─────── */}
         <div
           className={`pin-lock ${mounted ? 'pin-lock--in' : ''} ${shake ? 'pin-lock--shake' : ''}`}
           role="dialog"
@@ -1187,121 +1197,195 @@ export default function PinLockView() {
           font-weight: 600;
         }
 
-        /* ─── Mobile compactation (< 720 px) ────────────────────────────
-              Reduces the lock card footprint so the first viewport on a
-              390x844 device shows the PIN AND a peek of the doors strip
-              without scroll. Targets sizes only; layout structure and
-              animations stay identical. */
+        /* ─── Top strip — editorial greeting + date (mobile only) ─────
+              Renders only at narrow viewports; on desktop the same
+              content lives inside the lock card's espresso header. */
+        .pin-top-strip { display: none; }
+
+        /* ─── MOBILE REDESIGN (≤ 720 px) ──────────────────────────────
+              Complete reorder of the stage so the PIN becomes a
+              floating panel of secondary visual weight; the BUSINESS
+              SNAPSHOTS rise to first position (you see the system
+              breathing before you authenticate). The editorial greeting
+              lives in its own strip up top. */
         @media (max-width: 720px) {
-          .pin-lock {
-            max-width: 380px;
-            padding: 5px;
-            border-radius: 26px;
+          .pin-stage {
+            gap: 12px;
+            padding: 0;
+            justify-items: stretch;
+            grid-template-columns: 1fr;
           }
-          .pin-lock__inner { border-radius: 21px; }
-          .pin-lock__header {
-            padding: 18px 22px 16px;
+
+          /* Reorder: greeting → snapshots → lock panel. */
+          .pin-top-strip {
+            display: block;
+            order: -2;
+            width: 100%;
+            padding: 8px 8px 0;
+          }
+          .pin-doors-wrap { order: -1; width: 100%; gap: 8px; padding: 0 8px; }
+          .pin-lock      { order:  1; }
+
+          /* Top strip typography — editorial. */
+          .pin-top-strip__greeting {
+            font-family: var(--font-serif);
+            font-weight: 400;
+            font-size: clamp(32px, 8.4vw, 38px);
+            line-height: 1;
+            letter-spacing: -.02em;
+            color: var(--ink-900);
+          }
+          .pin-top-strip__date {
+            margin-top: 6px;
+            font-size: 10.5px;
+            font-weight: 600;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--ink-500);
+            font-family: var(--font-mono);
+          }
+
+          /* ── Business snapshots — compact stacked cards, premium glass.
+                Each row reads as "[mono] name+sub  ●state  kpi" in a
+                tight 60-66 px tile. The "Estat dels locals avui"
+                eyebrow becomes a small caps hairline marker. */
+          .pin-doors-eyebrow {
+            font-size: 9px;
+            letter-spacing: .26em;
+            padding: 0 6px 2px;
+            color: var(--ink-400);
+          }
+          .pin-doors {
+            display: flex;
+            flex-direction: column;
+            grid-template-columns: none;
             gap: 8px;
+            /* Undo carousel from previous iteration */
+            overflow: visible;
+            scroll-snap-type: none;
+            -webkit-overflow-scrolling: auto;
+            margin-left: 0;
+            margin-right: 0;
+            scroll-padding-left: 0;
+            padding: 0;
           }
-          .pin-lock__eyebrow {
-            padding: 3px 10px 4px;
-            font-size: 8.5px;
-            letter-spacing: .20em;
+          .pin-door {
+            flex: 1 1 auto;
+            max-width: none;
+            scroll-snap-align: none;
+            padding: 4px;
+            border-radius: 16px;
           }
+          .pin-door__inner {
+            min-height: 0;
+            padding: 11px 13px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-rows: auto auto;
+            column-gap: 11px;
+            row-gap: 1px;
+            align-items: center;
+            border-radius: 12px;
+          }
+          .pin-door__mono {
+            grid-row: 1 / span 2;
+            width: 36px; height: 36px;
+            font-size: 17px;
+            border-radius: 10px;
+          }
+          .pin-door__heading {
+            grid-column: 2; grid-row: 1 / span 2;
+            align-self: center;
+            gap: 1px;
+          }
+          .pin-door__name--serif-italic { font-size: 17px; }
+          .pin-door__name--sans-upper   { font-size: 15px; }
+          .pin-door__name--sans-clean   { font-size: 16px; }
+          .pin-door__sub                { font-size: 10px; }
+          .pin-door__state {
+            grid-column: 3; grid-row: 1;
+            align-self: start; justify-self: end;
+            font-size: 8px;
+            padding: 2px 7px 3px;
+            letter-spacing: .10em;
+          }
+          .pin-door__kpi {
+            grid-column: 3; grid-row: 2;
+            padding-top: 0;
+            border-top: none;
+            flex-direction: row;
+            gap: 4px;
+            justify-content: flex-end;
+            align-items: baseline;
+          }
+          .pin-door__kpi-big   { font-size: 16px; }
+          .pin-door__kpi-frac  { font-size: 10px; }
+          .pin-door__kpi-label { display: none; }
+
+          /* "PINs disponibles · El Ganxo · La Pista · L'Esquitx · Admin"
+             is redundant on mobile — snapshots already enumerate the locals. */
+          .pin-doors-foot { display: none; }
+
+          /* ── PIN panel — floating, compact, premium.
+                The editorial greeting and date are already in the top
+                strip. Hide the eyebrow + big title here so the panel
+                becomes a tight "brand + subtitle + dots + keypad". */
+          .pin-lock {
+            max-width: 100%;
+            padding: 5px;
+            border-radius: 24px;
+          }
+          .pin-lock__inner { border-radius: 19px; }
+          .pin-lock__eyebrow,
+          .pin-lock__title,
+          .pin-lock__title::before { display: none; }
+          .pin-lock__header {
+            padding: 14px 22px 12px;
+            gap: 6px;
+          }
+          .pin-lock__brand { gap: 8px; flex-direction: row; }
           .pin-lock__monogram {
-            width: 38px; height: 38px;
-            font-size: 19px;
-            border-radius: 11px;
+            width: 30px; height: 30px;
+            font-size: 16px;
+            border-radius: 9px;
           }
           .pin-lock__wordmark {
-            font-size: 8.5px;
+            font-size: 9px;
             letter-spacing: .28em;
           }
-          .pin-lock__title {
-            font-size: clamp(22px, 5.4vw, 26px);
-            margin-top: 4px;
+          .pin-lock__subtitle {
+            font-size: 12px;
+            margin-top: 0;
+            opacity: .72;
           }
-          .pin-lock__title::before { top: -8px; width: 18px; }
-          .pin-lock__subtitle { font-size: 11.5px; margin-top: 4px; }
+
           .pin-lock__dots {
-            padding: 14px 16px 4px;
-            gap: 9px;
+            padding: 14px 16px 6px;
+            gap: 11px;
           }
           .pin-lock__dot {
-            width: clamp(38px, 10vw, 42px);
+            width: clamp(40px, 10.5vw, 46px);
+            border-radius: 12px;
           }
           .pin-lock__dot-fill { font-size: 22px; }
           .pin-lock__status {
             min-height: 16px;
-            padding: 3px 24px 0;
+            padding: 4px 24px 0;
             font-size: 11px;
           }
           .pin-lock__keypad {
-            gap: 7px;
-            padding: 6px 20px 12px;
+            gap: 9px;
+            padding: 6px 22px 14px;
           }
           .pin-lock__key {
-            padding: 10px 0;
-            font-size: 19px;
-            border-radius: 12px;
+            padding: 11px 0;
+            font-size: 20px;
+            border-radius: 14px;
           }
           .pin-lock__reassurance {
-            padding: 0 24px 12px;
+            padding: 0 24px 14px;
             font-size: 10.5px;
-          }
-        }
-
-        /* Doors on phones — horizontal scroll-snap carousel.
-           Stacking 3 cards vertically below an already-tall PIN card
-           pushed the first door fully below the fold on a 390x844
-           viewport. As a swipeable strip the section reads as "live
-           preview" while only taking ~150 px of height. */
-        @media (max-width: 560px) {
-          .pin-doors-wrap { width: 100%; gap: 8px; }
-          .pin-doors-eyebrow {
-            font-size: 9px;
-            letter-spacing: .22em;
-            padding: 0 4px;
-          }
-          .pin-doors {
-            display: flex;
-            grid-template-columns: none;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            gap: 10px;
-            padding: 2px 16px 6px;
-            /* Pull the strip edge-to-edge so the last card peek is real,
-               not constrained by the wrap padding. */
-            margin-left: -16px;
-            margin-right: -16px;
-            scroll-padding-left: 16px;
-          }
-          .pin-doors::-webkit-scrollbar { display: none; }
-          .pin-door {
-            flex: 0 0 78%;
-            max-width: 320px;
-            scroll-snap-align: start;
-          }
-          .pin-door__inner {
-            min-height: 132px;
-            padding: 12px 13px;
-            gap: 10px;
-          }
-          .pin-door__mono {
-            width: 34px; height: 34px;
-            font-size: 17px;
-          }
-          .pin-door__name--serif-italic { font-size: 20px; }
-          .pin-door__name--sans-upper   { font-size: 18px; }
-          .pin-door__name--sans-clean   { font-size: 19px; }
-          .pin-door__sub { font-size: 10px; }
-          .pin-door__kpi-big { font-size: 18px; }
-          .pin-doors-foot {
-            font-size: 9.5px;
-            padding: 0 4px;
-            margin-top: 4px;
+            opacity: .65;
           }
         }
 
