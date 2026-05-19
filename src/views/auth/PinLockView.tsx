@@ -149,6 +149,26 @@ export default function PinLockView() {
   /** Coordinates (in viewport space) of the chosen door for the FLIP. */
   const [flip, setFlip] = useState<{ dx: number; dy: number; scale: number } | null>(null);
 
+  /** State machine for the mobile keypad:
+   *    closed  → only brand + dots + 'Toca per teclejar ↑' visible.
+   *               Lets the BUSINESS CARDS lead the screen.
+   *    open    → keypad slides up from below, reassurance fades in,
+   *               cards dim/blur subtly so the focus shifts.
+   *  Desktop and tablet ≥ 720 px default to OPEN — no collapse.
+   *  Hardware keyboard auto-opens the keypad on the first digit. */
+  const [keypadOpen, setKeypadOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return !window.matchMedia('(max-width: 720px)').matches;
+  });
+  // Switch to open when the viewport leaves mobile (orientation change, etc.)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 720px)');
+    function onChange() { if (!mq.matches) setKeypadOpen(true); }
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   const verifying    = useRef(false);
   const doorRefs     = useRef<Record<BusinessId, HTMLDivElement | null>>({
     ganxo: null, pista: null, esquitx: null,
@@ -173,6 +193,12 @@ export default function PinLockView() {
     }
     return acc;
   }, [reservations]);
+
+  /** System-level snapshot for the editorial top strip. */
+  const systemSnapshot = useMemo(() => {
+    const covers = coversToday.ganxo + coversToday.pista + coversToday.esquitx;
+    return { covers };
+  }, [coversToday]);
 
   // Entrance: fade + lift + blur clear after first paint
   useEffect(() => {
@@ -204,17 +230,22 @@ export default function PinLockView() {
     try { window.dispatchEvent(new Event('ncr:ambient-pulse')); } catch {}
   }
 
-  // Hardware keyboard support.
+  // Hardware keyboard support. Also auto-opens the collapsed keypad on
+  // the first digit so PC/Bluetooth-keyboard users never see the
+  // mobile-collapsed state.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (busy || openingBiz) return;
-      if (e.key >= '0' && e.key <= '9') { press(e.key); return; }
+      if (e.key >= '0' && e.key <= '9') {
+        if (!keypadOpen) setKeypadOpen(true);
+        press(e.key); return;
+      }
       if (e.key === 'Backspace' || e.key === 'Delete') { backspace(); return; }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busy, errorPulse, openingBiz]);
+  }, [busy, errorPulse, openingBiz, keypadOpen]);
 
   function flashErrorAndClear(message: string) {
     setShake(true);
@@ -315,7 +346,11 @@ export default function PinLockView() {
   }, [pinConfig]);
 
   return (
-    <div className={`pin-lock-wrap ${bookOpening ? 'pin-lock-wrap--opening' : ''}`} data-open-biz={openingBiz ?? ''}>
+    <div
+      className={`pin-lock-wrap ${bookOpening ? 'pin-lock-wrap--opening' : ''}`}
+      data-open-biz={openingBiz ?? ''}
+      data-keypad={keypadOpen ? 'open' : 'closed'}
+    >
       {/* Interactive ambient warmth — sits between the wrap's static gradient
           and the card. Pointer-events: none so PIN input is never blocked. */}
       <PremiumRestaurantAmbient zIndex={0} />
@@ -331,7 +366,25 @@ export default function PinLockView() {
               visual weight. Reordered via CSS `order: -2`. */}
         <div className="pin-top-strip" aria-hidden="true">
           <div className="pin-top-strip__greeting">{hello}</div>
-          <div className="pin-top-strip__date">{eyebrow}</div>
+          <div className="pin-top-strip__meta">
+            <span className="pin-top-strip__date">{eyebrow}</span>
+            {visibleBizs.length > 0 && (
+              <>
+                <span className="pin-top-strip__sep" />
+                <span className="pin-top-strip__stat">
+                  {visibleBizs.length} locals
+                </span>
+                {systemSnapshot.covers > 0 && (
+                  <>
+                    <span className="pin-top-strip__sep" />
+                    <span className="pin-top-strip__stat">
+                      {systemSnapshot.covers} coberts
+                    </span>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* ── LOCK CARD (left on desktop, bottom on mobile) ─────── */}
@@ -352,7 +405,15 @@ export default function PinLockView() {
               <p className="pin-lock__subtitle">Introdueix el PIN per continuar</p>
             </header>
 
-            <div className="pin-lock__dots" aria-live="polite">
+            {/* Dots are tap-to-open on mobile when keypad is collapsed.
+                On desktop / when already open they're not interactive. */}
+            <div
+              className="pin-lock__dots"
+              aria-live="polite"
+              role={!keypadOpen ? 'button' : undefined}
+              tabIndex={!keypadOpen ? 0 : undefined}
+              onClick={!keypadOpen ? () => setKeypadOpen(true) : undefined}
+            >
               {[0, 1, 2, 3].map(i => (
                 <span
                   key={i}
@@ -365,6 +426,18 @@ export default function PinLockView() {
                 </span>
               ))}
             </div>
+
+            {/* CTA — only visible when the keypad is collapsed on mobile.
+                Tapping expands the keypad with a buttery cinema curve. */}
+            <button
+              type="button"
+              className="pin-lock__cta"
+              onClick={() => setKeypadOpen(true)}
+              aria-label="Obrir el teclat"
+            >
+              <span className="pin-lock__cta-label">Toca per teclejar el PIN</span>
+              <span className="pin-lock__cta-arrow" aria-hidden="true">▲</span>
+            </button>
 
             <div className="pin-lock__status" aria-live="polite" data-error={!!error}>
               {error || (busy ? 'Verificant…' : ' ')}
@@ -1202,12 +1275,26 @@ export default function PinLockView() {
               content lives inside the lock card's espresso header. */
         .pin-top-strip { display: none; }
 
+        /* CTA — collapsed-state trigger that invites the user to tap. */
+        .pin-lock__cta { display: none; }
+
         /* ─── MOBILE REDESIGN (≤ 720 px) ──────────────────────────────
-              Complete reorder of the stage so the PIN becomes a
-              floating panel of secondary visual weight; the BUSINESS
-              SNAPSHOTS rise to first position (you see the system
-              breathing before you authenticate). The editorial greeting
-              lives in its own strip up top. */
+              Two-state experience that prioritises the BUSINESS state
+              of the system, with the PIN as a secondary action that
+              expands on tap.
+
+              State 1 (data-keypad="closed"):
+                Top strip → 3 live cards → minimal PIN panel
+                (brand row + dots + 'Toca per teclejar ↑').
+                The keypad + reassurance are collapsed via max-height.
+
+              State 2 (data-keypad="open"):
+                Same hierarchy but the PIN panel expands smoothly:
+                cards remain visible (slightly dimmed), keypad slides
+                in from below, reassurance fades in last.
+
+              The hardware keyboard auto-opens the state, so the
+              collapse is mobile-touch-only. */
         @media (max-width: 720px) {
           .pin-stage {
             gap: 12px;
@@ -1230,19 +1317,60 @@ export default function PinLockView() {
           .pin-top-strip__greeting {
             font-family: var(--font-serif);
             font-weight: 400;
-            font-size: clamp(32px, 8.4vw, 38px);
+            font-size: clamp(30px, 8vw, 36px);
             line-height: 1;
             letter-spacing: -.02em;
             color: var(--ink-900);
           }
-          .pin-top-strip__date {
+          .pin-top-strip__meta {
             margin-top: 6px;
-            font-size: 10.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+          }
+          .pin-top-strip__date,
+          .pin-top-strip__stat {
+            font-size: 10px;
             font-weight: 600;
-            letter-spacing: .18em;
+            letter-spacing: .14em;
             text-transform: uppercase;
             color: var(--ink-500);
             font-family: var(--font-mono);
+          }
+          .pin-top-strip__stat { color: var(--ink-600); font-weight: 700; }
+          .pin-top-strip__sep {
+            width: 3px; height: 3px;
+            border-radius: 999px;
+            background: var(--ink-300, #c5b8a8);
+            display: inline-block;
+            opacity: .7;
+          }
+
+          /* Cards have a slow, almost imperceptible breathing animation —
+             a 6-second opacity drift that signals 'the system is alive'
+             without distracting the eye. Reduced-motion respected later. */
+          .pin-door {
+            animation: pin-door-breathe 6.2s ease-in-out infinite;
+            animation-delay: var(--pulse-delay, 0s);
+          }
+          .pin-door:nth-of-type(1) { --pulse-delay: 0s; }
+          .pin-door:nth-of-type(2) { --pulse-delay: -2.1s; }
+          .pin-door:nth-of-type(3) { --pulse-delay: -4.2s; }
+          @keyframes pin-door-breathe {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: .92; }
+          }
+
+          /* When keypad opens, cards dim slightly — focus shifts to the
+             keypad without losing context. */
+          .pin-lock-wrap[data-keypad="open"] .pin-door {
+            opacity: .55;
+            filter: saturate(.85);
+            transition: opacity 340ms var(--ease-cinema), filter 340ms var(--ease-cinema);
+          }
+          .pin-lock-wrap[data-keypad="closed"] .pin-door {
+            transition: opacity 340ms var(--ease-cinema), filter 340ms var(--ease-cinema);
           }
 
           /* ── Business snapshots — compact stacked cards, premium glass.
@@ -1376,6 +1504,7 @@ export default function PinLockView() {
           .pin-lock__keypad {
             gap: 9px;
             padding: 6px 22px 14px;
+            overflow: hidden;
           }
           .pin-lock__key {
             padding: 11px 0;
@@ -1386,7 +1515,111 @@ export default function PinLockView() {
             padding: 0 24px 14px;
             font-size: 10.5px;
             opacity: .65;
+            overflow: hidden;
           }
+
+          /* ─── COLLAPSED STATE (data-keypad="closed") ─────────────────
+                Keypad and reassurance shrink to 0; CTA appears below
+                the dots; cards remain at full intensity. */
+          .pin-lock-wrap[data-keypad="closed"] .pin-lock__keypad {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            pointer-events: none;
+            transition:
+              max-height     280ms var(--ease-cinema),
+              opacity        180ms ease,
+              padding-top    200ms var(--ease-cinema),
+              padding-bottom 200ms var(--ease-cinema);
+          }
+          .pin-lock-wrap[data-keypad="closed"] .pin-lock__reassurance {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin: 0;
+            transition:
+              max-height 220ms var(--ease-cinema),
+              opacity    160ms ease;
+          }
+          .pin-lock-wrap[data-keypad="closed"] .pin-lock__dots {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+          }
+          .pin-lock-wrap[data-keypad="closed"] .pin-lock__cta {
+            display: inline-flex;
+          }
+
+          /* ─── OPEN STATE (data-keypad="open") ────────────────────────
+                Keypad slides up, reassurance fades in. */
+          .pin-lock-wrap[data-keypad="open"] .pin-lock__keypad {
+            max-height: 360px;
+            opacity: 1;
+            transition:
+              max-height 380ms var(--ease-cinema),
+              opacity    260ms ease 80ms,
+              padding-top    320ms var(--ease-cinema),
+              padding-bottom 320ms var(--ease-cinema);
+          }
+          .pin-lock-wrap[data-keypad="open"] .pin-lock__reassurance {
+            max-height: 60px;
+            opacity: .65;
+            transition:
+              max-height 280ms var(--ease-cinema) 180ms,
+              opacity    220ms ease 280ms;
+          }
+          .pin-lock-wrap[data-keypad="open"] .pin-lock__cta {
+            display: none;
+          }
+
+          /* CTA — minimal pill below the dots when collapsed. */
+          .pin-lock__cta {
+            align-self: center;
+            margin: 4px auto 12px;
+            padding: 6px 14px 7px;
+            border: 1px solid rgba(60,40,20,.10);
+            background: linear-gradient(180deg,
+                          rgba(255,255,255,.55) 0%,
+                          rgba(255,255,255,.30) 100%);
+            border-radius: 999px;
+            cursor: pointer;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            -webkit-tap-highlight-color: transparent;
+            transition:
+              transform   180ms var(--ease-out),
+              background  220ms var(--ease-out),
+              box-shadow  220ms var(--ease-out);
+            box-shadow: 0 1px 2px rgba(60,40,20,.04);
+          }
+          .pin-lock__cta:active {
+            transform: scale(0.97);
+            background: linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,.4));
+          }
+          .pin-lock__cta-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-700);
+            letter-spacing: .015em;
+          }
+          .pin-lock__cta-arrow {
+            font-size: 8px;
+            color: var(--terra-600);
+            animation: pin-cta-bounce 2.6s ease-in-out infinite;
+          }
+          @keyframes pin-cta-bounce {
+            0%, 100% { transform: translateY(0); opacity: .7; }
+            50%      { transform: translateY(-2px); opacity: 1; }
+          }
+        }
+
+        /* Disable breathing + pulse animations under reduced motion. */
+        @media (prefers-reduced-motion: reduce) {
+          .pin-door { animation: none !important; }
+          .pin-lock__cta-arrow { animation: none !important; }
         }
 
         /* ── Animations ──────────────────────────────────────────── */
