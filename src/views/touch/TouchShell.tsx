@@ -932,39 +932,83 @@ export default function TouchShell() {
         {MOB_LEFT_TABS.map(t => (
           <MobNavBtn key={t.id} id={t.id} tab={tab} setTab={setTab} label={t.label} ico={t.ico} />
         ))}
-        <div style={{ width: 68, flexShrink: 0 }} aria-hidden />
+        {/* ── Central + button — integrated into the bottom nav.
+              Sits between Taules and Clients, replaces the legacy
+              floating mobile FAB. Always visible, never suppressed on
+              scroll, never blocks reservation rows. flexShrink:0 keeps
+              the rail's 5 equal zones (4 tabs + 1 +) stable. */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            paddingTop: 2,
+          }}
+        >
+          <button
+            type="button"
+            onClick={openNewReservation}
+            aria-label="Nova reserva"
+            className="nav-add-btn"
+          >
+            <Icon d={I.plus} size={22} stroke={2.6} />
+          </button>
+        </div>
         {MOB_RIGHT_TABS.map(t => (
           <MobNavBtn key={t.id} id={t.id} tab={tab} setTab={setTab} label={t.label} ico={t.ico} />
         ))}
       </nav>
 
-      {/* ── FAB — absolute, overlaps the center of the tab bar ─────── */}
-      <button
-        onClick={openNewReservation}
-        className={`press fab-mobile ${fabSuppressed ? 'fab-hidden' : ''}`}
-        aria-label="Nova reserva"
-        style={{
-          position: 'absolute',
-          left: '50%',
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
-          transform: 'translateX(-50%)',
-          width: 60, height: 60, borderRadius: 999,
-          zIndex: 60,
-          background: 'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',
-          color: '#fff',
-          border: 'none',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer',
-          // Layered shadow gives lift without the dated white-ring outline
-          boxShadow:
-            '0 0 0 4px var(--cream),' +              /* "halo" cut from bg (no hard ring) */
-            ' 0 6px 18px rgba(168,74,42,.42),' +
-            ' 0 2px 4px rgba(168,74,42,.22)',
-          WebkitTapHighlightColor: 'transparent',
-          transition: 'transform 280ms var(--ease-out), opacity 220ms var(--ease-out), box-shadow 220ms var(--ease-out)',
-        }}>
-        <Icon d={I.plus} size={26} stroke={2.4} />
-      </button>
+      <style>{`
+        .nav-add-btn {
+          width: 50px; height: 50px;
+          border-radius: 999px;
+          border: 3px solid var(--cream, #fdf9f2);
+          background: linear-gradient(180deg, var(--terracotta-600, #a8502f) 0%, var(--terracotta-700, #923c1f) 100%);
+          color: #fff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          /* Slight lift, never floats away from the bar. */
+          margin-top: -10px;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.20),
+            inset 0 -1px 0 rgba(0,0,0,.12),
+            0 4px 10px rgba(168,74,42,.34),
+            0 1px 3px rgba(168,74,42,.20);
+          -webkit-tap-highlight-color: transparent;
+          font-family: inherit;
+          transition:
+            transform   180ms var(--ease-out),
+            background  220ms var(--ease-out),
+            box-shadow  220ms var(--ease-out);
+        }
+        @media (hover: hover) and (pointer: fine) {
+          .nav-add-btn:hover {
+            background: linear-gradient(180deg, #b86842 0%, #a8502f 100%);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,.24),
+              inset 0 -1px 0 rgba(0,0,0,.12),
+              0 6px 14px rgba(168,74,42,.40),
+              0 2px 5px rgba(168,74,42,.24);
+          }
+        }
+        .nav-add-btn:active {
+          transition: none;
+          transform: scale(0.94);
+          background: linear-gradient(180deg, #923c1f 0%, #7a3018 100%);
+          box-shadow:
+            inset 0 2px 6px rgba(0,0,0,.28),
+            inset 0 -1px 0 rgba(255,255,255,.08),
+            0 2px 6px rgba(168,74,42,.22);
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nav-add-btn { transition: background 200ms ease; }
+          .nav-add-btn:active { transform: none; }
+        }
+      `}</style>
 
       {pickers}
       <NotesSheet

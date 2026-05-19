@@ -733,15 +733,14 @@ body::before {
 }
 
 /* ── FAB scroll-react — fades and shrinks on scroll-down, returns on
-   scroll-up or idle. The shell flips a class on the FAB based on scroll. */
+   scroll-up or idle. Only the tablet/desktop FAB still uses this; the
+   mobile + button now lives integrated in the bottom nav center, so
+   it never auto-hides on scroll. The .fab-mobile rules below are kept
+   as no-ops for compat with any stale callers. */
 .fab-hidden {
   opacity: 0 !important;
   pointer-events: none;
 }
-.fab-mobile { /* class marker for mobile FAB */
-  /* keep the existing translateX(-50%) anchor; only the scale changes */
-}
-.fab-mobile.fab-hidden  { transform: translateX(-50%) scale(0.55) !important; }
 .fab-tablet.fab-hidden  { transform: scale(0.55) !important; }
 
 /* ── Nav tab indicator slide ────────────────────────────────────────────── */
