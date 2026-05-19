@@ -177,6 +177,111 @@ body {
   touch-action: manipulation;
 }
 
+/* ─── Interactive control lockdown ─────────────────────────────────────────
+   When the user long-presses any tactile control on iOS Safari/iPadOS,
+   the OS otherwise pops up the text-selection magnifier, the copy/paste
+   callout, and the blue selection handles — and the surface stops
+   feeling like an app. We disable user selection, touch-callout, and
+   the grey tap-highlight on every interactive surface AND on its
+   children (so long-pressing a label inside a button doesn't select
+   the label text either).
+
+   IMPORTANT: this rule deliberately excludes inputs/textareas/
+   contenteditable so reservation notes, search fields, phone input,
+   etc. keep normal text behaviour (copy/paste, magnifier, handles).
+
+   Restoring selection on a specific element is done by adding
+   `.is-selectable` (or `[data-selectable]`) — used for things like
+   the reservation phone number, which the operator may want to copy. */
+button,
+a,
+label,
+summary,
+[role="button"],
+[role="link"],
+[role="tab"],
+[role="menuitem"],
+[role="option"],
+[role="checkbox"],
+[role="switch"],
+.tac-btn, .tac-btn--ghost, .tac-btn--accent,
+.tac-fab, .tac-seg-btn,
+.rail-nav-btn, .nav-add-btn,
+.press,
+.pin-lock__key, .pin-lock__dot, .pin-lock__dots, .pin-lock__cta,
+.pin-door, .pin-doors-eyebrow,
+.sheet-backdrop, .sheet-panel,
+.fab, .fab-mobile, .fab-tablet,
+.day-btn,
+.chip {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  /* manipulation = no double-tap zoom + no pan-zoom delay on touch.
+     This is safe alongside body's same value — child elements inherit
+     it but spelling it out here ensures controls without an ancestor
+     touch-action declaration still get the snappy tap feel. */
+  touch-action: manipulation;
+}
+/* Children of interactive controls inherit the lockdown so long-pressing
+   a label/icon inside a button doesn't grab the text either. */
+button *,
+a *,
+[role="button"] *,
+[role="link"] *,
+[role="tab"] *,
+.tac-btn *, .tac-fab *, .tac-seg-btn *,
+.rail-nav-btn *, .nav-add-btn *,
+.pin-lock__key *, .pin-lock__cta *,
+.pin-door *,
+.fab *, .fab-mobile *, .fab-tablet * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable normal text behaviour on form fields and explicitly-
+   selectable content. Higher specificity than the control rules above. */
+input,
+textarea,
+select,
+[contenteditable="true"],
+[contenteditable=""],
+.is-selectable,
+[data-selectable] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* And inside form fields too — a span inside a textarea should still
+   be selectable. */
+input *,
+textarea *,
+[contenteditable="true"] *,
+[contenteditable=""] *,
+.is-selectable *,
+[data-selectable] * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Disabled controls — neutralise pointer activity entirely. */
+button:disabled,
+[role="button"][aria-disabled="true"],
+.tac-btn:disabled,
+.tac-fab:disabled {
+  cursor: default;
+}
+
 /* ─── Paper grain — gives the cream surface a hand-printed feel ─────────────
    SVG fractal noise inlined as data URI; default opacity ~3.5%, fixed in
    viewport so it doesn't scroll with content. The opacity is exposed as a
