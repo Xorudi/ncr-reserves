@@ -12,6 +12,7 @@
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
+import DashboardAmbient from '@/components/shared/DashboardAmbient';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
@@ -359,14 +360,20 @@ export default function TouchShell() {
         flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
         ...(capMain ? {
           maxWidth: 1100, width: '100%', alignSelf: 'center',
-          // Treat the centered content as a single card on the cream
-          // canvas so the paper-coloured inner panels stop creating a
-          // hard vertical edge against the cream surround. Soft top
-          // rounding only — the bottom blends into the page scroll.
+          // Treat the centred content as a single card floating on top
+          // of the DashboardAmbient layer. Deeper, wider shadow now —
+          // the ambient gives the surround texture, so the card needs a
+          // clearer visual lift to read as the operational focal point.
+          // Inset-top highlight + hairline border keep the edge crisp.
           borderTopLeftRadius: 22, borderTopRightRadius: 22,
-          background: 'var(--surface-base)',
-          boxShadow: '0 1px 0 rgba(60,40,20,.04), 0 8px 28px rgba(60,40,20,.05)',
+          background: 'var(--surface-elevated)',
+          border: '1px solid rgba(60,40,20,.06)',
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,.70), ' +
+            '0 2px 4px rgba(60,40,20,.04), ' +
+            '0 16px 48px rgba(60,40,20,.08)',
           marginTop: 12,
+          position: 'relative', zIndex: 1,
         } : null),
       }}>
       {tab === 'reservations' && (
@@ -416,11 +423,26 @@ export default function TouchShell() {
   if (isTablet) {
     return (
       <div style={{
+        position: 'relative',
         display: 'flex', height: '100dvh',
+        // Bare canvas: the DashboardAmbient layer below paints the warm
+        // restaurant glow + paper grain. The legacy todTint gradient is
+        // kept only for the iPad fallback case where the ambient layer
+        // would be too heavy — it composes on top of the ambient as a
+        // very subtle shift in the visible cream.
         background: `linear-gradient(180deg, ${todTint} 0%, transparent 60%), var(--cream)`,
         overflow: 'hidden',
         paddingTop: isStandalone ? 'env(safe-area-inset-top)' : undefined,
       }}>
+
+        {/* ── Premium ambient layer — only on large touchscreens.
+              On a 1920 px counter monitor the dashboard has a lot of
+              cream visible around the centred content card; the ambient
+              gives that empty space a warm restaurant-light feel
+              without competing with the operational content above.
+              On iPad / phone we keep the flat cream + todTint — the
+              viewport is too small for the blobs to read as ambient. */}
+        {isLargeScreen && <DashboardAmbient zIndex={0} />}
 
         {/* ── Left side rail ───────────────────────────────────────────
               Uses the new matte "rail" surface — slightly warmer + darker
