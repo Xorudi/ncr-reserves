@@ -866,7 +866,7 @@ function QuickResRow({ client: c, bizId, addReservation }: {
                   {pax}
                 </span>
                 <button className="press" aria-label="Sumar comensal"
-                  onClick={() => setPax(p => Math.min(30, p + 1))}
+                  onClick={() => setPax(p => Math.min(9999, p + 1))}
                   style={{ width:34, height:'100%', border:'none', background:'transparent', cursor:'pointer', fontSize:18, color:'var(--ink-700)', display:'grid', placeItems:'center' }}>+</button>
               </div>
             </div>

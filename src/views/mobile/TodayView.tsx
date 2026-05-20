@@ -24,6 +24,13 @@ function lookupLoyalty(l: LoyaltyLookup, r: Reservation): LoyaltyEntry | undefin
   return l.byName.get(r.name.trim().toLowerCase());
 }
 
+// Upper bound for party size on any reservation form. High enough for
+// real-world large groups (weddings, school trips, a full bus) yet
+// finite so we catch a typo like 99999 instead of silently storing it.
+// The Reservation type carries `pax: number` without a constraint, so
+// this is purely a UI-side guard.
+const MAX_PAX = 9999;
+
 /**
  * SwipeableRow — drag horizontally to advance a reservation's status.
  * Sonner-style: distance threshold OR velocity > 0.11 fires the action.
@@ -2141,18 +2148,19 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   const plan = floorPlans[bizId];
   const isEdit = !!editRes;
 
-  // Sempre obre el formulari amb data + hora del moment exacte
-  const nowDate = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  };
+  // Form initial date defaults to the day currently being viewed in the
+  // calendar (passed as `defaultDate` from the parent), NOT to today.
+  // Operators routinely scroll forward to plan tomorrow's service — and
+  // they expect "+" to create a reservation for that day. Time still
+  // defaults to "now" because it's a reasonable starting point: most
+  // walk-in / phone reservations are happening at the time of entry.
   const nowTime = () => {
     const d = new Date();
     return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   };
 
   const [form, setForm] = useState({
-    date:      nowDate(),
+    date:      defaultDate,
     time:      nowTime(),
     name:      '',
     phone:     '',
@@ -2208,7 +2216,12 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
       setSelectedTableIds(editRes.tableIds ?? []);
       setPickedFromCartera(true);  // hide cartera toggle while editing
     } else {
-      setForm({ date: nowDate(), time: nowTime(), name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe', allergens: [] });
+      // New reservation — pick up the date the operator is currently
+      // looking at, not "today". Without this, navigating to a future
+      // date in the calendar and tapping "+" silently snaps the form
+      // back to today's date and the operator ends up creating the
+      // reservation in the wrong day.
+      setForm({ date: defaultDate, time: nowTime(), name: '', phone: '', pax: 2, notes: '', status: 'pending' as ReservationStatus, source: 'directe', allergens: [] });
       setSelectedTableIds([]);
       setPickedFromCartera(false);
     }
@@ -2674,22 +2687,35 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   {editingPax ? (
                     <input
                       type="number" inputMode="numeric" pattern="[0-9]*"
+                      min={1} max={MAX_PAX}
                       value={paxInput} autoFocus
                       onChange={e => setPaxInput(e.target.value)}
                       onBlur={() => {
+                        // Clamp to [1, MAX_PAX] but accept any integer in
+                        // between. MAX_PAX is high enough (9999) for any
+                        // real-world party — buses, weddings, etc. — but
+                        // bounded to catch fat-finger entries like 99999.
                         const n = parseInt(paxInput, 10);
-                        if (n >= 1 && n <= 99) upd('pax', n);
+                        if (Number.isFinite(n) && n >= 1) {
+                          upd('pax', Math.min(MAX_PAX, n));
+                        }
                         setEditingPax(false);
                       }}
                       onKeyDown={e => {
                         if (e.key === 'Enter') {
                           const n = parseInt(paxInput, 10);
-                          if (n >= 1 && n <= 99) upd('pax', n);
+                          if (Number.isFinite(n) && n >= 1) {
+                            upd('pax', Math.min(MAX_PAX, n));
+                          }
                           setEditingPax(false);
                         }
                       }}
                       style={{
-                        width:54, height:34, textAlign:'center',
+                        // Auto-grow with the digit count so 99 doesn't crop
+                        // 9999 — minWidth keeps the small case looking the same.
+                        minWidth: 54,
+                        width: `${Math.max(54, 24 + String(paxInput || form.pax).length * 12)}px`,
+                        height:34, textAlign:'center',
                         fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
                         color:'var(--ink-900)', background:'var(--paper)',
                         border:'1.5px solid var(--terracotta-500)', borderRadius:8, outline:'none',
@@ -2707,7 +2733,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                       {form.pax}
                     </button>
                   )}
-                  <button onClick={() => upd('pax', form.pax + 1)} className="press"
+                  <button onClick={() => upd('pax', Math.min(MAX_PAX, form.pax + 1))} className="press"
                     style={{
                       width:34, height:34, borderRadius:999, border:'1px solid rgba(60,40,20,.12)',
                       background:'var(--paper)', cursor:'pointer', fontSize:17, fontWeight:500,
