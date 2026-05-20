@@ -26,13 +26,16 @@ interface Props {
   zIndex?: number;
 }
 
-/** Five base blobs — anchors and alphas calmer than the login variant. */
+/** Five base blobs — anchors and alphas calmer than the login variant.
+ *  First pass was too subtle on a 1920 px screen (alphas 0.08-0.16 with
+ *  60 px blur faded into the cream). Bumped up ~60% to "visibly warm"
+ *  while still well below PinLock's 0.34-0.42 range. */
 const BLOBS = [
-  { id: 'terra',   baseX: 0.42, baseY: 0.55, w: 760, color: '200, 97, 58',   alpha: 0.14, orbitR: 50, orbitDur: 90 },
-  { id: 'ochre',   baseX: 0.78, baseY: 0.20, w: 560, color: '168, 112, 42',  alpha: 0.10, orbitR: 40, orbitDur: 78 },
-  { id: 'wine',    baseX: 0.86, baseY: 0.84, w: 520, color: '125,  46, 46',  alpha: 0.08, orbitR: 56, orbitDur: 104 },
-  { id: 'espresso',baseX: 0.10, baseY: 0.92, w: 600, color: ' 58,  42, 31',  alpha: 0.10, orbitR: 48, orbitDur: 110 },
-  { id: 'cream',   baseX: 0.22, baseY: 0.14, w: 680, color: '251, 234, 223', alpha: 0.16, orbitR: 42, orbitDur: 70 },
+  { id: 'terra',   baseX: 0.40, baseY: 0.55, w: 820, color: '200, 97, 58',   alpha: 0.22, orbitR: 50, orbitDur: 90 },
+  { id: 'ochre',   baseX: 0.78, baseY: 0.22, w: 620, color: '168, 112, 42',  alpha: 0.18, orbitR: 40, orbitDur: 78 },
+  { id: 'wine',    baseX: 0.86, baseY: 0.84, w: 560, color: '125,  46, 46',  alpha: 0.14, orbitR: 56, orbitDur: 104 },
+  { id: 'espresso',baseX: 0.08, baseY: 0.90, w: 640, color: ' 58,  42, 31',  alpha: 0.16, orbitR: 48, orbitDur: 110 },
+  { id: 'cream',   baseX: 0.22, baseY: 0.14, w: 720, color: '251, 234, 223', alpha: 0.26, orbitR: 42, orbitDur: 70 },
 ] as const;
 
 /** Sun position from the wall clock — same arc as the login screen but
@@ -129,17 +132,20 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
           inset: 0;
           pointer-events: none;
           overflow: hidden;
-          /* Base canvas: soft cream wash that gives the rest of the room a
-             tonal floor. Brighter at the centre to subtly draw the eye in. */
+          /* Base canvas: cream centre that fades into deeper amber at the
+             edges. The wrap underneath is solid var(--cream), so the
+             outer rim of this gradient is what gives the side margins
+             their visible warmth. */
           background:
-            radial-gradient(ellipse 130% 100% at 50% 45%, #fbf7ec 0%, #f4ead4 60%, #e6d9b8 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #fbf6e6 0%, #efe1c0 55%, #d6c498 100%);
           isolation: isolate;
         }
         .dashboard-ambient > * { pointer-events: none; }
-        /* Night mode (22h–6h): take the warmth out, the room is dim. */
+        /* Night mode (22h–6h): swap the amber edges for an inky dusk
+           tone — the room is dim but still warm at the centre. */
         .dashboard-ambient[data-night="true"] {
           background:
-            radial-gradient(ellipse 130% 100% at 50% 45%, #efe6c9 0%, #d9caa3 60%, #ad9a73 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #ede1c0 0%, #cdb88e 55%, #8e7858 100%);
         }
 
         /* ── Base blobs ───────────────────────────────────────────── */
@@ -153,7 +159,10 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
             rgba(var(--blob-rgb), calc(var(--blob-a) * 0.55)) 30%,
             rgba(var(--blob-rgb), 0) 70%
           );
-          filter: blur(60px);
+          /* 40 px blur — still soft enough that the blobs read as
+             ambient warmth rather than coloured shapes, but visible
+             where 60 px was vanishing into the cream. */
+          filter: blur(40px);
           mix-blend-mode: multiply;
           will-change: transform;
           animation: da-orbit var(--orbit-d, 80s) linear infinite;
@@ -175,17 +184,19 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
         .da-sun {
           position: absolute;
           inset: 0;
+          /* Hot core + halo. Bumped from 0.16/0.08 -> 0.26/0.14 so the
+             "warm light source" is actually felt, not just measurable. */
           background:
             radial-gradient(
-              circle 360px at var(--sun-x, 50%) var(--sun-y, 30%),
-              rgba(var(--sun-hot, 250, 229, 176),  0.16) 0%,
-              rgba(var(--sun-hot, 250, 229, 176),  0.07) 30%,
+              circle 380px at var(--sun-x, 50%) var(--sun-y, 30%),
+              rgba(var(--sun-hot, 250, 229, 176),  0.26) 0%,
+              rgba(var(--sun-hot, 250, 229, 176),  0.12) 30%,
               rgba(var(--sun-hot, 250, 229, 176),  0) 64%
             ),
             radial-gradient(
-              circle 900px at var(--sun-x, 50%) var(--sun-y, 30%),
-              rgba(var(--sun-halo, 240, 201, 128), 0.08) 0%,
-              rgba(var(--sun-halo, 240, 201, 128), 0.03) 38%,
+              circle 1000px at var(--sun-x, 50%) var(--sun-y, 30%),
+              rgba(var(--sun-halo, 240, 201, 128), 0.14) 0%,
+              rgba(var(--sun-halo, 240, 201, 128), 0.05) 38%,
               rgba(var(--sun-halo, 240, 201, 128), 0) 68%
             );
           mix-blend-mode: screen;
