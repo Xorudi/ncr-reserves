@@ -450,6 +450,7 @@ export default function TouchShell() {
               inset shadow on the right edge gives a soft "the content sits
               in front" reading without a hard border. */}
         <nav className="surface-rail" style={{
+          position: 'relative', zIndex: 1,
           width: railWide ? 128 : 86, flexShrink: 0,
           display: 'flex', flexDirection: 'column',
           paddingTop: railWide ? 18 : 14,
@@ -626,7 +627,7 @@ export default function TouchShell() {
         <main
           style={{
             flex: 1, display: 'flex', flexDirection: 'column',
-            overflow: 'hidden', position: 'relative',
+            overflow: 'hidden', position: 'relative', zIndex: 1,
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           }}
           onTouchStart={handleTouchStart}
