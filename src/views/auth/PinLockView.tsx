@@ -638,11 +638,18 @@ export default function PinLockView() {
           }
         }
 
-        /* Dim everything during book-opening except the chosen door. */
-        .pin-lock-wrap--opening .pin-lock,
-        .pin-lock-wrap--opening .pin-doors-eyebrow,
-        .pin-lock-wrap--opening .pin-doors-foot,
-        .pin-lock-wrap--opening .pin-door:not(.pin-door--opening) {
+        /* Dim everything during book-opening except the chosen door.
+           Specificity is intentionally bumped via the chained-class
+           selector (pin-lock-wrap + pin-lock-wrap--opening on the same
+           element) so this rule beats the mobile [data-keypad=open]
+           pin-door opacity:.55 override later in the stylesheet —
+           without the bump, the two non-opening business cards stay
+           visible at half opacity during the entire book-opening
+           animation on phones. */
+        .pin-lock-wrap.pin-lock-wrap--opening .pin-lock,
+        .pin-lock-wrap.pin-lock-wrap--opening .pin-doors-eyebrow,
+        .pin-lock-wrap.pin-lock-wrap--opening .pin-doors-foot,
+        .pin-lock-wrap.pin-lock-wrap--opening .pin-door:not(.pin-door--opening) {
           opacity: 0;
           filter: blur(8px);
           transform: scale(0.96);
