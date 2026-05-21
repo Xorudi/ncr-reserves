@@ -31,11 +31,15 @@ interface Props {
  *  60 px blur faded into the cream). Bumped up ~60% to "visibly warm"
  *  while still well below PinLock's 0.34-0.42 range. */
 const BLOBS = [
-  { id: 'terra',   baseX: 0.40, baseY: 0.55, w: 820, color: '200, 97, 58',   alpha: 0.22, orbitR: 50, orbitDur: 90 },
-  { id: 'ochre',   baseX: 0.78, baseY: 0.22, w: 620, color: '168, 112, 42',  alpha: 0.18, orbitR: 40, orbitDur: 78 },
-  { id: 'wine',    baseX: 0.86, baseY: 0.84, w: 560, color: '125,  46, 46',  alpha: 0.14, orbitR: 56, orbitDur: 104 },
-  { id: 'espresso',baseX: 0.08, baseY: 0.90, w: 640, color: ' 58,  42, 31',  alpha: 0.16, orbitR: 48, orbitDur: 110 },
-  { id: 'cream',   baseX: 0.22, baseY: 0.14, w: 720, color: '251, 234, 223', alpha: 0.26, orbitR: 42, orbitDur: 70 },
+  // Bumped ~1.7x — the previous values vanished into cream once panels
+  // (rail + central card + right panel) covered ~85% of the canvas. With
+  // most of the ambient hidden behind opaque surfaces, the visible margins
+  // need to read distinctly warm to register at all.
+  { id: 'terra',   baseX: 0.40, baseY: 0.55, w: 820, color: '200, 97, 58',   alpha: 0.38, orbitR: 50, orbitDur: 90 },
+  { id: 'ochre',   baseX: 0.78, baseY: 0.22, w: 620, color: '168, 112, 42',  alpha: 0.32, orbitR: 40, orbitDur: 78 },
+  { id: 'wine',    baseX: 0.86, baseY: 0.84, w: 560, color: '125,  46, 46',  alpha: 0.24, orbitR: 56, orbitDur: 104 },
+  { id: 'espresso',baseX: 0.08, baseY: 0.90, w: 640, color: ' 58,  42, 31',  alpha: 0.28, orbitR: 48, orbitDur: 110 },
+  { id: 'cream',   baseX: 0.22, baseY: 0.14, w: 720, color: '251, 234, 223', alpha: 0.44, orbitR: 42, orbitDur: 70 },
 ] as const;
 
 /** Sun position from the wall clock — same arc as the login screen but
@@ -137,7 +141,9 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
              outer rim of this gradient is what gives the side margins
              their visible warmth. */
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #fbf6e6 0%, #efe1c0 55%, #d6c498 100%);
+            /* Stronger amber edges so the margins around the central
+               card/rail visibly warm — was vanishing into cream. */
+            radial-gradient(ellipse 120% 100% at 50% 40%, #fbf6e6 0%, #e8d6a8 55%, #c2a878 100%);
           isolation: isolate;
         }
         .dashboard-ambient > * { pointer-events: none; }
@@ -145,7 +151,7 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
            tone — the room is dim but still warm at the centre. */
         .dashboard-ambient[data-night="true"] {
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #ede1c0 0%, #cdb88e 55%, #8e7858 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #ede1c0 0%, #bda572 55%, #76603d 100%);
         }
 
         /* ── Base blobs ───────────────────────────────────────────── */
@@ -159,10 +165,11 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
             rgba(var(--blob-rgb), calc(var(--blob-a) * 0.55)) 30%,
             rgba(var(--blob-rgb), 0) 70%
           );
-          /* 40 px blur — still soft enough that the blobs read as
-             ambient warmth rather than coloured shapes, but visible
-             where 60 px was vanishing into the cream. */
-          filter: blur(40px);
+          /* 28 px blur — tighter than the previous 40 so the blobs
+             are visible WHERE they peek out from behind opaque panels
+             (only the edges of the canvas show through). Tight enough
+             to register, soft enough not to read as 'shape'. */
+          filter: blur(28px);
           mix-blend-mode: multiply;
           will-change: transform;
           animation: da-orbit var(--orbit-d, 80s) linear infinite;
