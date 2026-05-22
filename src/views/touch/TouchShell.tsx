@@ -856,7 +856,6 @@ export default function TouchShell() {
           open={briefingAction !== null}
           onClose={() => setBriefingAction(null)}
           action={briefingAction}
-          onOpenFloorPlan={() => setTab('tables')}
           onOpenReservationDetail={r => {
             setSelectedReservation(r);
             setTab('reservations');
@@ -1155,7 +1154,6 @@ export default function TouchShell() {
         open={briefingAction !== null}
         onClose={() => setBriefingAction(null)}
         action={briefingAction}
-        onOpenFloorPlan={() => setTab('tables')}
         onOpenReservationDetail={r => {
           setSelectedReservation(r);
           setTab('reservations');

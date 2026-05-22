@@ -21,8 +21,9 @@
  * in place so they can keep working through the queue.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import AnimatedSheet from './AnimatedSheet';
+import TableSelectorModal from './TableSelectorModal';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
 import type { Reservation } from '@/types';
@@ -45,18 +46,21 @@ interface Props {
   open: boolean;
   onClose: () => void;
   action: ResolvableAction | null;
-  /** Navigate to the floor plan tab so the existing table-selection flow
-   *  can take over with the reservation pre-selected via the store. */
-  onOpenFloorPlan: () => void;
   /** Open the reservation detail sheet (existing flow). */
   onOpenReservationDetail: (r: Reservation) => void;
 }
 
 export default function BriefingActionSheet({
   open, onClose, action,
-  onOpenFloorPlan, onOpenReservationDetail,
+  onOpenReservationDetail,
 }: Props) {
-  const { reservations, updateReservationStatus, setSelectedReservation } = useAppStore();
+  const { reservations, updateReservationStatus, assignTablesToReservation } = useAppStore();
+
+  // Track which reservation the operator is assigning a table to right
+  // now. While set, the TableSelectorModal renders on top of this sheet
+  // — same picker the rest of the app uses, so behaviour is identical
+  // to the floor-plan flow but without leaving the briefing context.
+  const [assigningRes, setAssigningRes] = useState<Reservation | null>(null);
 
   // Resolve reservationIds → current Reservation rows. We re-read from
   // the store on every render so confirming a reservation in-place
@@ -84,12 +88,10 @@ export default function BriefingActionSheet({
   }
 
   function handleAssign(r: Reservation) {
-    // Use the same hand-off the rest of the app uses: set the selected
-    // reservation in the store, then jump to the floor plan. The plan
-    // screen reads selectedReservation and opens its own picker on top.
-    setSelectedReservation(r);
-    onOpenFloorPlan();
-    onClose();
+    // Open the same TableSelectorModal the new-reservation form and the
+    // reservation detail sheet use. Stays in the briefing context — no
+    // navigation, no walk-in side-effect, no losing the operator's place.
+    setAssigningRes(r);
   }
 
   function handleOpenDetail(r: Reservation) {
@@ -98,6 +100,7 @@ export default function BriefingActionSheet({
   }
 
   return (
+    <>
     <AnimatedSheet open={open} onClose={onClose} desktopMaxWidth={620} zIndex={120}>
       <div style={{
         padding: '18px 20px 22px',
@@ -274,7 +277,7 @@ export default function BriefingActionSheet({
                           borderRadius: 8,
                         }}
                       >
-                        Obrir plànol
+                        Triar taula
                       </button>
                       <button
                         onClick={() => handleOpenDetail(r)}
@@ -295,5 +298,26 @@ export default function BriefingActionSheet({
         )}
       </div>
     </AnimatedSheet>
+
+    {/* Table picker — same modal the new-reservation form / detail sheet
+        use. Renders on top of this sheet via portal (z-index from
+        TableSelectorModal itself). Saving calls the store; we toast and
+        clear the assigning state so the parent sheet's empty-state
+        message can kick in once every row is resolved. */}
+    {assigningRes && (
+      <TableSelectorModal
+        bizId={assigningRes.bizId}
+        pax={assigningRes.pax}
+        currentIds={assigningRes.tableIds ?? []}
+        date={assigningRes.date}
+        onSave={ids => {
+          assignTablesToReservation(assigningRes.id, ids);
+          toast(`Taula assignada a ${assigningRes.name}`, { icon: 'check', tone: 'olive' });
+          setAssigningRes(null);
+        }}
+        onClose={() => setAssigningRes(null)}
+      />
+    )}
+    </>
   );
 }
