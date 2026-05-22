@@ -26,6 +26,7 @@ import SearchSheet from '@/components/shared/SearchSheet';
 import WaitlistSheet from '@/components/shared/WaitlistSheet';
 import WeatherWidget from '@/components/shared/WeatherWidget';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
+import BriefingSheet from '@/components/shared/BriefingSheet';
 import { NotesSheet } from '@/views/touch/NotesSystem';
 import {
   fetchForecast, DEFAULT_COORDS,
@@ -85,6 +86,7 @@ export default function TouchShell() {
   const [showUserPicker, setShowUserPicker] = useState(false);
   const [showNotesSheet, setShowNotesSheet] = useState(false);
   const [showSearch,     setShowSearch]     = useState(false);
+  const [showBriefing,   setShowBriefing]   = useState(false);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
   // Mobile header collapses when the operator scrolls into the list. The
   // event is dispatched by MobileTodayView's outer scrollable. We only
@@ -172,6 +174,16 @@ export default function TouchShell() {
     selectedDate, bizId: selectedBusiness,
     reservations, waitlist, forecast: shellForecast,
   });
+
+  // ── Briefing trigger — listens for the global app:open-briefing event
+  //    that InsightOfMoment dispatches when its "Veure briefing →" CTA is
+  //    pressed. Lets the hero be tappable from any layout (mobile shell
+  //    or tablet shell) without prop drilling. ──
+  useEffect(() => {
+    const onOpen = () => setShowBriefing(true);
+    window.addEventListener('app:open-briefing', onOpen);
+    return () => window.removeEventListener('app:open-briefing', onOpen);
+  }, []);
   // Large screen (≥1280px) — typical restaurant counter-top monitor or
   // kiosk. Bumps rail width, icon/label sizes and tap targets so the
   // operator can hit them reliably while standing.
@@ -665,6 +677,7 @@ export default function TouchShell() {
             setSelectedDate={setSelectedDate}
             microcopy={ambient.microcopy}
             ambientLevel={ambient.level}
+            onOpenBriefing={() => setShowBriefing(true)}
           />
 
           {/* Banner de servei en marxa — només quan toca, discret però visible.
@@ -807,6 +820,13 @@ export default function TouchShell() {
             setSelectedReservation(res);
             setTab('reservations');
           }}
+        />
+        <BriefingSheet
+          open={showBriefing}
+          onClose={() => setShowBriefing(false)}
+          forecast={shellForecast}
+          ambientOverride={ambient}
+          onNavigateTab={t => setTab(t)}
         />
         <Toaster />
       </div>
@@ -1089,6 +1109,13 @@ export default function TouchShell() {
           setTab('reservations');
         }}
       />
+      <BriefingSheet
+        open={showBriefing}
+        onClose={() => setShowBriefing(false)}
+        forecast={shellForecast}
+        ambientOverride={ambient}
+        onNavigateTab={t => setTab(t)}
+      />
       <Toaster />
     </div>
   );
@@ -1227,7 +1254,7 @@ const DAYS_CA   = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres
 const MONTHS_CA = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
 
 function TabletTopBar({
-  selectedDate, setSelectedDate, microcopy, ambientLevel,
+  selectedDate, setSelectedDate, microcopy, ambientLevel, onOpenBriefing,
 }: {
   selectedDate: Date;
   setSelectedDate: (d: Date) => void;
@@ -1236,6 +1263,8 @@ function TabletTopBar({
   /** Drives a barely-visible accent on the microcopy line — clay when busy/peak,
    *  olive when calm, ink-500 otherwise. */
   ambientLevel?: 'calm' | 'normal' | 'busy' | 'peak';
+  /** Tapping the microcopy line opens the full service briefing sheet. */
+  onOpenBriefing?: () => void;
 }) {
   const d = selectedDate;
   // Local-date ISO (avoids UTC off-by-one in CET/CEST)
@@ -1311,24 +1340,37 @@ function TabletTopBar({
             {dayLabel}
           </span>
           {/* Ambient microcopy — barely-visible operator hint sitting under
-              the date. Only renders when the shell passes one through. */}
+              the date. Tappable to open the full service briefing. */}
           {microcopy && (
-            <span style={{
-              fontSize: 10, fontWeight: 600, letterSpacing: .08,
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-mono)',
-              color:
-                ambientLevel === 'peak'  ? 'var(--clay-700)' :
-                ambientLevel === 'busy'  ? 'var(--clay-600)' :
-                ambientLevel === 'calm'  ? 'var(--olive-700)' :
-                                            'var(--ink-500)',
-              opacity: .82,
-              transition: 'color 400ms var(--ease-ios)',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              maxWidth: 360,
-            }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpenBriefing?.(); }}
+              style={{
+                background: 'transparent', border: 'none', padding: '1px 4px',
+                margin: 0, cursor: onOpenBriefing ? 'pointer' : 'default',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10, fontWeight: 600, letterSpacing: .08,
+                textTransform: 'uppercase',
+                color:
+                  ambientLevel === 'peak'  ? 'var(--clay-700)' :
+                  ambientLevel === 'busy'  ? 'var(--clay-600)' :
+                  ambientLevel === 'calm'  ? 'var(--olive-700)' :
+                                              'var(--ink-500)',
+                opacity: .82,
+                transition: 'color 400ms var(--ease-ios), opacity 160ms var(--ease-ios)',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                maxWidth: 380,
+                borderRadius: 6,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}
+              onPointerEnter={e => { e.currentTarget.style.opacity = '1'; }}
+              onPointerLeave={e => { e.currentTarget.style.opacity = '.82'; }}
+              aria-label="Veure briefing del servei"
+            >
               {microcopy}
-            </span>
+              {onOpenBriefing && (
+                <span aria-hidden style={{ fontSize: 9, opacity: .6 }}>→</span>
+              )}
+            </button>
           )}
         </div>
         <span style={{ color: 'var(--ink-500)', display: 'flex' }}>

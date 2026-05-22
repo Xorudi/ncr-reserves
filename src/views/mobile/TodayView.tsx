@@ -1475,6 +1475,20 @@ export default function MobileTodayView({
                         onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
                         plan={plan}
                         loyalty={lookupLoyalty(loyaltyLookup, r)}
+                        microContext={(() => {
+                          // Single most-relevant inline tag for this row.
+                          // Priority: large group > recurring patron > peak hour.
+                          // Skipped when the row already shows VIP/birthday tags
+                          // to avoid stacking labels in the name line.
+                          if (r.tags?.includes('vip')) return null;
+                          if (r.pax >= 8) return 'big-group';
+                          const lyl = lookupLoyalty(loyaltyLookup, r)?.stats;
+                          if (lyl && (lyl.level.id === 'gold' || lyl.level.id === 'platinum')
+                              && lyl.completed >= 5) return 'recurring';
+                          const sig = hourSignals.get(parseH(r.time));
+                          if (sig?.kind === 'concentration') return 'peak-hour';
+                          return null;
+                        })()}
                       />
                     </SwipeableRow>
                   );
@@ -1627,10 +1641,14 @@ const STATUS_TINT: Record<string, { paxBg: string; paxFg: string; paxRing: strin
   noshow:    { paxBg:'var(--rose-50)',       paxFg:'var(--rose-700)',       paxRing:'var(--rose-600)',       rowTint:'rgba(194,74,74,.04)'    },
 };
 
-function ResRow({ res: r, selected, onSel, plan, loyalty }: {
+function ResRow({ res: r, selected, onSel, plan, loyalty, microContext }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
   loyalty?: LoyaltyEntry;
+  /** Single ambient microcontext tag for this row. The caller picks the
+   *  most relevant one (large group > recurring > peak hour) so we never
+   *  stack multiple AI labels next to the customer name. */
+  microContext?: 'big-group' | 'recurring' | 'peak-hour' | null;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const effectiveStatus: ReservationStatus =
@@ -1716,6 +1734,32 @@ function ResRow({ res: r, selected, onSel, plan, loyalty }: {
             <span title="Part d'una reserva recurrent"
               style={{ fontSize:11, lineHeight:1, opacity:.7 }} aria-label="Recurrent">🔁</span>
           )}
+          {/* Ambient microcontext — single subtle pill chosen by the caller
+              (big-group > recurring > peak-hour). Paper background, faint
+              accent dot, no flooded colour. Skipped on VIPs to avoid pile-up. */}
+          {microContext && (() => {
+            const meta = {
+              'big-group':  { label: 'Grup gran',  dot: 'var(--clay-500)',       tint: 'rgba(176,118,54,.08)' },
+              'recurring':  { label: 'Habitual',   dot: 'var(--olive-500)',      tint: 'rgba(116,133,74,.08)' },
+              'peak-hour':  { label: 'Hora punta', dot: 'var(--terracotta-500)', tint: 'rgba(168,74,42,.08)'  },
+            }[microContext];
+            return (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '2px 8px 2px 6px', borderRadius: 999,
+                background: meta.tint,
+                fontSize: 10.5, fontWeight: 600, color: 'var(--ink-700)',
+                letterSpacing: .01,
+                boxShadow: '0 0 0 1px rgba(60,40,20,.05) inset',
+              }}>
+                <span aria-hidden style={{
+                  width: 5, height: 5, borderRadius: 999,
+                  background: meta.dot,
+                }} />
+                {meta.label}
+              </span>
+            );
+          })()}
         </div>
 
         {/* Meta line: time · phone · source */}

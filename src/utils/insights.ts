@@ -378,6 +378,50 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
     }
   }
 
+  // ── 7b. Large group without table assigned ───────────────────────────────
+  // Operational risk: an 8+ pax group that doesn't have any tableIds. Fires
+  // any day (not just today) since the planning is the operator's job ahead
+  // of time too. Always headline-eligible because the consequence is real.
+  if (!isPast) {
+    const noTableBig = active.filter(r => r.pax >= 8 && (!r.tableIds || r.tableIds.length === 0));
+    if (noTableBig.length > 0) {
+      const first = noTableBig[0];
+      out.push({
+        id: 'big-group-no-table', icon: '🧩',
+        text: noTableBig.length === 1
+          ? `Grup de ${first.pax} pax a les ${first.time} sense taula assignada`
+          : `${noTableBig.length} grups grans sense taula assignada`,
+        sub: 'Obre el plànol per assignar-los abans del servei',
+        tone: 'alert', category: 'operational',
+        priority: 75 + Math.min(15, noTableBig.length * 3),
+        headline: true,
+      });
+    }
+  }
+
+  // ── 7c. Pending reservations near the service window ─────────────────────
+  // Fires when there are ≥3 pending (unconfirmed) reservations whose time is
+  // within the next 4 hours. Today-only; surface as a soft warning + headline
+  // candidate when the count is meaningful.
+  if (isToday) {
+    const pendingSoon = active.filter(r =>
+      r.status === 'pending' && (() => {
+        const h = parseInt(r.time.split(':')[0], 10);
+        return h >= hourNow && h <= hourNow + 4;
+      })()
+    );
+    if (pendingSoon.length >= 3) {
+      out.push({
+        id: 'pending-near', icon: '☎️',
+        text: `${pendingSoon.length} reserves pendents de confirmar properes`,
+        sub: 'Bon moment per trucar abans del servei',
+        tone: 'warning', category: 'operational',
+        priority: 58 + Math.min(15, pendingSoon.length * 2),
+        headline: pendingSoon.length >= 5,
+      });
+    }
+  }
+
   // ── 8. Queue pressure ─────────────────────────────────────────────────────
   if (isToday) {
     const queueToday = waitlist.filter(w => {

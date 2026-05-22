@@ -209,18 +209,22 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
           {headline.icon}
         </div>
 
-        {/* Body — eyebrow + headline + sub */}
+        {/* Body — eyebrow + headline + sub. When the insight has a
+            specific action, the click runs it. When it doesn't, the
+            click opens the full service briefing instead — so the hero
+            is always tappable and there's a way to drill into context. */}
         <button
-          onClick={interactive ? () => runAction(headline.action) : undefined}
-          className={interactive ? 'press' : undefined}
-          disabled={!interactive}
+          onClick={interactive
+            ? () => runAction(headline.action)
+            : () => window.dispatchEvent(new CustomEvent('app:open-briefing'))}
+          className="press"
           style={{
             position: 'relative', zIndex: 1,
             flex: 1, minWidth: 0,
             background: 'transparent', border: 'none',
             padding: 0, margin: 0,
             textAlign: 'left',
-            cursor: interactive ? 'pointer' : 'default',
+            cursor: 'pointer',
             fontFamily: 'inherit',
             display: 'flex', flexDirection: 'column', gap: compact ? 3 : 4,
           }}
@@ -265,17 +269,20 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
             </div>
           )}
 
-          {interactive && (
-            <div style={{
-              marginTop: 2,
-              fontSize: 10, fontWeight: 700, letterSpacing: .08,
-              color: p.fg, textTransform: 'uppercase',
-              fontFamily: 'var(--font-mono)',
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}>
-              Veure detall <span aria-hidden style={{ fontSize: 11 }}>→</span>
-            </div>
-          )}
+          {/* "Veure detall →" — always shown; if the insight carries an
+              action the whole body click runs it (interactive=true), and
+              if it doesn't, the body becomes a tappable briefing trigger
+              via the onClick handler below. */}
+          <div style={{
+            marginTop: 2,
+            fontSize: 10, fontWeight: 700, letterSpacing: .08,
+            color: p.fg, textTransform: 'uppercase',
+            fontFamily: 'var(--font-mono)',
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}>
+            {interactive ? 'Veure detall' : 'Veure briefing'}
+            <span aria-hidden style={{ fontSize: 11 }}>→</span>
+          </div>
         </button>
 
         {/* Dismiss × */}
