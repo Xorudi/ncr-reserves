@@ -10,6 +10,7 @@
  *   onClose       — close without saving
  */
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { effectiveTable } from '@/utils/tableStatus';
@@ -84,15 +85,21 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
     selected.length === 1 ? 'Assignar taula' :
     `Assignar ${selected.length} taules`;
 
-  return (
+  // Portal to document.body so the modal escapes any parent stacking
+  // context (e.g. AnimatedSheet's panel, which creates a stacking context
+  // via its transform animation and would otherwise trap us at its own
+  // z-index regardless of how high we bump our own). z-index 300/301 sits
+  // safely above every AnimatedSheet (which top out at 120) and above the
+  // legacy z:200 we used to clash with.
+  return createPortal(
     <>
       {/* Backdrop */}
       <div onClick={onClose}
-        style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(0,0,0,.45)' }} />
+        style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,.45)' }} />
 
       {/* Sheet */}
       <div style={{
-        position:'fixed', bottom:0, left:0, right:0, zIndex:201,
+        position:'fixed', bottom:0, left:0, right:0, zIndex:301,
         background:'var(--paper)', borderRadius:'20px 20px 0 0',
         boxShadow:'0 -6px 32px rgba(0,0,0,.2)',
         maxHeight:'88vh', display:'flex', flexDirection:'column', overflow:'hidden',
@@ -240,6 +247,7 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
