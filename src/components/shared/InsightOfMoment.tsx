@@ -151,12 +151,19 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
 
   return (
     <>
+      {/* Outer wrapper provides the side-panel clearance (when capMain) and
+          the page gutter on smaller widths. The inner card centres itself
+          inside the safe zone via margin:auto + maxWidth. */}
+      <div style={{
+        paddingLeft: marginH, paddingRight: marginH,
+        paddingTop: compact ? 8 : 12, paddingBottom: 4,
+        width: '100%',
+      }}>
       <div
         className="insight-moment"
         style={{
           position: 'relative',
-          margin: `${compact ? 8 : 12}px auto 4px`,
-          marginLeft: marginH, marginRight: marginH,
+          margin: '0 auto',
           maxWidth,
           padding: `${padV}px ${padH}px`,
           borderRadius: 14,
@@ -299,6 +306,7 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
             .insight-moment > span[aria-hidden] { animation: none !important; }
           }
         `}</style>
+      </div>
       </div>
 
       <ReservationsListSheet
