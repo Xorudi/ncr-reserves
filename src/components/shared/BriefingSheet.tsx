@@ -28,6 +28,12 @@ interface Props {
   onNavigateTab?: (tab: 'reservations' | 'tables' | 'walkin' | 'clients' | 'more') => void;
   /** Optional ambient state override; otherwise computed inline. */
   ambientOverride?: AmbientState;
+  /** Host-provided action router. When set, the sheet delegates the
+   *  execution of suggested actions (assign-table, confirm-reservations,
+   *  scroll-to-hour…) to the shell, which can open BriefingActionSheet
+   *  with the affected reservations. The legacy in-sheet behaviour
+   *  (open waitlist, navigate tab) stays here as a fallback. */
+  onRunAction?: (action: SuggestedAction) => void;
 }
 
 const LEVEL_LABEL: Record<AmbientState['level'], string> = {
@@ -51,7 +57,7 @@ const TONE_ACCENT: Record<SuggestedAction['tone'], string> = {
   ink:        'var(--ink-300)',
 };
 
-export default function BriefingSheet({ open, onClose, forecast, onNavigateTab, ambientOverride }: Props) {
+export default function BriefingSheet({ open, onClose, forecast, onNavigateTab, ambientOverride, onRunAction }: Props) {
   const {
     selectedBusiness, selectedDate, reservations, customers, waitlist,
     setShowWaitlist,
@@ -70,40 +76,40 @@ export default function BriefingSheet({ open, onClose, forecast, onNavigateTab, 
   }), [selectedDate, selectedBusiness, reservations, customers, waitlist, forecast, ambient]);
 
   function runAction(a: SuggestedAction) {
+    // Multi-reservation actions are best handled by the host because they
+    // need to open a secondary sheet (BriefingActionSheet) with the
+    // affected reservations — something we can't do from inside this
+    // sheet without nesting AnimatedSheets.
+    if (onRunAction && (a.kind === 'assign-table' || a.kind === 'confirm-reservations')) {
+      onRunAction(a);
+      onClose();
+      return;
+    }
+    // Single-shot navigations are fine to run in place.
     switch (a.kind) {
-      case 'open-waitlist':
+      case 'attend-queue':
         setShowWaitlist(true);
         onClose();
-        break;
-      case 'open-weather':
+        return;
+      case 'review-weather':
         window.dispatchEvent(new CustomEvent('app:open-weather'));
         onClose();
-        break;
-      case 'open-floor-plan':
+        return;
+      case 'review-layout':
         onNavigateTab?.('tables');
         onClose();
-        break;
-      case 'show-pending':
-        // Jump to Reserves tab — the pendents card on OpsLeftPanel + the
-        // status badges on rows make the filter visually obvious. We
-        // don't apply a real filter here to avoid hidden state surprises.
+        return;
+      case 'scroll-to-hour':
+        window.dispatchEvent(new CustomEvent('app:scroll-to-hour', { detail: { hour: a.hour } }));
+        onClose();
+        return;
+      case 'assign-table':
+      case 'confirm-reservations':
+        // Fallback when no host handler — navigate to Reserves so the
+        // operator can still find the affected rows by hand.
         onNavigateTab?.('reservations');
         onClose();
-        break;
-      case 'show-large-groups':
-        window.dispatchEvent(new CustomEvent('app:show-large-groups'));
-        onClose();
-        break;
-      case 'show-vip':
-        window.dispatchEvent(new CustomEvent('app:show-vip'));
-        onClose();
-        break;
-      case 'show-hour':
-        if (a.meta && typeof a.meta.hour === 'number') {
-          window.dispatchEvent(new CustomEvent('app:scroll-to-hour', { detail: { hour: a.meta.hour } }));
-        }
-        onClose();
-        break;
+        return;
     }
   }
 

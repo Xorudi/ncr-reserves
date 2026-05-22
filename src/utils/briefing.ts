@@ -20,27 +20,62 @@ import type { WeatherForecast } from '@/lib/weather';
 import type { AmbientState } from '@/hooks/useAmbientState';
 import { rankCustomers, type CustomerStats } from '@/utils/loyalty';
 
-export type SuggestedActionKind =
-  | 'open-floor-plan'
-  | 'open-waitlist'
-  | 'open-weather'
-  | 'show-pending'
-  | 'show-large-groups'
-  | 'show-vip'
-  | 'show-hour';
+/**
+ * Typed action union. Each variant carries the data the executor needs
+ * to actually run the flow — not just a generic "kind" string that has
+ * to be re-derived downstream. The host (TouchShell) reads this and
+ * either opens a BriefingActionSheet (when there's a list of affected
+ * reservations) or runs the action directly (single-shot navigations).
+ */
+export type SuggestedAction =
+  | {
+      kind:           'assign-table';
+      id:             string;
+      label:          string;
+      tone:           'olive' | 'clay' | 'terracotta' | 'ink';
+      reservationIds: string[];
+      reason:         string;
+    }
+  | {
+      kind:           'confirm-reservations';
+      id:             string;
+      label:          string;
+      tone:           'olive' | 'clay' | 'terracotta' | 'ink';
+      reservationIds: string[];
+      reason:         string;
+    }
+  | {
+      kind:   'review-layout';
+      id:     string;
+      label:  string;
+      tone:   'olive' | 'clay' | 'terracotta' | 'ink';
+      reservationIds?: string[];
+      reason: string;
+    }
+  | {
+      kind:   'review-weather';
+      id:     string;
+      label:  string;
+      tone:   'olive' | 'clay' | 'terracotta' | 'ink';
+      reason: string;
+    }
+  | {
+      kind:   'attend-queue';
+      id:     string;
+      label:  string;
+      tone:   'olive' | 'clay' | 'terracotta' | 'ink';
+      reason: string;
+    }
+  | {
+      kind:   'scroll-to-hour';
+      id:     string;
+      label:  string;
+      tone:   'olive' | 'clay' | 'terracotta' | 'ink';
+      hour:   number;
+      reason: string;
+    };
 
-export interface SuggestedAction {
-  /** Stable id so React can key these without duplication concerns. */
-  id:    string;
-  /** Verb-led label in operator tone ("Revisar distribució de taules"). */
-  label: string;
-  /** What kind of UI surface this action should reach. */
-  kind:  SuggestedActionKind;
-  /** Extra payload used by the host (e.g. hour for show-hour). */
-  meta?: Record<string, string | number>;
-  /** Tone hint — drives the side accent on the action button. */
-  tone:  'olive' | 'clay' | 'terracotta' | 'ink';
-}
+export type SuggestedActionKind = SuggestedAction['kind'];
 
 export interface Risk {
   id:    string;
@@ -276,45 +311,94 @@ export function generateBriefing(opts: GenerateOpts): Briefing {
   const sevOrder = { alert: 0, warning: 1, neutral: 2 } as const;
   risks.sort((a, b) => sevOrder[a.tone] - sevOrder[b.tone]);
 
-  // ── Suggested actions — max 4, ordered by usefulness ─────────────────
+  // ── Suggested actions — typed, executable, max 3 ────────────────────
+  // Rules:
+  //   - Every action carries the data needed to run its flow
+  //     (reservationIds / hour) — the host doesn't re-derive.
+  //   - "assign-table" only emits when there are reservations to act on.
+  //     If there are none, we fall back to the milder "review-layout"
+  //     which doesn't claim a specific list.
+  //   - Actions are sorted by urgency, capped at 3 in pickBriefing later.
   const actions: SuggestedAction[] = [];
-  if (bigGroupsNoTable.length > 0 || bigGroups.length > 0) {
+
+  if (bigGroupsNoTable.length > 0) {
     actions.push({
-      id: 'go-floor',
-      label: bigGroupsNoTable.length > 0 ? 'Assignar taula a grups grans' : 'Revisar distribució de taules',
-      kind: 'open-floor-plan',
-      tone: bigGroupsNoTable.length > 0 ? 'terracotta' : 'clay',
+      kind: 'assign-table',
+      id:   'assign-table',
+      label: bigGroupsNoTable.length === 1
+        ? 'Assignar taula al grup gran'
+        : `Assignar taula a ${bigGroupsNoTable.length} grups grans`,
+      tone: 'terracotta',
+      reservationIds: bigGroupsNoTable.map(r => r.id),
+      reason: 'Grups grans pendents de tenir taula assignada',
+    });
+  } else if (bigGroups.length >= 2) {
+    actions.push({
+      kind: 'review-layout',
+      id:   'review-layout',
+      label: 'Revisar distribució de taules',
+      tone: 'clay',
+      reservationIds: bigGroups.map(r => r.id),
+      reason: 'Hi ha diversos grups grans aquest dia',
     });
   }
+
   if (pendingNearService.length >= 2) {
     actions.push({
-      id: 'show-pending',
-      label: `Confirmar ${pendingNearService.length} reserves pendents`,
-      kind: 'show-pending',
+      kind: 'confirm-reservations',
+      id:   'confirm-reservations',
+      label: pendingNearService.length === 1
+        ? 'Confirmar reserva pendent'
+        : `Confirmar ${pendingNearService.length} reserves pendents`,
       tone: 'clay',
+      reservationIds: pendingNearService.map(r => r.id),
+      reason: isToday
+        ? 'Reserves pendents abans del servei'
+        : 'Reserves pendents de confirmar',
     });
   }
+
   if (queueActive.length >= 1) {
     actions.push({
-      id: 'open-queue',
-      label: queueActive.length === 1 ? 'Veure cua d\'espera' : `Atendre cua (${queueActive.length})`,
-      kind: 'open-waitlist',
+      kind: 'attend-queue',
+      id:   'attend-queue',
+      label: queueActive.length === 1
+        ? 'Veure cua d\'espera'
+        : `Atendre cua (${queueActive.length})`,
       tone: queueActive.length >= 3 ? 'terracotta' : 'clay',
+      reason: 'Grups esperant a la sala',
     });
   }
+
   if (rainStartHour !== null) {
     actions.push({
-      id: 'open-weather',
-      label: 'Veure previsió i preparar pla interior',
-      kind: 'open-weather',
+      kind: 'review-weather',
+      id:   'review-weather',
+      label: 'Preparar pla interior',
       tone: 'clay',
+      reason: 'Risc de pluja durant el servei',
     });
   }
-  // VIP / large-group listings used to live here as actions, but they
-  // duplicated information already in the summary and didn't route to a
-  // real filtered view — they read as decorative chips. Dropped per the
-  // "non-intrusive recommendations" rule: if an action can't execute
-  // cleanly, it shouldn't be a button.
+
+  // Scroll-to-hour: only when the day has a concentration peak that's
+  // still ahead of "now". This is a real navigation, not a decorative
+  // chip — it scrolls the timeline so the operator lands on the busy slot.
+  if (isToday) {
+    const concentrationAhead = [...ambient.hourSignals.entries()]
+      .filter(([h, sig]) => sig.kind === 'concentration' && h >= hourNow)
+      .sort((a, b) => a[0] - b[0])[0];
+    if (concentrationAhead && actions.length < 3) {
+      const [h] = concentrationAhead;
+      actions.push({
+        kind: 'scroll-to-hour',
+        id:   `jump-${h}`,
+        label: `Anar a la franja de les ${String(h).padStart(2, '0')}:00`,
+        tone: 'ink',
+        hour: h,
+        reason: 'Franja amb més concentració de reserves',
+      });
+    }
+  }
   // Scroll-to-hour as a fallback action was dropped — it felt generic and
   // duplicated the timeline dot signal. If the operator wants that hour
   // they already see the row in front of them.

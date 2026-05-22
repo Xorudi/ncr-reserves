@@ -27,6 +27,8 @@ import WaitlistSheet from '@/components/shared/WaitlistSheet';
 import WeatherWidget from '@/components/shared/WeatherWidget';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 import BriefingSheet from '@/components/shared/BriefingSheet';
+import BriefingActionSheet, { type ResolvableAction } from '@/components/shared/BriefingActionSheet';
+import type { SuggestedAction } from '@/utils/briefing';
 import { NotesSheet } from '@/views/touch/NotesSystem';
 import {
   fetchForecast, DEFAULT_COORDS,
@@ -87,6 +89,7 @@ export default function TouchShell() {
   const [showNotesSheet, setShowNotesSheet] = useState(false);
   const [showSearch,     setShowSearch]     = useState(false);
   const [showBriefing,   setShowBriefing]   = useState(false);
+  const [briefingAction, setBriefingAction] = useState<ResolvableAction | null>(null);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
   // Mobile header collapses when the operator scrolls into the list. The
   // event is dispatched by MobileTodayView's outer scrollable. We only
@@ -184,6 +187,26 @@ export default function TouchShell() {
     window.addEventListener('app:open-briefing', onOpen);
     return () => window.removeEventListener('app:open-briefing', onOpen);
   }, []);
+
+  // ── Briefing action router — receives the typed action from the
+  //    BriefingSheet and either opens BriefingActionSheet (multi-row
+  //    flows) or runs the single-shot navigation. Multi-row actions
+  //    keep their reservationIds so the secondary sheet can pull the
+  //    affected rows directly from the store without re-deriving them. ──
+  function handleBriefingAction(a: SuggestedAction) {
+    if (a.kind === 'assign-table' || a.kind === 'confirm-reservations') {
+      if (a.reservationIds.length === 0) return;  // smart fallback: don't open empty sheet
+      setBriefingAction({
+        kind: a.kind,
+        label: a.label,
+        reservationIds: a.reservationIds,
+        reason: a.reason,
+      });
+    }
+    // Single-shot actions are handled inside the BriefingSheet itself
+    // (waitlist, weather, floor plan tab, scroll-to-hour). We only
+    // need to handle the multi-row routing here.
+  }
   // Large screen (≥1280px) — typical restaurant counter-top monitor or
   // kiosk. Bumps rail width, icon/label sizes and tap targets so the
   // operator can hit them reliably while standing.
@@ -827,6 +850,17 @@ export default function TouchShell() {
           forecast={shellForecast}
           ambientOverride={ambient}
           onNavigateTab={t => setTab(t)}
+          onRunAction={handleBriefingAction}
+        />
+        <BriefingActionSheet
+          open={briefingAction !== null}
+          onClose={() => setBriefingAction(null)}
+          action={briefingAction}
+          onOpenFloorPlan={() => setTab('tables')}
+          onOpenReservationDetail={r => {
+            setSelectedReservation(r);
+            setTab('reservations');
+          }}
         />
         <Toaster />
       </div>
@@ -1115,6 +1149,17 @@ export default function TouchShell() {
         forecast={shellForecast}
         ambientOverride={ambient}
         onNavigateTab={t => setTab(t)}
+        onRunAction={handleBriefingAction}
+      />
+      <BriefingActionSheet
+        open={briefingAction !== null}
+        onClose={() => setBriefingAction(null)}
+        action={briefingAction}
+        onOpenFloorPlan={() => setTab('tables')}
+        onOpenReservationDetail={r => {
+          setSelectedReservation(r);
+          setTab('reservations');
+        }}
       />
       <Toaster />
     </div>
