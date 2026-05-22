@@ -32,6 +32,9 @@ interface Props {
   /** Optional external dismiss tick to force re-derive when secondary
    *  strip dismisses a chip (keeps both in sync). */
   dismissTick?: number;
+  /** True when the dashboard is rendering floating side panels — adds
+   *  horizontal inset so the hero doesn't slide under them. */
+  sidePanelInset?: boolean;
 }
 
 const CATEGORY_LABEL: Record<InsightCategory, string> = {
@@ -80,7 +83,7 @@ function tonePalette(tone: InsightTone) {
   }
 }
 
-export default function InsightOfMoment({ compact = false, dismissTick = 0 }: Props) {
+export default function InsightOfMoment({ compact = false, dismissTick = 0, sidePanelInset = false }: Props) {
   const {
     selectedBusiness, selectedDate, reservations, customers, waitlist,
     setShowWaitlist,
@@ -136,6 +139,10 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0 }: Pr
   const interactive = !!headline.action;
   const padV = compact ? 12 : 16;
   const padH = compact ? 14 : 20;
+  // Horizontal margin — when the side panels are docked at left:18/right:18
+  // with width:192, we need ~220 px clearance on each side. Otherwise we
+  // use the default 22 px gutter.
+  const marginH = sidePanelInset ? 226 : (compact ? 14 : 22);
 
   return (
     <>
@@ -143,7 +150,7 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0 }: Pr
         className="insight-moment"
         style={{
           position: 'relative',
-          margin: compact ? '8px 14px 4px' : '12px 22px 4px',
+          margin: `${compact ? 8 : 12}px ${marginH}px 4px`,
           padding: `${padV}px ${padH}px`,
           borderRadius: 16,
           background: `

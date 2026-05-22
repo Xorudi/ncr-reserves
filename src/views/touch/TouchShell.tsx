@@ -700,8 +700,11 @@ export default function TouchShell() {
 
           {/* Insight del moment — premium hero card with the single most
               important contextual signal for the operator right now. Quiet
-              by design: renders null when no insight crosses the threshold. */}
-          <InsightOfMoment />
+              by design: renders null when no insight crosses the threshold.
+              When the side panels are on (capMain), reserve ~220 px on each
+              edge so the card doesn't slide under the floating LiveSidePanel
+              and OpsLeftPanel widgets. */}
+          <InsightOfMoment sidePanelInset={capMain} />
 
           {screenContent}
 
