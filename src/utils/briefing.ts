@@ -222,11 +222,10 @@ export function generateBriefing(opts: GenerateOpts): Briefing {
     }
   }
 
-  // VIP/recurring extra mention only if no other client line landed AND it adds info
-  if (vipCount >= 1 && summary.length < 4) {
-    summary.push(vipCount === 1
-      ? 'Un client VIP avui · reserva preferent.'
-      : `${vipCount} clients VIP avui · reserves preferents.`);
+  // VIP gets an extra sentence ONLY when the count is meaningful and the
+  // briefing is still short — otherwise it reads as a tacked-on insight.
+  if (vipCount >= 2 && summary.length < 3) {
+    summary.push(`${vipCount} clients VIP avui · reserves preferents.`);
   }
 
   // ── Risks — only material ones, sorted by severity ───────────────────
@@ -311,34 +310,24 @@ export function generateBriefing(opts: GenerateOpts): Briefing {
       tone: 'clay',
     });
   }
-  if (vipCount >= 1) {
-    actions.push({
-      id: 'show-vip',
-      label: vipCount === 1 ? 'Veure client VIP del dia' : `Veure ${vipCount} clients VIP`,
-      kind: 'show-vip',
-      tone: 'olive',
-    });
-  }
-  // If we still have slack, surface the concentration hour as a jump target.
-  if (actions.length < 4 && ambient.hourSignals.size > 0) {
-    const concentration = [...ambient.hourSignals.entries()]
-      .find(([, sig]) => sig.kind === 'concentration');
-    if (concentration) {
-      const [h] = concentration;
-      actions.push({
-        id: `jump-${h}`,
-        label: `Anar a la franja de les ${String(h).padStart(2, '0')}:00`,
-        kind: 'show-hour',
-        meta: { hour: h },
-        tone: 'ink',
-      });
-    }
-  }
+  // VIP / large-group listings used to live here as actions, but they
+  // duplicated information already in the summary and didn't route to a
+  // real filtered view — they read as decorative chips. Dropped per the
+  // "non-intrusive recommendations" rule: if an action can't execute
+  // cleanly, it shouldn't be a button.
+  // Scroll-to-hour as a fallback action was dropped — it felt generic and
+  // duplicated the timeline dot signal. If the operator wants that hour
+  // they already see the row in front of them.
 
   return {
-    summary: summary.slice(0, 4),
+    // Cap at 3 sentences. A briefing should read like a short paragraph
+    // from a head of room, not a report. Anything beyond 3 is almost
+    // always already visible in another surface (chips, side panel).
+    summary: summary.slice(0, 3),
     risks,
-    actions: actions.slice(0, 4),
+    // Cap at 3 actions. Each should be a concrete next move — more than
+    // three turns the sheet into a checklist.
+    actions: actions.slice(0, 3),
     level: ambient.level,
   };
 }

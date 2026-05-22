@@ -112,10 +112,11 @@ export default function BriefingSheet({ open, onClose, forecast, onNavigateTab, 
   return (
     <AnimatedSheet open={open} onClose={onClose} desktopMaxWidth={640}>
       <div style={{
-        padding: '20px 22px 24px',
-        display: 'flex', flexDirection: 'column', gap: 18,
+        padding: '18px 20px 22px',
+        display: 'flex', flexDirection: 'column', gap: 16,
         // Keep the sheet on paper — same surface as the rest of the
-        // ambient-aware UI.
+        // ambient-aware UI. Tight padding so the briefing reads as a
+        // calm note from a head of room, not a report.
         background: 'var(--surface-elevated)',
         color: 'var(--ink-900)',
       }}>

@@ -1476,17 +1476,25 @@ export default function MobileTodayView({
                         plan={plan}
                         loyalty={lookupLoyalty(loyaltyLookup, r)}
                         microContext={(() => {
-                          // Single most-relevant inline tag for this row.
-                          // Priority: large group > recurring patron > peak hour.
-                          // Skipped when the row already shows VIP/birthday tags
-                          // to avoid stacking labels in the name line.
+                          // Single most-relevant inline tag per row.
+                          // Priority (head-of-room logic):
+                          //   1. Big group WITHOUT a table assigned → most
+                          //      actionable; shown as "Sense taula".
+                          //   2. Big group (with table) → "Grup gran".
+                          //   3. Peak hour concentration → "Hora punta".
+                          //   4. Recurring patron → "Habitual".
+                          // VIP tag already paints its own pill — skip the
+                          // ambient label to avoid stacking two AI markers
+                          // on the same name line.
                           if (r.tags?.includes('vip')) return null;
-                          if (r.pax >= 8) return 'big-group';
+                          const isBig = r.pax >= 8;
+                          if (isBig && (!r.tableIds || r.tableIds.length === 0)) return 'no-table';
+                          if (isBig) return 'big-group';
+                          const sig = hourSignals.get(parseH(r.time));
+                          if (sig?.kind === 'concentration') return 'peak-hour';
                           const lyl = lookupLoyalty(loyaltyLookup, r)?.stats;
                           if (lyl && (lyl.level.id === 'gold' || lyl.level.id === 'platinum')
                               && lyl.completed >= 5) return 'recurring';
-                          const sig = hourSignals.get(parseH(r.time));
-                          if (sig?.kind === 'concentration') return 'peak-hour';
                           return null;
                         })()}
                       />
@@ -1645,10 +1653,10 @@ function ResRow({ res: r, selected, onSel, plan, loyalty, microContext }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
   loyalty?: LoyaltyEntry;
-  /** Single ambient microcontext tag for this row. The caller picks the
-   *  most relevant one (large group > recurring > peak hour) so we never
-   *  stack multiple AI labels next to the customer name. */
-  microContext?: 'big-group' | 'recurring' | 'peak-hour' | null;
+  /** Single ambient microcontext tag for this row. Picked by the caller
+   *  using head-of-room priority: no-table > big-group > peak-hour >
+   *  recurring. Never more than one ambient label per row. */
+  microContext?: 'no-table' | 'big-group' | 'peak-hour' | 'recurring' | null;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const effectiveStatus: ReservationStatus =
@@ -1739,9 +1747,10 @@ function ResRow({ res: r, selected, onSel, plan, loyalty, microContext }: {
               accent dot, no flooded colour. Skipped on VIPs to avoid pile-up. */}
           {microContext && (() => {
             const meta = {
-              'big-group':  { label: 'Grup gran',  dot: 'var(--clay-500)',       tint: 'rgba(176,118,54,.08)' },
-              'recurring':  { label: 'Habitual',   dot: 'var(--olive-500)',      tint: 'rgba(116,133,74,.08)' },
-              'peak-hour':  { label: 'Hora punta', dot: 'var(--terracotta-500)', tint: 'rgba(168,74,42,.08)'  },
+              'no-table':  { label: 'Sense taula', dot: 'var(--terracotta-600)', tint: 'rgba(168,74,42,.10)' },
+              'big-group': { label: 'Grup gran',   dot: 'var(--clay-500)',       tint: 'rgba(176,118,54,.08)' },
+              'peak-hour': { label: 'Hora punta',  dot: 'var(--clay-600)',       tint: 'rgba(176,118,54,.06)' },
+              'recurring': { label: 'Habitual',    dot: 'var(--olive-500)',      tint: 'rgba(116,133,74,.08)' },
             }[microContext];
             return (
               <span style={{
