@@ -1310,73 +1310,77 @@ function TabletTopBar({
         <Icon d={I.chevL} size={18} stroke={2} />
       </button>
 
-      {/* Date label — opens the custom DatePickerPopover anchored below.
-          Pointer events drive the hover/press tint so the highlight ALSO
-          fires on desktop touchscreens (they emit pointerenter/leave but
-          no mouseenter/leave from a finger tap). */}
-      <label
-        ref={labelRef}
-        style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          cursor: 'pointer', position: 'relative',
-          padding: '6px 14px', borderRadius: 10,
-          transition: 'background 160ms var(--ease-ios)',
-        }}
-        onClick={() => setPickerOpen(o => !o)}
-        onPointerEnter={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
-        onPointerLeave={e => (e.currentTarget.style.background = 'transparent')}
-        onPointerDown={e => (e.currentTarget.style.background = 'rgba(60,40,20,.08)')}
-        onPointerUp={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
-      >
-        {isToday && <LiveServicePill />}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          gap: 1, minWidth: 0,
-        }}>
+      {/* Date column — the date label opens the picker; the microcopy
+          below it is a separate sibling button that opens the briefing.
+          Wrapping them as siblings (not nesting the briefing button
+          inside the date label) is what prevents a single tap from
+          opening both surfaces. */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', gap: 1, minWidth: 0,
+      }}>
+        <label
+          ref={labelRef}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            cursor: 'pointer', position: 'relative',
+            padding: '6px 14px', borderRadius: 10,
+            transition: 'background 160ms var(--ease-ios)',
+            maxWidth: '100%',
+          }}
+          onClick={() => setPickerOpen(o => !o)}
+          onPointerEnter={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
+          onPointerLeave={e => (e.currentTarget.style.background = 'transparent')}
+          onPointerDown={e => (e.currentTarget.style.background = 'rgba(60,40,20,.08)')}
+          onPointerUp={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
+        >
+          {isToday && <LiveServicePill />}
           <span key={selIso} className="date-label-in" style={{
             fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
             color: 'var(--ink-900)', letterSpacing: -.005, textTransform: 'capitalize',
           }}>
             {dayLabel}
           </span>
-          {/* Ambient microcopy — barely-visible operator hint sitting under
-              the date. Tappable to open the full service briefing. */}
-          {microcopy && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onOpenBriefing?.(); }}
-              style={{
-                background: 'transparent', border: 'none', padding: '1px 4px',
-                margin: 0, cursor: onOpenBriefing ? 'pointer' : 'default',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10, fontWeight: 600, letterSpacing: .08,
-                textTransform: 'uppercase',
-                color:
-                  ambientLevel === 'peak'  ? 'var(--clay-700)' :
-                  ambientLevel === 'busy'  ? 'var(--clay-600)' :
-                  ambientLevel === 'calm'  ? 'var(--olive-700)' :
-                                              'var(--ink-500)',
-                opacity: .82,
-                transition: 'color 400ms var(--ease-ios), opacity 160ms var(--ease-ios)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                maxWidth: 380,
-                borderRadius: 6,
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-              }}
-              onPointerEnter={e => { e.currentTarget.style.opacity = '1'; }}
-              onPointerLeave={e => { e.currentTarget.style.opacity = '.82'; }}
-              aria-label="Veure briefing del servei"
-            >
-              {microcopy}
-              {onOpenBriefing && (
-                <span aria-hidden style={{ fontSize: 9, opacity: .6 }}>→</span>
-              )}
-            </button>
-          )}
-        </div>
-        <span style={{ color: 'var(--ink-500)', display: 'flex' }}>
-          <Icon d={I.calendar} size={16} stroke={1.7} />
-        </span>
-      </label>
+          <span style={{ color: 'var(--ink-500)', display: 'flex' }}>
+            <Icon d={I.calendar} size={16} stroke={1.7} />
+          </span>
+        </label>
+
+        {/* Ambient microcopy — separate sibling so a tap only opens the
+            briefing, never the date picker. */}
+        {microcopy && (
+          <button
+            onClick={() => onOpenBriefing?.()}
+            style={{
+              background: 'transparent', border: 'none',
+              padding: '2px 8px', margin: 0,
+              cursor: onOpenBriefing ? 'pointer' : 'default',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10, fontWeight: 600, letterSpacing: .08,
+              textTransform: 'uppercase',
+              color:
+                ambientLevel === 'peak'  ? 'var(--clay-700)' :
+                ambientLevel === 'busy'  ? 'var(--clay-600)' :
+                ambientLevel === 'calm'  ? 'var(--olive-700)' :
+                                            'var(--ink-500)',
+              opacity: .82,
+              transition: 'color 400ms var(--ease-ios), opacity 160ms var(--ease-ios), background 160ms var(--ease-ios)',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              maxWidth: 380,
+              borderRadius: 6,
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}
+            onPointerEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(60,40,20,.04)'; }}
+            onPointerLeave={e => { e.currentTarget.style.opacity = '.82'; e.currentTarget.style.background = 'transparent'; }}
+            aria-label="Veure briefing del servei"
+          >
+            {microcopy}
+            {onOpenBriefing && (
+              <span aria-hidden style={{ fontSize: 9, opacity: .6 }}>→</span>
+            )}
+          </button>
+        )}
+      </div>
 
       <DatePickerPopover
         open={pickerOpen}
