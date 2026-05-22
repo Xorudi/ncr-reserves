@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, memo } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { initials, avIdx, isoDate, BUSINESSES, getZoneIcon, getZoneColor } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
@@ -1549,7 +1549,7 @@ export default function MobileTodayView({
 //   - "zone"  → a real zone (terracotta accent when active)
 //   - "empty" → the "Sense taula" bucket (clay accent — a warning tone for
 //               reservations that haven't been assigned a table yet)
-function ZoneChip({
+const ZoneChip = memo(function ZoneChip({
   label, count, active, onClick, tone,
 }: {
   label: string;
@@ -1586,9 +1586,9 @@ function ZoneChip({
       }}>{count}</span>
     </button>
   );
-}
+});
 
-function ResStatePill({ state }: { state: ReservationStatus }) {
+const ResStatePill = memo(function ResStatePill({ state }: { state: ReservationStatus }) {
   // Each state gets a bg + fg + a "dot" color for the leading indicator.
   // The dot is the same hue as the foreground but at a more saturated mid
   // tone, mirroring how Linear/Stripe render status chips.
@@ -1636,7 +1636,7 @@ function ResStatePill({ state }: { state: ReservationStatus }) {
       {s.label}
     </span>
   );
-}
+});
 
 // ─── Reservation row (new design) ─────────────────────────────────────────────
 // Colors per estat — il·luminen la fila amb un toc subtil del color de l'estat
@@ -1649,7 +1649,7 @@ const STATUS_TINT: Record<string, { paxBg: string; paxFg: string; paxRing: strin
   noshow:    { paxBg:'var(--rose-50)',       paxFg:'var(--rose-700)',       paxRing:'var(--rose-600)',       rowTint:'rgba(194,74,74,.04)'    },
 };
 
-function ResRow({ res: r, selected, onSel, plan, loyalty, microContext }: {
+const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, microContext }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
   loyalty?: LoyaltyEntry;
@@ -1883,7 +1883,7 @@ function ResRow({ res: r, selected, onSel, plan, loyalty, microContext }: {
       </div>
     </button>
   );
-}
+});
 
 // ─── Date picker bottom sheet ─────────────────────────────────────────────────
 function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizId }: {

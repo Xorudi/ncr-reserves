@@ -127,19 +127,27 @@ export default function TouchShell() {
   // change, route swap…) because the inline arrow functions were
   // creating new prop references each pass.
 
-  const {
-    selectedBusiness, setSelectedBusiness,
-    employees, employeeRoles,
-    activeEmployeeId, setActiveEmployee,
-    selectedDate, setSelectedDate,
-    reservations,
-    closeOutPastDays,
-    showWaitlist, setShowWaitlist,
-    setSelectedReservation,
-    waitlist,
-    shiftNotes,
-    floorPlans,
-  } = useAppStore();
+  // ── Granular Zustand selectors ───────────────────────────────────────────
+  // Each subscription targets a single field so TouchShell only re-renders
+  // when THAT field changes. Wider destructure used to make every panel,
+  // toolbar and side-card re-render whenever any unrelated store slice
+  // (e.g. a different business's reservations) was mutated.
+  const selectedBusiness    = useAppStore(s => s.selectedBusiness);
+  const setSelectedBusiness = useAppStore(s => s.setSelectedBusiness);
+  const employees           = useAppStore(s => s.employees);
+  const employeeRoles       = useAppStore(s => s.employeeRoles);
+  const activeEmployeeId    = useAppStore(s => s.activeEmployeeId);
+  const setActiveEmployee   = useAppStore(s => s.setActiveEmployee);
+  const selectedDate        = useAppStore(s => s.selectedDate);
+  const setSelectedDate     = useAppStore(s => s.setSelectedDate);
+  const reservations        = useAppStore(s => s.reservations);
+  const closeOutPastDays    = useAppStore(s => s.closeOutPastDays);
+  const showWaitlist        = useAppStore(s => s.showWaitlist);
+  const setShowWaitlist     = useAppStore(s => s.setShowWaitlist);
+  const setSelectedReservation = useAppStore(s => s.setSelectedReservation);
+  const waitlist            = useAppStore(s => s.waitlist);
+  const shiftNotes          = useAppStore(s => s.shiftNotes);
+  const floorPlans          = useAppStore(s => s.floorPlans);
 
   // ── Stable callbacks for the side panels ─────────────────────────────────
   // Zustand setters are stable references already, so the dep arrays
@@ -480,23 +488,32 @@ export default function TouchShell() {
   );
 
   // ── Shared: animated picker sheets ────────────────────────────────────────
+  // Lazy-mount: BizPickerSheet and UserPickerSheet were always rendered,
+  // running their useState/useEffect/sub-mounts even when invisible.
+  // Each is now gated on its open flag so the sub-tree (and its data
+  // fetches / list renders) only enters the React tree when the operator
+  // actually opens the picker.
   const pickers = (
     <>
-      <BizPickerSheet
-        open={showBizPicker}
-        current={selectedBusiness}
-        onSelect={id => { setSelectedBusiness(id); setShowBizPicker(false); }}
-        onClose={() => setShowBizPicker(false)}
-      />
-      <UserPickerSheet
-        open={showUserPicker}
-        bizId={selectedBusiness}
-        employees={employees}
-        employeeRoles={employeeRoles}
-        activeEmployeeId={activeEmployeeId}
-        onSelect={id => { setActiveEmployee(id); setShowUserPicker(false); }}
-        onClose={() => setShowUserPicker(false)}
-      />
+      {showBizPicker && (
+        <BizPickerSheet
+          open={showBizPicker}
+          current={selectedBusiness}
+          onSelect={id => { setSelectedBusiness(id); setShowBizPicker(false); }}
+          onClose={() => setShowBizPicker(false)}
+        />
+      )}
+      {showUserPicker && (
+        <UserPickerSheet
+          open={showUserPicker}
+          bizId={selectedBusiness}
+          employees={employees}
+          employeeRoles={employeeRoles}
+          activeEmployeeId={activeEmployeeId}
+          onSelect={id => { setActiveEmployee(id); setShowUserPicker(false); }}
+          onClose={() => setShowUserPicker(false)}
+        />
+      )}
     </>
   );
 
@@ -845,46 +862,57 @@ export default function TouchShell() {
         </main>
 
         {pickers}
-        <NotesSheet
-          open={showNotesSheet}
-          bizId={selectedBusiness}
-          date={selectedDate}
-          authorName={activeEmp?.fullName ?? ''}
-          onClose={() => setShowNotesSheet(false)}
-        />
-        <SearchSheet
-          open={showSearch}
-          onClose={() => setShowSearch(false)}
-          onNavigate={t => setTab(t)}
-        />
-        <WaitlistSheet
-          open={showWaitlist}
-          onClose={() => setShowWaitlist(false)}
-          onSeated={(res) => {
-            // Jump to Reserves with the newly-seated walk-in selected so the
-            // operator can immediately assign a table from the detail sheet.
-            setSelectedDate(new Date(res.date + 'T00:00:00'));
-            setSelectedReservation(res);
-            setTab('reservations');
-          }}
-        />
-        <BriefingSheet
-          open={showBriefing}
-          onClose={() => setShowBriefing(false)}
-          forecast={shellForecast}
-          ambientOverride={ambient}
-          onNavigateTab={t => setTab(t)}
-          onRunAction={handleBriefingAction}
-        />
-        <BriefingActionSheet
-          open={briefingAction !== null}
-          onClose={() => setBriefingAction(null)}
-          action={briefingAction}
-          onOpenReservationDetail={r => {
-            setSelectedReservation(r);
-            setTab('reservations');
-          }}
-        />
+        {/* Lazy mount: each sheet now only enters the React tree when
+            its open flag is true. Closed sheets no longer run their
+            internal hooks / data derivations / portal mounts. */}
+        {showNotesSheet && (
+          <NotesSheet
+            open={showNotesSheet}
+            bizId={selectedBusiness}
+            date={selectedDate}
+            authorName={activeEmp?.fullName ?? ''}
+            onClose={() => setShowNotesSheet(false)}
+          />
+        )}
+        {showSearch && (
+          <SearchSheet
+            open={showSearch}
+            onClose={() => setShowSearch(false)}
+            onNavigate={t => setTab(t)}
+          />
+        )}
+        {showWaitlist && (
+          <WaitlistSheet
+            open={showWaitlist}
+            onClose={() => setShowWaitlist(false)}
+            onSeated={(res) => {
+              setSelectedDate(new Date(res.date + 'T00:00:00'));
+              setSelectedReservation(res);
+              setTab('reservations');
+            }}
+          />
+        )}
+        {showBriefing && (
+          <BriefingSheet
+            open={showBriefing}
+            onClose={() => setShowBriefing(false)}
+            forecast={shellForecast}
+            ambientOverride={ambient}
+            onNavigateTab={t => setTab(t)}
+            onRunAction={handleBriefingAction}
+          />
+        )}
+        {briefingAction !== null && (
+          <BriefingActionSheet
+            open={briefingAction !== null}
+            onClose={() => setBriefingAction(null)}
+            action={briefingAction}
+            onOpenReservationDetail={r => {
+              setSelectedReservation(r);
+              setTab('reservations');
+            }}
+          />
+        )}
         <Toaster />
       </div>
     );
@@ -1145,44 +1173,55 @@ export default function TouchShell() {
       `}</style>
 
       {pickers}
-      <NotesSheet
-        open={showNotesSheet}
-        bizId={selectedBusiness}
-        date={selectedDate}
-        authorName={activeEmp?.fullName ?? ''}
-        onClose={() => setShowNotesSheet(false)}
-      />
-      <SearchSheet
-        open={showSearch}
-        onClose={() => setShowSearch(false)}
-        onNavigate={t => setTab(t)}
-      />
-      <WaitlistSheet
-        open={showWaitlist}
-        onClose={() => setShowWaitlist(false)}
-        onSeated={(res) => {
-          setSelectedDate(new Date(res.date + 'T00:00:00'));
-          setSelectedReservation(res);
-          setTab('reservations');
-        }}
-      />
-      <BriefingSheet
-        open={showBriefing}
-        onClose={() => setShowBriefing(false)}
-        forecast={shellForecast}
-        ambientOverride={ambient}
-        onNavigateTab={t => setTab(t)}
-        onRunAction={handleBriefingAction}
-      />
-      <BriefingActionSheet
-        open={briefingAction !== null}
-        onClose={() => setBriefingAction(null)}
-        action={briefingAction}
-        onOpenReservationDetail={r => {
-          setSelectedReservation(r);
-          setTab('reservations');
-        }}
-      />
+      {/* Lazy mount — same pattern as the tablet branch above. */}
+      {showNotesSheet && (
+        <NotesSheet
+          open={showNotesSheet}
+          bizId={selectedBusiness}
+          date={selectedDate}
+          authorName={activeEmp?.fullName ?? ''}
+          onClose={() => setShowNotesSheet(false)}
+        />
+      )}
+      {showSearch && (
+        <SearchSheet
+          open={showSearch}
+          onClose={() => setShowSearch(false)}
+          onNavigate={t => setTab(t)}
+        />
+      )}
+      {showWaitlist && (
+        <WaitlistSheet
+          open={showWaitlist}
+          onClose={() => setShowWaitlist(false)}
+          onSeated={(res) => {
+            setSelectedDate(new Date(res.date + 'T00:00:00'));
+            setSelectedReservation(res);
+            setTab('reservations');
+          }}
+        />
+      )}
+      {showBriefing && (
+        <BriefingSheet
+          open={showBriefing}
+          onClose={() => setShowBriefing(false)}
+          forecast={shellForecast}
+          ambientOverride={ambient}
+          onNavigateTab={t => setTab(t)}
+          onRunAction={handleBriefingAction}
+        />
+      )}
+      {briefingAction !== null && (
+        <BriefingActionSheet
+          open={briefingAction !== null}
+          onClose={() => setBriefingAction(null)}
+          action={briefingAction}
+          onOpenReservationDetail={r => {
+            setSelectedReservation(r);
+            setTab('reservations');
+          }}
+        />
+      )}
       <Toaster />
     </div>
   );

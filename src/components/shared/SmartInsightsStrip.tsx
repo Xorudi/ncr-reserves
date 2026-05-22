@@ -7,7 +7,7 @@
  * of each chip dismisses it for the current day. Renders nothing when
  * everything is empty so quiet days stay clean.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, memo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import {
   generateDayInsights, dismissInsight, pickHeadlineInsight, pickSecondaryInsights,
@@ -154,7 +154,7 @@ function tonePalette(tone: InsightTone) {
   }
 }
 
-function InsightChip({ ins, onAction, onDismiss }: {
+const InsightChip = memo(function InsightChip({ ins, onAction, onDismiss }: {
   ins: SmartInsight;
   onAction: () => void;
   onDismiss: () => void;
@@ -234,4 +234,4 @@ function InsightChip({ ins, onAction, onDismiss }: {
       </button>
     </div>
   );
-}
+});
