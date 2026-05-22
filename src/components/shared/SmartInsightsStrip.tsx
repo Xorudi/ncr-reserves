@@ -101,7 +101,12 @@ export default function SmartInsightsStrip() {
       <div
         data-swipeable="true"
         style={{
-          padding: '10px 14px 4px',
+          // On a large touchscreen the floating OpsLeftPanel (left:18, w:192)
+          // and LiveSidePanel (right:18, w:192) overlap the bottom of the
+          // strip. Inset the row to ~226 px on each side so the chips read
+          // cleanly inside the content column. Phones/iPads keep the 14 px
+          // gutter.
+          padding: dedupForLargeTouch ? '10px 226px 4px' : '10px 14px 4px',
           display: 'flex', gap: 8,
           overflowX: 'auto',
           scrollbarWidth: 'none',
