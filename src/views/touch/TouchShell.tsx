@@ -10,7 +10,7 @@
  * Any fix to a screen, sheet, or picker automatically applies to both.
  * Desktop remains fully independent in DesktopShell.
  */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import DashboardAmbient from '@/components/shared/DashboardAmbient';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
@@ -122,6 +122,11 @@ export default function TouchShell() {
     setNewResTrigger(n => n + 1);
   }
 
+  // Stable callbacks for the side panels — without these the panels
+  // would re-render on every TouchShell render (clock tick, store
+  // change, route swap…) because the inline arrow functions were
+  // creating new prop references each pass.
+
   const {
     selectedBusiness, setSelectedBusiness,
     employees, employeeRoles,
@@ -135,6 +140,18 @@ export default function TouchShell() {
     shiftNotes,
     floorPlans,
   } = useAppStore();
+
+  // ── Stable callbacks for the side panels ─────────────────────────────────
+  // Zustand setters are stable references already, so the dep arrays
+  // here are honest. With these in place the side panels can be wrapped
+  // in React.memo and stop re-rendering on every parent tick.
+  const onOpenWaitlistCb    = useCallback(() => setShowWaitlist(true),  [setShowWaitlist]);
+  const onOpenNotesCb       = useCallback(() => setShowNotesSheet(true), []);
+  const onJumpToPendingCb   = useCallback(() => setTab('reservations'),  []);
+  const onOpenReservationCb = useCallback(
+    (r: Reservation) => { setSelectedReservation(r); setTab('reservations'); },
+    [setSelectedReservation],
+  );
 
   // Close out yesterday automatically — runs once on mount, when the tab
   // becomes visible again (operator left the iPad on overnight), and any time
@@ -217,22 +234,29 @@ export default function TouchShell() {
 
   // ── Day-aware metrics + shift detection ─────────────────────────────────
   const dayIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
-  const dayResAll = reservations.filter(r =>
-    r.bizId === selectedBusiness && r.date === dayIso,
+  // Memoise the per-day filter so the array identity is stable across
+  // re-renders that don't change reservations / business / date —
+  // critical for React.memo on OpsLeftPanel to actually skip work.
+  const dayResAll = useMemo(
+    () => reservations.filter(r => r.bizId === selectedBusiness && r.date === dayIso),
+    [reservations, selectedBusiness, dayIso],
   );
-  const pendingResCount = dayResAll.filter(r => r.status === 'pending').length;
-  // Currently-seated reservations + free table count — used by the live
-  // occupancy tile in the right side panel.
-  const seatedCount = dayResAll.filter(r => r.status === 'seated').length;
-  const plan = floorPlans[selectedBusiness];
-  // A table is "occupied" when at least one seated reservation today claims it.
-  const occupiedTableIds = new Set<string>();
-  for (const r of dayResAll) {
-    if (r.status !== 'seated' || !r.tableIds) continue;
-    for (const id of r.tableIds) occupiedTableIds.add(id);
-  }
+  // Derived counts: cheap, recomputed when dayResAll changes.
+  const { pendingResCount, seatedCount, occupiedTableCount } = useMemo(() => {
+    let pending = 0, seated = 0;
+    const occupied = new Set<string>();
+    for (const r of dayResAll) {
+      if (r.status === 'pending') pending++;
+      if (r.status === 'seated') {
+        seated++;
+        if (r.tableIds) for (const id of r.tableIds) occupied.add(id);
+      }
+    }
+    return { pendingResCount: pending, seatedCount: seated, occupiedTableCount: occupied.size };
+  }, [dayResAll]);
+  const plan        = floorPlans[selectedBusiness];
   const totalTables = plan?.tables.length ?? 0;
-  const freeTables  = Math.max(0, totalTables - occupiedTableIds.size);
+  const freeTables  = Math.max(0, totalTables - occupiedTableCount);
   // Latest shift note for the current day + business — newest first.
   const todayNoteFirst = useMemo(() =>
     shiftNotes
@@ -780,13 +804,13 @@ export default function TouchShell() {
               <OpsLeftPanel
                 reservations={dayResAll}
                 waitlistCount={waitlistCountForBiz}
-                onOpenWaitlist={() => setShowWaitlist(true)}
-                onOpenReservation={r => { setSelectedReservation(r); setTab('reservations'); }}
+                onOpenWaitlist={onOpenWaitlistCb}
+                onOpenReservation={onOpenReservationCb}
                 latestNote={todayNoteFirst}
                 noteCount={todayNoteCount}
-                onOpenNotes={() => setShowNotesSheet(true)}
+                onOpenNotes={onOpenNotesCb}
                 pendingCount={pendingResCount}
-                onJumpToPending={() => setTab('reservations')}
+                onJumpToPending={onJumpToPendingCb}
               />
               <LiveSidePanel
                 activeShift={activeShift}
@@ -1879,7 +1903,7 @@ function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployee
 // ─────────────────────────────────────────────────────────────────────────────
 type ShiftLite = { id: 'M'|'N'; label: string; range: string; emoji: string; tint: string; tintFg: string } | null;
 
-function LiveSidePanel({
+const LiveSidePanel = memo(function LiveSidePanel({
   activeShift, totalRes, totalPax, pendingResCount, selectedDate,
   allReservations, bizId,
   seatedCount, freeTables, totalTables,
@@ -2206,7 +2230,7 @@ function LiveSidePanel({
       </div>
     </aside>
   );
-}
+});
 
 // ── Local helpers used by both side panels ──────────────────────────────────
 function isoDateLocal(d: Date): string {
@@ -2266,7 +2290,7 @@ function emojiForCondition(c: WxCondition): string {
 // preview. Both are interactive — the next-res card opens the reservation
 // detail and the waitlist card opens the waitlist sheet.
 // ─────────────────────────────────────────────────────────────────────────────
-function OpsLeftPanel({
+const OpsLeftPanel = memo(function OpsLeftPanel({
   reservations, waitlistCount, onOpenWaitlist, onOpenReservation,
   latestNote, noteCount, onOpenNotes,
   pendingCount, onJumpToPending,
@@ -2596,7 +2620,7 @@ function OpsLeftPanel({
       </button>
     </aside>
   );
-}
+});
 
 function KpiRow({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
   return (
