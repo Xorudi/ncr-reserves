@@ -24,6 +24,7 @@ import Toaster, { toast } from '@/components/shared/Toaster';
 import SearchSheet from '@/components/shared/SearchSheet';
 import WaitlistSheet from '@/components/shared/WaitlistSheet';
 import WeatherWidget from '@/components/shared/WeatherWidget';
+import InsightOfMoment from '@/components/shared/InsightOfMoment';
 import { NotesSheet } from '@/views/touch/NotesSystem';
 import {
   fetchForecast, DEFAULT_COORDS,
@@ -696,6 +697,11 @@ export default function TouchShell() {
               </span>
             </div>
           )}
+
+          {/* Insight del moment — premium hero card with the single most
+              important contextual signal for the operator right now. Quiet
+              by design: renders null when no insight crosses the threshold. */}
+          <InsightOfMoment />
 
           {screenContent}
 

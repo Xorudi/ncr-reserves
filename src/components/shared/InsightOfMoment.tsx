@@ -1,0 +1,299 @@
+/**
+ * InsightOfMoment — the "insight del moment" hero card.
+ *
+ * One single, hand-picked contextual insight rendered with elevated
+ * presence: serif headline, eyebrow microlabel, soft tone-tinted ring,
+ * subtle breathing glow. Mounts above the dashboard content on
+ * desktop/tablet, and above the day list on mobile.
+ *
+ * Picks `headlineId` from the engine via `pickHeadlineInsight`. If no
+ * insight crosses the threshold, the component renders null — quiet by
+ * design. This is the inverse of a notification bar.
+ *
+ * Interaction:
+ *   - Whole card is tappable when the insight carries an action.
+ *   - Discrete × on the corner to dismiss for the day.
+ *   - On a tap, the action runs through the same handler as the strip.
+ */
+
+import { useEffect, useMemo, useState } from 'react';
+import { useAppStore } from '@/store/useAppStore';
+import {
+  generateDayInsights, pickHeadlineInsight, dismissInsight,
+  type SmartInsight, type InsightAction, type InsightTone, type InsightCategory,
+  type ReservationFilter,
+} from '@/utils/insights';
+import { fetchForecast, DEFAULT_COORDS, type WeatherForecast } from '@/lib/weather';
+import ReservationsListSheet from './ReservationsListSheet';
+
+interface Props {
+  /** Compact mode tightens padding and font sizes for mobile. */
+  compact?: boolean;
+  /** Optional external dismiss tick to force re-derive when secondary
+   *  strip dismisses a chip (keeps both in sync). */
+  dismissTick?: number;
+}
+
+const CATEGORY_LABEL: Record<InsightCategory, string> = {
+  operational: 'Operatiu',
+  predictive:  'Previsió',
+  business:    'Tendència',
+  client:      'Client',
+  weather:     'Clima',
+  context:     'Context',
+};
+
+function tonePalette(tone: InsightTone) {
+  switch (tone) {
+    case 'positive':
+      return {
+        ring:    'rgba(116,133,74,.22)',
+        accent:  'var(--olive-600)',
+        accentSoft: 'rgba(116,133,74,.10)',
+        fg:      'var(--olive-700)',
+        glow:    'rgba(116,133,74,.12)',
+      };
+    case 'warning':
+      return {
+        ring:    'rgba(176,118,54,.24)',
+        accent:  'var(--clay-600)',
+        accentSoft: 'rgba(176,118,54,.10)',
+        fg:      'var(--clay-700)',
+        glow:    'rgba(176,118,54,.14)',
+      };
+    case 'alert':
+      return {
+        ring:    'rgba(168,74,42,.28)',
+        accent:  'var(--terracotta-600)',
+        accentSoft: 'rgba(168,74,42,.10)',
+        fg:      'var(--terracotta-700)',
+        glow:    'rgba(168,74,42,.18)',
+      };
+    default:
+      return {
+        ring:    'rgba(60,40,20,.10)',
+        accent:  'var(--ink-500)',
+        accentSoft: 'rgba(60,40,20,.04)',
+        fg:      'var(--ink-700)',
+        glow:    'rgba(60,40,20,.05)',
+      };
+  }
+}
+
+export default function InsightOfMoment({ compact = false, dismissTick = 0 }: Props) {
+  const {
+    selectedBusiness, selectedDate, reservations, customers, waitlist,
+    setShowWaitlist,
+  } = useAppStore();
+
+  const dayIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+
+  const [forecast, setForecast] = useState<WeatherForecast | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchForecast({ date: dayIso, lat: DEFAULT_COORDS.lat, lng: DEFAULT_COORDS.lng })
+      .then(f => { if (!cancelled) setForecast(f); });
+    return () => { cancelled = true; };
+  }, [dayIso]);
+
+  const [innerTick, setInnerTick] = useState(0);
+
+  const headline = useMemo<SmartInsight | null>(() => {
+    const all = generateDayInsights({
+      selectedDate, bizId: selectedBusiness, reservations, customers, waitlist, forecast,
+    });
+    return pickHeadlineInsight(all);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, selectedBusiness, reservations, customers, waitlist, forecast, dismissTick, innerTick]);
+
+  const [listFilter, setListFilter] = useState<ReservationFilter | null>(null);
+  const [listTitle,  setListTitle]  = useState('');
+
+  function runAction(action?: InsightAction) {
+    if (!action) return;
+    switch (action.kind) {
+      case 'open-weather':
+        window.dispatchEvent(new CustomEvent('app:open-weather'));
+        break;
+      case 'open-waitlist':
+        setShowWaitlist(true);
+        break;
+      case 'open-stats-comparative':
+        window.dispatchEvent(new CustomEvent('app:open-stats', { detail: { tab: 'comparativa' } }));
+        break;
+      case 'show-reservations':
+        setListFilter(action.filter);
+        setListTitle(action.title);
+        break;
+      case 'scroll-to-hour':
+        window.dispatchEvent(new CustomEvent('app:scroll-to-hour', { detail: { hour: action.hour } }));
+        break;
+    }
+  }
+
+  if (!headline) return null;
+  const p = tonePalette(headline.tone);
+  const interactive = !!headline.action;
+  const padV = compact ? 12 : 16;
+  const padH = compact ? 14 : 20;
+
+  return (
+    <>
+      <div
+        className="insight-moment"
+        style={{
+          position: 'relative',
+          margin: compact ? '8px 14px 4px' : '12px 22px 4px',
+          padding: `${padV}px ${padH}px`,
+          borderRadius: 16,
+          background: `
+            radial-gradient(140% 80% at 12% 0%, ${p.accentSoft} 0%, transparent 60%),
+            linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 100%)
+          `,
+          boxShadow: `
+            0 0 0 1px ${p.ring} inset,
+            0 1px 0 rgba(255,255,255,.65) inset,
+            0 8px 24px -16px ${p.glow},
+            var(--shadow-sm)
+          `,
+          display: 'flex', alignItems: 'flex-start', gap: compact ? 10 : 14,
+          overflow: 'hidden',
+          isolation: 'isolate',
+        }}
+      >
+        {/* Soft breathing glow — purely decorative, GPU-friendly transform/opacity */}
+        <span aria-hidden style={{
+          position: 'absolute',
+          left: '-10%', top: '-30%',
+          width: '60%', height: '160%',
+          background: `radial-gradient(closest-side, ${p.glow} 0%, transparent 70%)`,
+          filter: 'blur(20px)',
+          pointerEvents: 'none',
+          animation: 'insight-breathe 8s ease-in-out infinite',
+          zIndex: 0,
+        }} />
+
+        {/* Icon disc */}
+        <div style={{
+          position: 'relative', zIndex: 1,
+          flexShrink: 0,
+          width: compact ? 40 : 48, height: compact ? 40 : 48,
+          borderRadius: 12,
+          background: `linear-gradient(180deg, ${p.accentSoft} 0%, transparent 100%), var(--surface-elevated)`,
+          boxShadow: `0 0 0 1px ${p.ring} inset, var(--shadow-inset-top)`,
+          display: 'grid', placeItems: 'center',
+          fontSize: compact ? 22 : 26, lineHeight: 1,
+        }}>
+          {headline.icon}
+        </div>
+
+        {/* Body — eyebrow + headline + sub */}
+        <button
+          onClick={interactive ? () => runAction(headline.action) : undefined}
+          className={interactive ? 'press' : undefined}
+          disabled={!interactive}
+          style={{
+            position: 'relative', zIndex: 1,
+            flex: 1, minWidth: 0,
+            background: 'transparent', border: 'none',
+            padding: 0, margin: 0,
+            textAlign: 'left',
+            cursor: interactive ? 'pointer' : 'default',
+            fontFamily: 'inherit',
+            display: 'flex', flexDirection: 'column', gap: compact ? 3 : 4,
+          }}
+        >
+          {/* Eyebrow */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontSize: 9.5, fontWeight: 700, letterSpacing: .14,
+            color: p.accent, textTransform: 'uppercase',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            <span style={{
+              display: 'inline-block', width: 5, height: 5, borderRadius: 999,
+              background: p.accent, boxShadow: `0 0 0 3px ${p.accentSoft}`,
+            }} />
+            Insight del moment
+            <span style={{
+              opacity: .6, fontWeight: 600, letterSpacing: .08,
+            }}>· {CATEGORY_LABEL[headline.category]}</span>
+          </div>
+
+          {/* Headline */}
+          <div style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: compact ? 16 : 19,
+            fontWeight: 500, lineHeight: 1.25,
+            color: 'var(--ink-900)', letterSpacing: -.012,
+          }}>
+            {headline.text}
+          </div>
+
+          {/* Sub */}
+          {headline.sub && (
+            <div style={{
+              fontSize: compact ? 11.5 : 12.5,
+              color: 'var(--ink-600)',
+              fontFamily: 'var(--font-sans)', fontWeight: 500,
+              letterSpacing: .005,
+              overflow: 'hidden', textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+            }}>
+              {headline.sub}
+            </div>
+          )}
+
+          {interactive && (
+            <div style={{
+              marginTop: 4,
+              fontSize: 10.5, fontWeight: 700, letterSpacing: .08,
+              color: p.fg, textTransform: 'uppercase',
+              fontFamily: 'var(--font-mono)',
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              Veure detall <span aria-hidden style={{ fontSize: 12 }}>→</span>
+            </div>
+          )}
+        </button>
+
+        {/* Dismiss × */}
+        <button
+          onClick={() => { dismissInsight(headline.id, dayIso); setInnerTick(t => t + 1); }}
+          aria-label="Descartar"
+          className="tac-btn tac-btn--ghost"
+          style={{
+            position: 'relative', zIndex: 1,
+            flexShrink: 0,
+            width: 28, height: 28, padding: 0,
+            color: 'var(--ink-500)',
+            display: 'grid', placeItems: 'center',
+            fontSize: 16, lineHeight: 1,
+            borderRadius: 8,
+            alignSelf: 'flex-start',
+          }}
+        >
+          ×
+        </button>
+
+        <style>{`
+          @keyframes insight-breathe {
+            0%, 100% { opacity: .55; transform: scale(1); }
+            50%      { opacity: .9;  transform: scale(1.06); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .insight-moment > span[aria-hidden] { animation: none !important; }
+          }
+        `}</style>
+      </div>
+
+      <ReservationsListSheet
+        open={listFilter !== null}
+        filter={listFilter}
+        title={listTitle}
+        onClose={() => { setListFilter(null); setListTitle(''); }}
+      />
+    </>
+  );
+}

@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import {
-  generateDayInsights, dismissInsight,
+  generateDayInsights, dismissInsight, pickHeadlineInsight, pickSecondaryInsights,
   type SmartInsight, type InsightTone, type InsightAction, type ReservationFilter,
 } from '@/utils/insights';
 import { fetchForecast, DEFAULT_COORDS, type WeatherForecast } from '@/lib/weather';
@@ -49,9 +49,14 @@ export default function SmartInsightsStrip() {
       const all = generateDayInsights({
         selectedDate, bizId: selectedBusiness, reservations, customers, waitlist, forecast,
       });
+      // The "insight del moment" hero card already shows the top insight
+      // above the strip — filter it out here so the same line doesn't
+      // appear twice. Also cap the strip at 4 secondaries to stay calm.
+      const headline = pickHeadlineInsight(all);
+      const secondaries = pickSecondaryInsights(all, headline?.id, 4);
       return dedupForLargeTouch
-        ? all.filter(i => i.id !== 'cmp-up' && i.id !== 'cmp-down')
-        : all;
+        ? secondaries.filter(i => i.id !== 'cmp-up' && i.id !== 'cmp-down')
+        : secondaries;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedDate, selectedBusiness, reservations, customers, waitlist, forecast, dismissTick, dedupForLargeTouch]

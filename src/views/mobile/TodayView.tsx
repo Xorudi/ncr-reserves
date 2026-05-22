@@ -13,6 +13,7 @@ import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq }
 import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/loyalty';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
+import InsightOfMoment from '@/components/shared/InsightOfMoment';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
 interface LoyaltyLookup {
@@ -1256,6 +1257,9 @@ export default function MobileTodayView({
           </div>
         );
       })()}
+
+      {/* ── Insight del moment — hero card, single top-priority signal ─── */}
+      <InsightOfMoment compact />
 
       {/* ── Smart insights strip — auto-generated from history, weather, queue ─ */}
       <SmartInsightsStrip />
