@@ -180,8 +180,8 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
     if (delta >= 30) {
       out.push({
         id: 'cmp-up', icon: '📈',
-        text: `Reserves un ${Math.round(delta)}% més que els ${dowNames[dow]}`,
-        sub:  `Mitjana 4 setmanes: ${avgSameDow.toFixed(1)}`,
+        text: `Avui hi ha més moviment que un ${dowNames[dow].replace(/s$/, '')} habitual`,
+        sub:  `${active.length} reserves · mitjana ${avgSameDow.toFixed(1)}`,
         tone: 'positive', category: 'business',
         priority: Math.min(80, 50 + Math.round(delta / 4)),
         headline: delta >= 50,
@@ -189,16 +189,16 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
     } else if (delta >= 15) {
       out.push({
         id: 'cmp-up', icon: '📈',
-        text: `Reserves un ${Math.round(delta)}% més que els ${dowNames[dow]}`,
-        sub:  `Mitjana 4 setmanes: ${avgSameDow.toFixed(1)}`,
+        text: `Lleuger augment vs ${dowNames[dow]} habituals`,
+        sub:  `${active.length} reserves · mitjana ${avgSameDow.toFixed(1)}`,
         tone: 'positive', category: 'business',
         priority: 40,
       });
     } else if (delta <= -25) {
       out.push({
         id: 'cmp-down', icon: '📉',
-        text: `Reserves un ${Math.abs(Math.round(delta))}% menys que els ${dowNames[dow]}`,
-        sub:  `Mitjana 4 setmanes: ${avgSameDow.toFixed(1)}`,
+        text: `Ritme més tranquil que un ${dowNames[dow].replace(/s$/, '')} habitual`,
+        sub:  `${active.length} reserves · mitjana ${avgSameDow.toFixed(1)}`,
         tone: 'warning', category: 'business',
         priority: Math.min(70, 40 + Math.abs(Math.round(delta / 5))),
         headline: delta <= -40 && (isToday || isFuture),
@@ -407,8 +407,8 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
     if (loadPct >= 1.15) {
       out.push({
         id: 'capacity-high', icon: '🎯',
-        text: `Càrrega prevista alta · ${Math.round(loadPct * 100)}%`,
-        sub:  `${totalPax} pax · planifica equip i sala`,
+        text: 'Servei més carregat del normal',
+        sub:  `${totalPax} pax previstos · planifica equip i sala`,
         tone: 'warning', category: 'predictive',
         priority: 55 + Math.min(20, Math.round((loadPct - 1) * 40)),
         headline: loadPct >= 1.3,
@@ -416,7 +416,7 @@ export function generateDayInsights(opts: GenerateOpts): SmartInsight[] {
     } else if (loadPct <= 0.55 && (isToday || isFuture)) {
       out.push({
         id: 'capacity-low', icon: '🍃',
-        text: `Servei tranquil previst · ${Math.round(loadPct * 100)}%`,
+        text: 'Servei tranquil previst',
         sub:  'Bon moment per detallisme i clients habituals',
         tone: 'neutral', category: 'predictive',
         priority: 30,
@@ -498,13 +498,21 @@ export function pickHeadlineInsight(insights: SmartInsight[]): SmartInsight | nu
   return null;
 }
 
-/** Return the secondary insights — everything that didn't make hero. */
+/** Return the secondary insights — everything that didn't make hero.
+ *  Default cap of 3 keeps the strip silent and lets the operator focus on
+ *  the reservation list. The optional `quiet` flag tightens further to
+ *  1-2 when the day has barely any booked context. */
 export function pickSecondaryInsights(
   insights: SmartInsight[],
   headlineId?: string | null,
-  max = 4,
+  max = 3,
+  quiet = false,
 ): SmartInsight[] {
+  const limit = quiet ? Math.min(max, 2) : max;
   return insights
     .filter(i => i.id !== headlineId)
-    .slice(0, max);
+    // Only keep insights with at least a moderate priority — anything below
+    // 25 is "ambient context" and only belongs in the hero or in tooltips.
+    .filter(i => i.priority >= 25)
+    .slice(0, limit);
 }

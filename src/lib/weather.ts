@@ -199,7 +199,7 @@ export function operationalInsights(f: WeatherForecast): OperationalInsight[] {
       out.push({
         id:       'good-terrace',
         icon:     '☀️',
-        text:     'Bon temps a serveis — es preveu augment de demanda a la terrassa.',
+        text:     'Bon dia per activar terrassa.',
         severity: 'info',
       });
     }

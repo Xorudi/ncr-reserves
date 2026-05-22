@@ -137,12 +137,17 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
   if (!headline) return null;
   const p = tonePalette(headline.tone);
   const interactive = !!headline.action;
-  const padV = compact ? 12 : 16;
-  const padH = compact ? 14 : 20;
+  const padV = compact ? 10 : 12;
+  const padH = compact ? 12 : 16;
   // Horizontal margin — when the side panels are docked at left:18/right:18
   // with width:192, we need ~220 px clearance on each side. Otherwise we
   // use the default 22 px gutter.
   const marginH = sidePanelInset ? 226 : (compact ? 14 : 22);
+  // Centre the hero in a content-width column so it doesn't feel like a
+  // full-width banner. On the tablet/desktop the centred content card sits
+  // around 720 px wide — cap the hero at the same scale so they read as
+  // a single coherent unit.
+  const maxWidth = compact ? undefined : 760;
 
   return (
     <>
@@ -150,9 +155,11 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
         className="insight-moment"
         style={{
           position: 'relative',
-          margin: `${compact ? 8 : 12}px ${marginH}px 4px`,
+          margin: `${compact ? 8 : 12}px auto 4px`,
+          marginLeft: marginH, marginRight: marginH,
+          maxWidth,
           padding: `${padV}px ${padH}px`,
-          borderRadius: 16,
+          borderRadius: 14,
           background: `
             radial-gradient(140% 80% at 12% 0%, ${p.accentSoft} 0%, transparent 60%),
             linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 100%)
@@ -180,16 +187,17 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
           zIndex: 0,
         }} />
 
-        {/* Icon disc */}
+        {/* Icon disc — smaller, no inner shadow so it reads as part of the
+            card rather than a separate badge. */}
         <div style={{
           position: 'relative', zIndex: 1,
           flexShrink: 0,
-          width: compact ? 40 : 48, height: compact ? 40 : 48,
-          borderRadius: 12,
-          background: `linear-gradient(180deg, ${p.accentSoft} 0%, transparent 100%), var(--surface-elevated)`,
-          boxShadow: `0 0 0 1px ${p.ring} inset, var(--shadow-inset-top)`,
+          width: compact ? 34 : 38, height: compact ? 34 : 38,
+          borderRadius: 10,
+          background: p.accentSoft,
+          boxShadow: `0 0 0 1px ${p.ring} inset`,
           display: 'grid', placeItems: 'center',
-          fontSize: compact ? 22 : 26, lineHeight: 1,
+          fontSize: compact ? 18 : 20, lineHeight: 1,
         }}>
           {headline.icon}
         </div>
@@ -230,23 +238,21 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
           {/* Headline */}
           <div style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: compact ? 16 : 19,
+            fontSize: compact ? 14.5 : 16.5,
             fontWeight: 500, lineHeight: 1.25,
-            color: 'var(--ink-900)', letterSpacing: -.012,
+            color: 'var(--ink-900)', letterSpacing: -.01,
           }}>
             {headline.text}
           </div>
 
-          {/* Sub */}
+          {/* Sub — single line for compactness; ellipsis if too long. */}
           {headline.sub && (
             <div style={{
-              fontSize: compact ? 11.5 : 12.5,
-              color: 'var(--ink-600)',
+              fontSize: compact ? 11 : 11.5,
+              color: 'var(--ink-500)',
               fontFamily: 'var(--font-sans)', fontWeight: 500,
               letterSpacing: .005,
-              overflow: 'hidden', textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {headline.sub}
             </div>
@@ -254,13 +260,13 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
 
           {interactive && (
             <div style={{
-              marginTop: 4,
-              fontSize: 10.5, fontWeight: 700, letterSpacing: .08,
+              marginTop: 2,
+              fontSize: 10, fontWeight: 700, letterSpacing: .08,
               color: p.fg, textTransform: 'uppercase',
               fontFamily: 'var(--font-mono)',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
             }}>
-              Veure detall <span aria-hidden style={{ fontSize: 12 }}>→</span>
+              Veure detall <span aria-hidden style={{ fontSize: 11 }}>→</span>
             </div>
           )}
         </button>

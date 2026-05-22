@@ -50,16 +50,21 @@ export default function SmartInsightsStrip() {
         selectedDate, bizId: selectedBusiness, reservations, customers, waitlist, forecast,
       });
       // The "insight del moment" hero card already shows the top insight
-      // above the strip — filter it out here so the same line doesn't
-      // appear twice. Also cap the strip at 4 secondaries to stay calm.
+      // above the strip — filter it out so the same line doesn't appear
+      // twice. Also: when the day is quiet (≤3 reservations), tighten the
+      // cap so the AI doesn't artificially fill the screen with ambient
+      // observations the operator doesn't need.
       const headline = pickHeadlineInsight(all);
-      const secondaries = pickSecondaryInsights(all, headline?.id, 4);
+      const dayIsQuiet =
+        reservations.filter(r => r.bizId === selectedBusiness && r.date === dayIso
+          && r.status !== 'cancelled' && r.status !== 'noshow').length <= 3;
+      const secondaries = pickSecondaryInsights(all, headline?.id, 3, dayIsQuiet);
       return dedupForLargeTouch
         ? secondaries.filter(i => i.id !== 'cmp-up' && i.id !== 'cmp-down')
         : secondaries;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedDate, selectedBusiness, reservations, customers, waitlist, forecast, dismissTick, dedupForLargeTouch]
+    [selectedDate, selectedBusiness, reservations, customers, waitlist, forecast, dismissTick, dedupForLargeTouch, dayIso]
   );
 
   // State for the filtered-reservations sheet that some chip actions open.
@@ -136,15 +141,16 @@ export default function SmartInsightsStrip() {
 }
 
 function tonePalette(tone: InsightTone) {
-  // Phase 3: chips sit on paper (surface-elevated) with a faint tinted
-  // gradient. Tone communicates via a colored side accent + foreground
-  // color, not a flooded background — keeps the strip looking premium
-  // and lets terracotta only fire on genuine alerts.
+  // Phase 4 (calmer): secondaries sit on paper with no tint wash. The only
+  // tone signal is a thin left accent line + a slightly tinted icon
+  // background. Foreground text stays in ink-900/ink-600 — the chip reads
+  // as part of the page, not as a coloured banner. Terracotta only fires
+  // when severity is "alert" (genuine action required).
   switch (tone) {
-    case 'positive': return { tint: 'rgba(116,133,74,.07)', fg: 'var(--olive-700)',      accent: 'var(--olive-500)'      };
-    case 'warning':  return { tint: 'rgba(176,118,54,.08)', fg: 'var(--clay-700)',       accent: 'var(--clay-500)'       };
-    case 'alert':    return { tint: 'rgba(168,74,42,.08)',  fg: 'var(--terracotta-700)', accent: 'var(--terracotta-500)' };
-    default:         return { tint: 'transparent',          fg: 'var(--ink-700)',        accent: 'var(--ink-300)'        };
+    case 'positive': return { tint: 'rgba(116,133,74,.06)', fg: 'var(--ink-900)', accent: 'var(--olive-500)'      };
+    case 'warning':  return { tint: 'rgba(176,118,54,.06)', fg: 'var(--ink-900)', accent: 'var(--clay-500)'       };
+    case 'alert':    return { tint: 'rgba(168,74,42,.08)',  fg: 'var(--ink-900)', accent: 'var(--terracotta-500)' };
+    default:         return { tint: 'rgba(60,40,20,.03)',   fg: 'var(--ink-900)', accent: 'var(--ink-300)'        };
   }
 }
 
@@ -159,22 +165,25 @@ function InsightChip({ ins, onAction, onDismiss }: {
     <div style={{
       position: 'relative',
       flexShrink: 0,
-      maxWidth: 340,
-      padding: '10px 8px 10px 16px',
-      borderRadius: 12,
-      // Paper card with a faint tone wash — colored signal comes from the
-      // accent bar + foreground color, not a flooded fill.
-      background: `linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 70%), ${p.tint}`,
-      backgroundBlendMode: 'normal',
-      boxShadow: 'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+      maxWidth: 320,
+      padding: '8px 6px 8px 14px',
+      borderRadius: 10,
+      // Almost-flat paper card — single hairline ring instead of a stack
+      // of shadows so the strip doesn't compete with the hero card above.
+      background: 'var(--surface-elevated)',
+      boxShadow: '0 0 0 1px rgba(60,40,20,.06) inset, 0 1px 0 rgba(255,255,255,.5) inset',
       display: 'flex', alignItems: 'stretch', gap: 4,
       overflow: 'hidden',
     }}>
-      {/* Tone accent bar — 3px on the left edge, colored to the severity */}
-      <span aria-hidden style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0,
-        width: 3, background: p.accent,
-      }} />
+      {/* Tone accent — a thin 2 px line, only visible for warning/alert.
+          Neutral/positive chips have no left bar so they feel lighter. */}
+      {(ins.tone === 'warning' || ins.tone === 'alert') && (
+        <span aria-hidden style={{
+          position: 'absolute', left: 0, top: 6, bottom: 6,
+          width: 2, background: p.accent, opacity: .55,
+          borderRadius: 999,
+        }} />
+      )}
       {/* Tappable area — icon + text + sub */}
       <button onClick={interactive ? onAction : undefined} className="press"
         disabled={!interactive}
@@ -187,16 +196,21 @@ function InsightChip({ ins, onAction, onDismiss }: {
           display: 'flex', alignItems: 'flex-start', gap: 9,
           minWidth: 0,
         }}>
-        <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{ins.icon}</span>
+        <span aria-hidden style={{
+          fontSize: 14, lineHeight: 1, flexShrink: 0, marginTop: 1,
+          width: 22, height: 22, borderRadius: 6,
+          background: p.tint,
+          display: 'grid', placeItems: 'center',
+        }}>{ins.icon}</span>
         <div style={{ minWidth: 0 }}>
           <div style={{
-            fontSize: 12.5, fontWeight: 650, color: p.fg, lineHeight: 1.3,
+            fontSize: 12, fontWeight: 600, color: p.fg, lineHeight: 1.3,
             letterSpacing: -.005,
           }}>{ins.text}</div>
           {ins.sub && (
             <div style={{
-              fontSize: 11.5, color: p.fg, opacity: .72, marginTop: 3,
-              fontFamily: 'var(--font-sans)', letterSpacing: .01,
+              fontSize: 11, color: 'var(--ink-500)', marginTop: 2,
+              fontFamily: 'var(--font-sans)', fontWeight: 500, letterSpacing: .01,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>{ins.sub}</div>
           )}

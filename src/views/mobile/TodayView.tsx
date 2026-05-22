@@ -652,7 +652,7 @@ export default function MobileTodayView({
   // On a large touchscreen the left side panel already shows the Notes
   // del torn and the Tendència insight — hide their center-content
   // counterparts to avoid duplicated info.
-  const { isLargeScreen: isLargeTouchScreen } = useDevice();
+  const { isLargeScreen: isLargeTouchScreen, isMobile: isMobileDevice } = useDevice();
   // Zone filter — null means "all zones". The reset effect lives further
   // down, after `dateStr` is in scope.
   const [zoneFilter, setZoneFilter] = useState<string | null>(null);
@@ -1258,8 +1258,9 @@ export default function MobileTodayView({
         );
       })()}
 
-      {/* ── Insight del moment — hero card, single top-priority signal ─── */}
-      <InsightOfMoment compact />
+      {/* ── Insight del moment — only on true mobile (phone). On tablet the
+            TouchShell already mounts the hero above screenContent. */}
+      {isMobileDevice && <InsightOfMoment compact />}
 
       {/* ── Smart insights strip — auto-generated from history, weather, queue ─ */}
       <SmartInsightsStrip />
