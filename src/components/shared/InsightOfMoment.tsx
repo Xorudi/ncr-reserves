@@ -143,11 +143,11 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
   // with width:192, we need ~220 px clearance on each side. Otherwise we
   // use the default 22 px gutter.
   const marginH = sidePanelInset ? 226 : (compact ? 14 : 22);
-  // Centre the hero in a content-width column so it doesn't feel like a
-  // full-width banner. On the tablet/desktop the centred content card sits
-  // around 720 px wide — cap the hero at the same scale so they read as
-  // a single coherent unit.
-  const maxWidth = compact ? undefined : 760;
+  // Centre the hero in a content-width column so it reads as part of the
+  // same column as the dashboard's centred content card (which caps at
+  // 1100 px in TouchShell). Matching the cap means the hero and the
+  // reservation list visually share a single vertical rail.
+  const maxWidth = compact ? undefined : 1080;
 
   return (
     <>

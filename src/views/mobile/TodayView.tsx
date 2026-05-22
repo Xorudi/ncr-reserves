@@ -742,6 +742,39 @@ export default function MobileTodayView({
   const totalPax = dayRes.reduce((s, r) => s + r.pax, 0);
   const activePax = activeList.reduce((s, r) => s + r.pax, 0);
 
+  // ── Ambient hour signals — concentration peaks + large-group times.
+  // Derived locally from the current shift list so we don't need to thread
+  // the full ambient state through. Drives the small dot beside the hour
+  // header in the timeline. Quiet by design: only fires when load is
+  // material (≥4 reservations in the shift, ≥2× the average hour).
+  const hourSignals = useMemo(() => {
+    const map = new Map<number, { kind: 'concentration' | 'large-group'; severity: 'soft' | 'firm' }>();
+    const active = activeList.filter(r => r.status !== 'cancelled' && r.status !== 'noshow');
+    if (active.length >= 4) {
+      const byHour: Record<number, number> = {};
+      active.forEach(r => {
+        const h = parseInt(r.time.split(':')[0], 10);
+        byHour[h] = (byHour[h] || 0) + 1;
+      });
+      const avgPerHour = active.length / Math.max(1, Object.keys(byHour).length);
+      for (const [hStr, n] of Object.entries(byHour)) {
+        const h = parseInt(hStr, 10);
+        if (n >= 4 && n >= avgPerHour * 2.0) {
+          map.set(h, { kind: 'concentration', severity: n >= 6 ? 'firm' : 'soft' });
+        }
+      }
+    }
+    for (const r of active.filter(x => x.pax >= 8)) {
+      const h = parseInt(r.time.split(':')[0], 10);
+      const prev = map.get(h);
+      map.set(h, {
+        kind: 'large-group',
+        severity: prev?.severity === 'firm' || r.pax >= 12 ? 'firm' : 'soft',
+      });
+    }
+    return map;
+  }, [activeList]);
+
   function changeDay(delta: number) {
     dayDirRef.current = delta > 0 ? 'next' : 'prev';
     const nd = new Date(selectedDate);
@@ -1382,6 +1415,36 @@ export default function MobileTodayView({
                       fontSize:13, fontWeight:650, color:'var(--ink-800)',
                       flexShrink:0, letterSpacing:.005,
                     }}>{r.time}</span>
+                    {/* Ambient hour signal — 5 px dot when the timeline
+                        carries pressure at this hour (concentration peak
+                        or large group). Color follows the kind; opacity
+                        follows severity. Purely informational; no click. */}
+                    {(() => {
+                      const sig = hourSignals.get(parseH(r.time));
+                      if (!sig) return null;
+                      const color = sig.kind === 'large-group'
+                        ? 'var(--clay-600)'
+                        : 'var(--terracotta-500)';
+                      const op = sig.severity === 'firm' ? 0.85 : 0.55;
+                      const label = sig.kind === 'large-group'
+                        ? 'Grup gran a aquesta hora'
+                        : 'Concentració de reserves';
+                      return (
+                        <span
+                          aria-label={label}
+                          title={label}
+                          style={{
+                            width: 5, height: 5, borderRadius: 999,
+                            background: color, opacity: op,
+                            boxShadow: `0 0 0 3px ${sig.kind === 'large-group'
+                              ? 'rgba(176,118,54,.10)'
+                              : 'rgba(168,74,42,.10)'}`,
+                            flexShrink: 0,
+                            transition: 'opacity 240ms var(--ease-ios), background 240ms var(--ease-ios)',
+                          }}
+                        />
+                      );
+                    })()}
                     <div style={{
                       flex:1, height:1,
                       background: `linear-gradient(90deg, ${lineCol} 0%, rgba(60,40,20,.04) 100%)`,

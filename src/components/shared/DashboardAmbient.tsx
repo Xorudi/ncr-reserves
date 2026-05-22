@@ -24,6 +24,10 @@ import { useEffect, useRef } from 'react';
 interface Props {
   /** z-index of the ambient layer. Content above must use higher. Default 0. */
   zIndex?: number;
+  /** Operational ambient intensity (0..1) driven by useAmbientState.
+   *  Modulates blob alpha and sun strength by a small ±15% window so the
+   *  warmth scales subtly with service load. Defaults to 0.5 (neutral). */
+  intensity?: number;
 }
 
 /** Five base blobs — anchors and alphas calmer than the login variant.
@@ -61,7 +65,11 @@ function sunFromHour(h: number) {
   return { x, y: yArc, visible: true, hot, halo };
 }
 
-export default function DashboardAmbient({ zIndex = 0 }: Props) {
+export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props) {
+  // Map intensity (0..1) to a small ±15% multiplier centred on 1.0:
+  // intensity 0.0 → 0.85, intensity 0.5 → 1.00, intensity 1.0 → 1.15.
+  // Stays in CSS variable land so we don't need to touch the keyframes.
+  const ambientAmp = 0.85 + Math.max(0, Math.min(1, intensity)) * 0.30;
   const ref    = useRef<HTMLDivElement | null>(null);
   const sunRef = useRef<HTMLDivElement | null>(null);
 
@@ -105,7 +113,8 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
   }, []);
 
   return (
-    <div ref={ref} className="dashboard-ambient" aria-hidden="true" style={{ zIndex }}>
+    <div ref={ref} className="dashboard-ambient" aria-hidden="true"
+      style={{ zIndex, ['--ambient-amp' as string]: ambientAmp.toFixed(3) } as React.CSSProperties}>
       {/* Base blobs — each anchored by absolute position, orbiting on a
           long period. Anchors are 0..1 viewport units so the layout
           adapts to window resizes without a JS listener. */}
@@ -161,12 +170,16 @@ export default function DashboardAmbient({ zIndex = 0 }: Props) {
           position: absolute;
           border-radius: 50%;
           translate: -50% -50%;
+          /* --ambient-amp comes from JS (0.85..1.15) and modulates blob
+             opacity in lock-step with service load — calm shifts darken,
+             busy shifts warm up. Falls back to 1 when the prop is absent. */
           background: radial-gradient(
             circle at 50% 50%,
-            rgba(var(--blob-rgb), var(--blob-a)) 0%,
-            rgba(var(--blob-rgb), calc(var(--blob-a) * 0.55)) 30%,
+            rgba(var(--blob-rgb), calc(var(--blob-a) * var(--ambient-amp, 1))) 0%,
+            rgba(var(--blob-rgb), calc(var(--blob-a) * 0.55 * var(--ambient-amp, 1))) 30%,
             rgba(var(--blob-rgb), 0) 70%
           );
+          transition: background 1200ms var(--ease-ios, ease-out);
           /* Back to a soft 48 px blur — blobs read as ambient warmth at
              the margins, never as discrete shapes. The tighter 28 px
              tried earlier turned the rim into visible patches. */

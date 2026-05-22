@@ -20,6 +20,7 @@ import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useVisibleBusinesses } from '@/store/usePinScope';
 import { useDevice } from '@/hooks/useDevice';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
+import { useAmbientState } from '@/hooks/useAmbientState';
 import Toaster, { toast } from '@/components/shared/Toaster';
 import SearchSheet from '@/components/shared/SearchSheet';
 import WaitlistSheet from '@/components/shared/WaitlistSheet';
@@ -149,6 +150,28 @@ export default function TouchShell() {
   // The mobile-bottom-nav layout still applies on narrow viewports.
   const { isTablet: deviceIsTablet, isDesktop, isStandalone, isLargeScreen } = useDevice();
   const isTablet = deviceIsTablet || isDesktop;
+
+  // ── Shell-level forecast — used by useAmbientState and shared with any
+  //    children that need the current day's weather. Refetches when the
+  //    selected date changes; respects the same per-date cache as the
+  //    side panel and the WeatherWidget so this isn't an extra network hit. ──
+  const shellDayIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
+  const [shellForecast, setShellForecast] = useState<WeatherForecast | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetchForecast({ date: shellDayIso, lat: DEFAULT_COORDS.lat, lng: DEFAULT_COORDS.lng })
+      .then(f => { if (!cancelled) setShellForecast(f); });
+    return () => { cancelled = true; };
+  }, [shellDayIso]);
+
+  // ── Ambient state — single source of truth for ambient/contextual hints
+  //    surfaced through the shell, the date header subtitle, and the
+  //    timeline hour signals. Quiet by design: when there's not enough
+  //    context the microcopy falls back to "Ritme habitual del servei". ──
+  const ambient = useAmbientState({
+    selectedDate, bizId: selectedBusiness,
+    reservations, waitlist, forecast: shellForecast,
+  });
   // Large screen (≥1280px) — typical restaurant counter-top monitor or
   // kiosk. Bumps rail width, icon/label sizes and tap targets so the
   // operator can hit them reliably while standing.
@@ -443,7 +466,7 @@ export default function TouchShell() {
               without competing with the operational content above.
               On iPad / phone we keep the flat cream + todTint — the
               viewport is too small for the blobs to read as ambient. */}
-        {isLargeScreen && <DashboardAmbient zIndex={0} />}
+        {isLargeScreen && <DashboardAmbient zIndex={0} intensity={ambient.intensity} />}
 
         {/* ── Left side rail ───────────────────────────────────────────
               Uses the new matte "rail" surface — slightly warmer + darker
@@ -640,6 +663,8 @@ export default function TouchShell() {
           <TabletTopBar
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
+            microcopy={ambient.microcopy}
+            ambientLevel={ambient.level}
           />
 
           {/* Banner de servei en marxa — només quan toca, discret però visible.
@@ -1202,10 +1227,15 @@ const DAYS_CA   = ['Diumenge','Dilluns','Dimarts','Dimecres','Dijous','Divendres
 const MONTHS_CA = ['gener','febrer','març','abril','maig','juny','juliol','agost','setembre','octubre','novembre','desembre'];
 
 function TabletTopBar({
-  selectedDate, setSelectedDate,
+  selectedDate, setSelectedDate, microcopy, ambientLevel,
 }: {
   selectedDate: Date;
   setSelectedDate: (d: Date) => void;
+  /** Ambient microcopy — one-line operator-facing context (no analytics tone). */
+  microcopy?: string;
+  /** Drives a barely-visible accent on the microcopy line — clay when busy/peak,
+   *  olive when calm, ink-500 otherwise. */
+  ambientLevel?: 'calm' | 'normal' | 'busy' | 'peak';
 }) {
   const d = selectedDate;
   // Local-date ISO (avoids UTC off-by-one in CET/CEST)
@@ -1270,12 +1300,37 @@ function TabletTopBar({
         onPointerUp={e => (e.currentTarget.style.background = 'rgba(60,40,20,.04)')}
       >
         {isToday && <LiveServicePill />}
-        <span key={selIso} className="date-label-in" style={{
-          fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
-          color: 'var(--ink-900)', letterSpacing: -.005, textTransform: 'capitalize',
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: 1, minWidth: 0,
         }}>
-          {dayLabel}
-        </span>
+          <span key={selIso} className="date-label-in" style={{
+            fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500,
+            color: 'var(--ink-900)', letterSpacing: -.005, textTransform: 'capitalize',
+          }}>
+            {dayLabel}
+          </span>
+          {/* Ambient microcopy — barely-visible operator hint sitting under
+              the date. Only renders when the shell passes one through. */}
+          {microcopy && (
+            <span style={{
+              fontSize: 10, fontWeight: 600, letterSpacing: .08,
+              textTransform: 'uppercase',
+              fontFamily: 'var(--font-mono)',
+              color:
+                ambientLevel === 'peak'  ? 'var(--clay-700)' :
+                ambientLevel === 'busy'  ? 'var(--clay-600)' :
+                ambientLevel === 'calm'  ? 'var(--olive-700)' :
+                                            'var(--ink-500)',
+              opacity: .82,
+              transition: 'color 400ms var(--ease-ios)',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              maxWidth: 360,
+            }}>
+              {microcopy}
+            </span>
+          )}
+        </div>
         <span style={{ color: 'var(--ink-500)', display: 'flex' }}>
           <Icon d={I.calendar} size={16} stroke={1.7} />
         </span>
