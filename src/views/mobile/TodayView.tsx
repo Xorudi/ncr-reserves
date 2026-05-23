@@ -14,6 +14,7 @@ import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/lo
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
 import { useRenderCount } from '@/hooks/usePerf';
+import { IS_FAST_UI } from '@/lib/uiMode';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
@@ -1039,9 +1040,9 @@ export default function MobileTodayView({
             style={{
               position: 'sticky', top: 0, zIndex: 6,
               padding: '6px 14px',
-              background: 'rgba(253,249,242,.86)',
-              WebkitBackdropFilter: 'blur(14px) saturate(140%)',
-              backdropFilter:       'blur(14px) saturate(140%)',
+              background: IS_FAST_UI ? 'rgba(253,249,242,.97)' : 'rgba(253,249,242,.86)',
+              WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(10px)',
+              backdropFilter:       IS_FAST_UI ? 'none' : 'blur(10px)',
               boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06)',
               display: 'flex', alignItems: 'center', gap: 8,
               fontSize: 11.5, fontWeight: 600,

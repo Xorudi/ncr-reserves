@@ -513,26 +513,31 @@ body::before {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  /* Softer dim + light blur of whatever is behind. The combination of a
-     slight tint and a real blur is the "glassmorphism" touch — the user
-     reads the sheet against a frosted version of the previous screen,
-     which gives a strong sense of two distinct visual planes. */
-  background: rgba(30, 22, 16, .32);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
-  backdrop-filter: blur(12px) saturate(120%);
+  /* OPERATIVE FAST UI: plain warm scrim by default. backdrop-filter is the
+     single most expensive thing the compositor can do over a live ambient
+     gradient + sheet panel. We replace it with a flat dim so opening any
+     overlay is instantaneous, even on the restaurant's tablet/touch PC.
+     Premium glass returns only when the device explicitly opts in (see
+     [data-fast-ui="0"] override below). */
+  background: rgba(30, 22, 16, .52);
   opacity: 0;
   /* Exit fade — fast (system getting out of the way). */
   transition: opacity var(--dur-fast) var(--ease-out);
+  /* No will-change here — we only animate opacity, and modern compositors
+     handle a static layer fade without help. */
 }
 .sheet-backdrop.vis {
   opacity: 1;
   /* Entrance fade — a hair slower so the dim "lands" alongside the panel. */
   transition: opacity var(--dur-base) var(--ease-out);
 }
-/* Safari pre-14 (and any browser without backdrop-filter): fall back to a
-   slightly stronger dim so the contrast difference still reads. */
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .sheet-backdrop { background: rgba(30, 22, 16, .48); }
+/* Premium-glass opt-in: only on real desktops without fast-UI. We still
+   keep the blur radius conservative (8 px, no saturate) so even this path
+   stays compositor-cheap. */
+body[data-fast-ui="0"] .sheet-backdrop {
+  background: rgba(30, 22, 16, .32);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 /* ── DatePickerPopover — floating calendar above a backdrop. Entrance
@@ -715,9 +720,11 @@ body::before {
 /* ── Status morph — deeper blur+scale dip so the colour swap is felt, not
    just seen. Increased from 220ms / blur 2px / scale 0.94 after testing. */
 @keyframes status-morph {
-  0%   { filter: blur(0)    ; transform: scale(1);    opacity: 1;   }
-  50%  { filter: blur(3.5px); transform: scale(0.86); opacity: 0.40;}
-  100% { filter: blur(0)    ; transform: scale(1);    opacity: 1;   }
+  /* filter:blur removed — fired on every status pill update during service,
+     hurting frame rate on the touch PC. opacity + scale carries the morph. */
+  0%   { transform: scale(1);    opacity: 1;   }
+  50%  { transform: scale(0.86); opacity: 0.40;}
+  100% { transform: scale(1);    opacity: 1;   }
 }
 .status-morph {
   animation: status-morph 320ms var(--ease-in-out) both;
@@ -727,9 +734,11 @@ body::before {
    "lands". Bumped from translateY(-6) blur(1.5) 260ms after testing — the
    previous fall was too short to register. */
 @keyframes number-drop {
-  from { opacity: 0; transform: translateY(-12px) scale(0.86); filter: blur(3px); }
-  60%  { opacity: 1; transform: translateY(2px)   scale(1.02); filter: blur(0);   }
-  to   {            transform: translateY(0)    scale(1);                        }
+  /* filter:blur removed — animating filter on every digit tween was an
+     unnecessary compositor cost; opacity + transform reads identical. */
+  from { opacity: 0; transform: translateY(-12px) scale(0.86); }
+  60%  { opacity: 1; transform: translateY(2px)   scale(1.02); }
+  to   {             transform: translateY(0)    scale(1);    }
 }
 .number-tween {
   animation: number-drop 420ms var(--ease-out) both;
@@ -742,13 +751,14 @@ body::before {
    Save is rare per-reservation so a tiny scale punch is permitted (Emil's
    "bounce only for genuine success" carve-out). */
 @keyframes save-success-in {
-  0%   { opacity: 0; transform: scale(0.72) translateY(16px); filter: blur(5px); }
-  55%  { opacity: 1; transform: scale(1.04) translateY(-2px); filter: blur(0);   }
-  100% {            transform: scale(1)    translateY(0);                       }
+  /* filter:blur dropped — opacity + scale alone read as success. */
+  0%   { opacity: 0; transform: scale(0.72) translateY(16px); }
+  55%  { opacity: 1; transform: scale(1.04) translateY(-2px); }
+  100% {             transform: scale(1)    translateY(0);    }
 }
 @keyframes save-success-out {
-  from { opacity: 1; transform: scale(1)    translateY(0);   filter: blur(0);   }
-  to   { opacity: 0; transform: scale(0.92) translateY(-10px); filter: blur(3px); }
+  from { opacity: 1; transform: scale(1)    translateY(0);   }
+  to   { opacity: 0; transform: scale(0.92) translateY(-10px); }
 }
 @keyframes save-button-pulse {
   0%   { transform: scale(1);    }
@@ -783,10 +793,13 @@ body::before {
 .chair-shadow { animation: shadow-sway 4.2s ease-in-out infinite; transform-origin: 50% 50%; }
 
 /* ── Sheet scale-from-tap — used by table action sheet so it appears to
-   grow from the cell that was tapped, not generically from the bottom. */
+   grow from the cell that was tapped, not generically from the bottom.
+   blur(2px) removed: animating filter on the entrance hits the compositor
+   every frame and was visible as a hitch on the touch PC. opacity + scale
+   alone already give the "grow into place" read. */
 @keyframes sheet-from-tap-in {
-  from { opacity: 0; transform: scale(0.92) translateY(12px); filter: blur(2px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0);    filter: blur(0);   }
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 .sheet-from-tap { animation: sheet-from-tap-in 320ms var(--ease-drawer) both; }
 
@@ -829,12 +842,13 @@ body::before {
    which re-fires the animation. Subtle enough to feel like a polish detail
    rather than an interruption. */
 @keyframes date-label-in {
-  from { opacity: 0; transform: translateY(-3px); filter: blur(1px); }
-  to   { opacity: 1; transform: translateY(0);    filter: blur(0);   }
+  /* filter:blur removed — fires on every day change. Cheap fade+slide is enough. */
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0);    }
 }
 .date-label-in {
   animation: date-label-in 280ms var(--ease-out) both;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 
 /* ── FAB scroll-react — fades and shrinks on scroll-down, returns on
@@ -1442,14 +1456,16 @@ button, [role="button"] {
    popovers and floating panels that sit ABOVE main content. Falls back
    gracefully when backdrop-filter isn't supported. */
 .glass {
-  background: rgba(255,255,255,.72);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
+  /* Fast UI default: opaque paper, no compositor blur. Premium devices
+     get the real frosted-glass behind [data-fast-ui="0"] below. */
+  background: var(--paper);
   border: 1px solid rgba(255,255,255,.5);
   box-shadow: var(--sh-3);
 }
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .glass { background: var(--paper); }
+body[data-fast-ui="0"] .glass {
+  background: rgba(255,255,255,.72);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 /* Sheet panel gets a subtle inset highlight at the top edge — reinforces
@@ -1498,14 +1514,16 @@ button, [role="button"] {
    backdrop blur so the content behind reads through softly. Falls back
    gracefully when backdrop-filter isn't available. */
 .surface-floating {
-  background: var(--surface-floating);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
+  /* Fast UI default: solid elevated surface. backdrop-filter only on
+     desktop-premium (data-fast-ui="0"). */
+  background: var(--surface-elevated);
   border-radius: 18px;
   box-shadow: var(--shadow-xl), var(--shadow-ring), var(--shadow-inset-top);
 }
-@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .surface-floating { background: var(--surface-elevated); }
+body[data-fast-ui="0"] .surface-floating {
+  background: var(--surface-floating);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 /* Hover lift — only on devices with a real pointer. Touch interactions

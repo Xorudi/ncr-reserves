@@ -20,6 +20,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useVisibleBusinesses } from '@/store/usePinScope';
 import { useDevice } from '@/hooks/useDevice';
+import { IS_FAST_UI } from '@/lib/uiMode';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import { useAmbientState } from '@/hooks/useAmbientState';
 import Toaster, { toast } from '@/components/shared/Toaster';
@@ -979,9 +980,14 @@ export default function TouchShell() {
         paddingBottom: headerCompact ? '8px' : '14px',
         paddingLeft:   '18px',
         paddingRight:  '18px',
-        background:    headerCompact ? 'rgba(255,255,255,.78)' : 'rgba(255,255,255,.55)',
-        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-        backdropFilter:       'blur(16px) saturate(140%)',
+        // Fast UI: opaque header on touch/coarse devices (zero compositor
+        // blur work on every scroll frame). Premium glass kept only on
+        // real desktops where it's cheap.
+        background:    IS_FAST_UI
+          ? (headerCompact ? 'rgba(253,249,242,.96)' : 'rgba(253,249,242,.92)')
+          : (headerCompact ? 'rgba(255,255,255,.78)' : 'rgba(255,255,255,.55)'),
+        WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
+        backdropFilter:       IS_FAST_UI ? 'none' : 'blur(12px)',
         boxShadow:     'inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4)',
         flexShrink:    0,
         display:       'flex',
@@ -1404,9 +1410,9 @@ function TabletTopBar({
       // Glass material on top of the canvas — translucent paper with a real
       // backdrop blur. Soft inset bottom shadow as a separator instead of a
       // hard border. Reads as "the content scrolls under the header".
-      background: 'rgba(255,255,255,.55)',
-      WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-      backdropFilter: 'blur(16px) saturate(140%)',
+      background: IS_FAST_UI ? 'rgba(253,249,242,.94)' : 'rgba(255,255,255,.55)',
+      WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
+      backdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
       boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4)',
       paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)',
       position: 'relative', zIndex: 5,

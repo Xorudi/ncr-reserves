@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { isoDate, getZoneIcon } from '@/data/mockData';
 import { effectiveTable } from '@/utils/tableStatus';
 import type { FloorTable, TableStatus, Reservation } from '@/types';
+import { IS_FAST_UI } from '@/lib/uiMode';
 
 const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: string }> = {
   free:      { bg:'var(--olive-50)',       color:'var(--olive-700)',      label:'Lliure'    },
@@ -172,9 +173,9 @@ export default function MobileTablesScreen() {
       {/* Date header — glass material on top of the canvas */}
       <div style={{
         padding:'10px 14px 8px',
-        background: 'rgba(255,255,255,.55)',
-        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-        backdropFilter:       'blur(16px) saturate(140%)',
+        background: IS_FAST_UI ? 'rgba(253,249,242,.94)' : 'rgba(255,255,255,.55)',
+        WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
+        backdropFilter:       IS_FAST_UI ? 'none' : 'blur(12px)',
         boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06)',
         flexShrink:0, display:'flex', alignItems:'center', gap:8,
         position: 'relative', zIndex: 5,
