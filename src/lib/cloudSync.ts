@@ -7,6 +7,13 @@
  *   3. subscribe()    — realtime channel for cross-device sync
  *   4. offline queue  — retry failed pushes on reconnect
  *
+ * Logging gate:
+ *   All [CloudSync] console output is silenced in production unless
+ *   the operator opts in via localStorage NCR_DEBUG_PERF=true (set
+ *   either manually or by visiting /?debugPerf=1). In dev it stays
+ *   loud. Failure paths (console.warn) bypass the gate — those are
+ *   actionable, not noise.
+ *
  * Circular-dependency note:
  *   This file imports useAppStore lazily (inside async functions / callbacks)
  *   so that useAppStore.ts can safely import push() at module level.
@@ -17,6 +24,41 @@ import type {
   Employee, EmployeeRole, EmployeeShift,
   BusinessConfig, BusinessHours, BizShift, NotifConfig,
 } from '@/types';
+
+// Resolve the debug gate once. Dev builds always log; prod only logs
+// when the operator explicitly opted in via /?debugPerf=1 (which
+// persists to localStorage NCR_DEBUG_PERF=true) or NCR_DEBUG_SYNC.
+function cloudLogEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (localStorage.getItem('NCR_DEBUG_PERF') === 'true') return true;
+    if (localStorage.getItem('NCR_DEBUG_SYNC') === 'true') return true;
+  } catch { /* ignore */ }
+  try {
+    const isDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+    if (isDev) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+const SYNC_LOG = cloudLogEnabled();
+const slog = SYNC_LOG
+  // eslint-disable-next-line no-console
+  ? (...args: unknown[]) => console.log('[CloudSync]', ...args)
+  : () => { /* silenced */ };
+
+// Content signature of the last tableIds-only push during this session.
+// Used to skip re-pushing the exact same assignments (e.g. when a
+// duplicated SIGNED_IN re-triggers bootstrap with unchanged data).
+let lastTableIdsPushSig = '';
+// Last processed Supabase session id+expiry, so duplicate SIGNED_IN
+// echoes for the same session don't re-run heavy work.
+let lastAuthSessionKey = '';
+export function shouldProcessAuthSession(userId: string | null, expiresAt: number | null): boolean {
+  const key = `${userId ?? ''}:${expiresAt ?? 0}`;
+  if (key === lastAuthSessionKey) return false;
+  lastAuthSessionKey = key;
+  return true;
+}
 
 // ─── Sync status store (tiny, used by UI banner) ──────────────────────────────
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
@@ -270,7 +312,7 @@ export async function bootstrapFromCloud(): Promise<boolean> {
     if (cloudTotal === 0 && localTotal > 0) {
       // Cloud is empty but device has data → this is the first device connecting.
       // Push local state up so other devices can sync from it.
-      console.log('[CloudSync] Cloud empty, pushing local data to cloud…');
+      slog('Cloud empty, pushing local data to cloud…');
       await pushAllLocalToCloud();
       setStatus('synced');
       return true;
@@ -291,11 +333,27 @@ export async function bootstrapFromCloud(): Promise<boolean> {
       return r;
     });
 
-    // Push merged tableIds back to Supabase (fire-and-forget)
+    // Push merged tableIds back to Supabase (fire-and-forget).
+    // Dedupe: skip the push entirely if the same (reservation id →
+    // tableIds) set was already pushed in this session. The user saw
+    // "Pushing 120 local tableIds" log multiple times even though the
+    // assignments hadn't changed — bootstrap was re-firing on every
+    // SIGNED_IN echo, so the same payload kept going up.
     const toSync = mergedReservations.filter(r => r.tableIds && r.tableIds.length > 0 && localTableIds[r.id]);
     if (toSync.length > 0) {
-      console.log(`[CloudSync] Pushing ${toSync.length} local tableIds to cloud`);
-      Promise.allSettled(toSync.map(r => supabase!.from('reservations').upsert(resToRow(r))));
+      // Cheap content hash: id + tableIds joined. Sorted so identical
+      // contents always produce the same string regardless of order.
+      const sig = toSync
+        .map(r => `${r.id}:${(r.tableIds ?? []).join(',')}`)
+        .sort()
+        .join('|');
+      if (sig === lastTableIdsPushSig) {
+        slog(`Skipping push of ${toSync.length} tableIds — unchanged since last push`);
+      } else {
+        lastTableIdsPushSig = sig;
+        slog(`Pushing ${toSync.length} local tableIds to cloud`);
+        Promise.allSettled(toSync.map(r => supabase!.from('reservations').upsert(resToRow(r))));
+      }
     }
     // ──────────────────────────────────────────────────────────────────────────
 
@@ -498,7 +556,7 @@ export async function flushOfflineQueue(): Promise<void> {
   try {
     const queue: QueuedChange[] = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]');
     if (queue.length === 0) return;
-    console.log(`[CloudSync] flushing ${queue.length} queued changes`);
+    slog(`flushing ${queue.length} queued changes`);
     for (const change of queue) {
       await _executePush(change.table as PushTable, change.action, change.payload);
     }

@@ -26,6 +26,7 @@ import {
   getSession, refreshSession, onAuthChange,
 } from '@/lib/auth';
 import type { AuthState } from '@/lib/auth';
+import { shouldProcessAuthSession } from '@/lib/cloudSync';
 import { isPinConfigured } from '@/lib/pinAuth';
 import { usePinScope } from '@/store/usePinScope';
 import { useAppStore } from '@/store/useAppStore';
@@ -37,8 +38,26 @@ import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
  * diagnosing why a device might bounce to the login screen. Tag every
  * line with `[ncr-auth]` so they're easy to grep in DevTools console.
  */
-// eslint-disable-next-line no-console
-const alog = (...args: unknown[]) => console.info('[ncr-auth]', ...args);
+// Gated auth logger — silent in production unless the operator turned
+// on profiling via /?debugPerf=1 or localStorage NCR_DEBUG_PERF=true.
+// In dev it stays loud so we can see the auth state machine evolve.
+function authDebugEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (localStorage.getItem('NCR_DEBUG_PERF') === 'true') return true;
+    if (localStorage.getItem('NCR_DEBUG_AUTH') === 'true') return true;
+  } catch { /* ignore */ }
+  try {
+    const isDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+    if (isDev) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+const AUTH_LOG = authDebugEnabled();
+const alog = AUTH_LOG
+  // eslint-disable-next-line no-console
+  ? (...args: unknown[]) => console.info('[ncr-auth]', ...args)
+  : () => { /* silenced in production */ };
 
 /**
  * Root router with a 3-layer gate:
@@ -89,6 +108,15 @@ export default function App() {
     let manualSignOut   = false;
 
     function applySession(session: import('@supabase/supabase-js').Session) {
+      // Dedupe: Supabase commonly echoes SIGNED_IN multiple times for the
+      // same underlying session (initial restore, token refresh re-emit,
+      // visibility-change re-emit). Without this guard the heavy
+      // setAuth() → app re-render fires every echo, which the user saw
+      // as repeated "[CloudSync] Pushing 120 tableIds" lines.
+      if (!shouldProcessAuthSession(session.user.id, session.expires_at ?? null)) {
+        alog('signed-in (dedup skip — same user/expiry as last event)');
+        return;
+      }
       const bizIds = extractBizIdsSafe(session);
       alog('signed-in', {
         user_id:   session.user.id,

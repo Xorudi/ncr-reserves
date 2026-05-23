@@ -43,26 +43,38 @@ import { useEffect, useRef } from 'react';
 
 // Resolve the gate ONCE on module init. The result is captured in
 // PERF_ON; everything else returns early if PERF_ON is false.
+//
+// Previous version gated on `import.meta.env.DEV` first, which meant
+// `?debugPerf=1` did NOTHING in a production Railway build (`DEV=false`).
+// New gate: ANY explicit opt-in flips it on, in dev OR prod, so the
+// operator can profile the real production deploy from their phone.
 function resolveGate(): boolean {
-  // Vite injects import.meta.env.DEV at build time; in prod builds the
-  // whole module-init reads `false` and modern bundlers should be able
-  // to dead-code-eliminate the rest of the file via constant folding.
-  // Wrapped in a try because import.meta is undefined in some SSR or
-  // legacy contexts.
-  let isDev = false;
-  try {
-    isDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
-  } catch { /* ignore */ }
-  if (!isDev) return false;
   if (typeof window === 'undefined') return false;
-  // Manual kill switch — paste `window.NCR_PERF_OFF = true` in the
-  // console to silence the helpers without reloading.
+  // Manual kill switch — `window.NCR_PERF_OFF = true` in the console
+  // silences the helpers without reloading.
   if ((window as Window & { NCR_PERF_OFF?: boolean }).NCR_PERF_OFF) return false;
-  // ?debugPerf=1 — opt-in even in dev so the default dev run stays quiet.
+
+  // Three opt-in channels, any one is enough:
+  //   1) ?debugPerf=1   — current canonical query param
+  //   2) ?debug=perf    — short alias, easier to type on a phone
+  //   3) localStorage NCR_DEBUG_PERF=true — sticky across reloads
   try {
     const params = new URLSearchParams(window.location.search);
-    return params.get('debugPerf') === '1';
-  } catch { return false; }
+    if (params.get('debugPerf') === '1') {
+      // Persist the choice so opening a new tab or refreshing keeps
+      // profiling on without re-typing the param.
+      try { localStorage.setItem('NCR_DEBUG_PERF', 'true'); } catch { /* ignore */ }
+      return true;
+    }
+    if (params.get('debug') === 'perf') {
+      try { localStorage.setItem('NCR_DEBUG_PERF', 'true'); } catch { /* ignore */ }
+      return true;
+    }
+  } catch { /* ignore */ }
+  try {
+    if (localStorage.getItem('NCR_DEBUG_PERF') === 'true') return true;
+  } catch { /* ignore */ }
+  return false;
 }
 
 const PERF_ON = resolveGate();
