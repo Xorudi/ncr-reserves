@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import DashboardAmbient from '@/components/shared/DashboardAmbient';
+import { useRenderCount } from '@/hooks/usePerf';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
@@ -116,6 +117,10 @@ export default function TouchShell() {
     if (typeof window === 'undefined') return 0;
     return window.visualViewport?.height ?? window.innerHeight;
   });
+
+  // Render-count instrumentation — no-op in production. Activate from
+  // any device via /?debugPerf=1. See src/hooks/usePerf.ts.
+  useRenderCount('TouchShell');
 
   function openNewReservation() {
     setTab('reservations');

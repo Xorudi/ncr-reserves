@@ -13,6 +13,7 @@ import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq }
 import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/loyalty';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
+import { useRenderCount } from '@/hooks/usePerf';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
@@ -545,6 +546,9 @@ export default function MobileTodayView({
   hideDateNav = false,
   onOpenNotes,
 }: TodayViewProps) {
+  // Render-count instrumentation. Activate via /?debugPerf=1.
+  useRenderCount('TodayView');
+
   const {
     selectedBusiness, reservations, selectedDate, setSelectedDate,
     addReservation, floorPlans, updateReservationStatus,
@@ -1658,6 +1662,9 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
    *  recurring. Never more than one ambient label per row. */
   microContext?: 'no-table' | 'big-group' | 'peak-hour' | 'recurring' | null;
 }) {
+  // Render-count instrumentation. Logs throttled to 1/sec so a 30-row
+  // list at full speed only reports the latest aggregate count.
+  useRenderCount('ResRow');
   const today = new Date().toISOString().slice(0, 10);
   const effectiveStatus: ReservationStatus =
     r.status === 'noshow' && r.date < today ? 'completed' : r.status;

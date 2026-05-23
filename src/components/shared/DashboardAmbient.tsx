@@ -19,7 +19,7 @@
  * above with pointer-events intact.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   /** z-index of the ambient layer. Content above must use higher. Default 0. */
@@ -73,6 +73,26 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
   const ref    = useRef<HTMLDivElement | null>(null);
   const sunRef = useRef<HTMLDivElement | null>(null);
 
+  // Pause ambient motion while ANY sheet is open. AnimatedSheet already
+  // dispatches paired app:sheet:opened / app:sheet:closed events with
+  // cleanup balancing, so a simple counter is enough. While sheets are
+  // open the operator is focused on the form / detail; the blob orbit
+  // and CSS keyframe loop is wasted GPU time that competes with the
+  // sheet's slide-up animation. Counter (not a boolean) handles nested
+  // sheets and rapid toggles correctly.
+  const [openSheets, setOpenSheets] = useState(0);
+  useEffect(() => {
+    const onOpen  = () => setOpenSheets(n => n + 1);
+    const onClose = () => setOpenSheets(n => Math.max(0, n - 1));
+    window.addEventListener('app:sheet:opened', onOpen);
+    window.addEventListener('app:sheet:closed', onClose);
+    return () => {
+      window.removeEventListener('app:sheet:opened', onOpen);
+      window.removeEventListener('app:sheet:closed', onClose);
+    };
+  }, []);
+  const paused = openSheets > 0;
+
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
@@ -114,6 +134,7 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
 
   return (
     <div ref={ref} className="dashboard-ambient" aria-hidden="true"
+      data-paused={paused ? 'true' : 'false'}
       style={{ zIndex, ['--ambient-amp' as string]: ambientAmp.toFixed(3) } as React.CSSProperties}>
       {/* Base blobs — each anchored by absolute position, orbiting on a
           long period. Anchors are 0..1 viewport units so the layout
@@ -234,6 +255,19 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
           background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='5' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.30  0 0 0 0 0.20  0 0 0 0 0.10  0 0 0 0.50 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
           opacity: .035;
           mix-blend-mode: multiply;
+        }
+
+        /* ── Paused state — any AnimatedSheet open. The orbit CSS
+              keyframe still consumes GPU compositing cycles even when
+              the user is focused on a sheet, so we pause it. The
+              ambient stays visible at the current frame (we use
+              animation-play-state: paused, NOT display:none) so the
+              page doesn't flash when the sheet closes. */
+        .dashboard-ambient[data-paused="true"] .da-blob {
+          animation-play-state: paused;
+        }
+        .dashboard-ambient[data-paused="true"] .da-sun {
+          transition: none;
         }
 
         /* ── Reduced motion — stop all motion, keep the warm wash. ─── */
