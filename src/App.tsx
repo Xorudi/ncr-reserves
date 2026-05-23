@@ -163,6 +163,13 @@ export default function App() {
             return;
           }
         }
+        // Happy path: cached session is valid (or just refreshed). The
+        // SDK's INITIAL_SESSION event will deliver this same session to
+        // the listener registered below, which will call applySession()
+        // there. We deliberately DON'T call applySession() here to avoid
+        // a duplicate signed-in/dedup-skip pair in the console on every
+        // page load. Only call here if we actively refreshed (different
+        // expires_at than the SDK's cached value) so the UI doesn't wait.
         if (!cancelled && session) applySession(session);
         return;
       }

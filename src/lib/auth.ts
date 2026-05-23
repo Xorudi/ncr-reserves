@@ -64,15 +64,60 @@ export async function refreshSession(): Promise<Session | null> {
   }
 }
 
-/** Subscribe to auth changes. Returns an unsubscribe fn. */
+// ── Listener instrumentation ──────────────────────────────────────────────
+// Repeated SIGNED_IN events in production were initially suspected to come
+// from multiple listeners being mounted (StrictMode double-mount in dev,
+// HMR re-runs, AuthProvider duplication). We track a per-listener id and
+// the live count so we can PROVE there's only one. The dedup in App.tsx
+// catches duplicate WORK; this tracks duplicate LISTENERS.
+let listenerSeq        = 0;
+let listenersActive    = 0;
+function authDebugOn(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (localStorage.getItem('NCR_DEBUG_PERF') === 'true') return true;
+    if (localStorage.getItem('NCR_DEBUG_AUTH') === 'true') return true;
+  } catch { /* ignore */ }
+  try {
+    const isDev = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+    if (isDev) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+function aLog(...args: unknown[]): void {
+  if (!authDebugOn()) return;
+  // eslint-disable-next-line no-console
+  console.info('[ncr-auth]', ...args);
+}
+
+/** True when more than one auth listener is currently mounted. Exported
+ *  for telemetry / debug overlays. */
+export function getAuthListenerCount(): number { return listenersActive; }
+
+/** Subscribe to auth changes. Returns an unsubscribe fn.
+ *  Logs mount/cleanup with an id so we can detect duplicate listeners. */
 export function onAuthChange(
   cb: (event: AuthChangeEvent, s: Session | null) => void,
 ): () => void {
   if (!supabase) return () => { /* no-op */ };
+  const id = ++listenerSeq;
+  listenersActive += 1;
+  aLog(`listener mounted id=${id} active=${listenersActive}`);
+  if (listenersActive > 1) {
+    // eslint-disable-next-line no-console
+    console.warn(`[ncr-auth] WARNING: ${listenersActive} auth listeners active — expected 1.`);
+  }
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
     cb(event, session);
   });
-  return () => data.subscription.unsubscribe();
+  let off = false;
+  return () => {
+    if (off) return;
+    off = true;
+    listenersActive -= 1;
+    aLog(`listener cleanup id=${id} active=${listenersActive}`);
+    try { data.subscription.unsubscribe(); } catch { /* ignore */ }
+  };
 }
 
 /**
