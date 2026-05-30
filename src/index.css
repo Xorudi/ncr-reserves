@@ -1567,3 +1567,111 @@ html[data-density="spacious"] {
   --density-card-px: 16px;
   --density-section-gap: 24px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOUCH PERFORMANCE MODE  (body[data-fast-ui="1"])
+   ──────────────────────────────────────────────────────────────────────────
+   Real-service tuning for the Windows 11 touch PC at the restaurant counter
+   and any other touch device. Activated automatically by src/lib/uiMode.ts
+   (pointer:coarse, maxTouchPoints>0, low cores, or small viewport).
+
+   GOALS
+     1) Tap-to-paint < 100ms on sheets, modals, popovers.
+     2) No backdrop-filter anywhere large enough to block a frame.
+     3) No decorative idle animations chewing the compositor while the
+        operator is heads-down during service.
+     4) Press feedback within one frame (≈80ms) so every touch feels alive.
+     5) Premium look preserved (warm scrim, gradients, shadows, paper) —
+        only the EXPENSIVE bits step aside.
+
+   NOT touched here: text legibility, contrast, hit-target size, spacing,
+   colour palette, brand. This is purely cost-cutting on the GPU/compositor
+   side. ══════════════════════════════════════════════════════════════════ */
+
+body[data-fast-ui="1"] {
+  /* Sheets open in ~220ms enter / 140ms exit — fast enough to feel
+     instant on touch but slow enough to read the direction. */
+  --dur-sheet:      220ms;
+  --dur-sheet-exit: 140ms;
+}
+
+/* Press feedback: a single-frame scale-down + return.
+   The default .press uses 140ms with a spring curve — replace with a
+   straight ease-out under 90ms so the user gets pixel feedback before
+   their finger fully lands. */
+body[data-fast-ui="1"] .press {
+  transition:
+    transform 90ms var(--ease-out),
+    opacity   90ms linear;
+}
+body[data-fast-ui="1"] .press:active {
+  transform: scale(0.97);
+  opacity: 0.94;
+}
+
+/* Sheet panel: zero will-change overhead when not opening. */
+body[data-fast-ui="1"] .sheet-panel:not(.vis) { will-change: auto; }
+
+/* Defensive — any inline backdrop-filter that snuck past gets neutralised.
+   We already gate uses on IS_FAST_UI at the call sites, but a CSS net
+   keeps the invariant true if a new sheet forgets. */
+body[data-fast-ui="1"] [data-allow-blur="false"],
+body[data-fast-ui="1"] .modal-backdrop,
+body[data-fast-ui="1"] .drawer-backdrop,
+body[data-fast-ui="1"] .popup-backdrop,
+body[data-fast-ui="1"] [data-backdrop] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Decorative idle motion that's nice-to-have but burns frames during
+   service. Keep them on premium-desktop (fast-ui="0") where the GPU
+   can spare a few frames. */
+body[data-fast-ui="1"] .chair-body,
+body[data-fast-ui="1"] .chair-shadow,
+body[data-fast-ui="1"] .empty-glow,
+body[data-fast-ui="1"] .empty-breath,
+body[data-fast-ui="1"] .live-dot {
+  animation: none !important;
+}
+
+/* Stagger animations on list mount: in service, the operator wants the
+   new day's rows visible NOW, not landing one-by-one over half a second.
+   Drop to a single 120ms fade for all rows. */
+body[data-fast-ui="1"] .row-stagger,
+body[data-fast-ui="1"] .side-panel > * {
+  animation-delay: 0ms !important;
+  animation-duration: 120ms !important;
+}
+
+/* Day-change reveal: trim to 140ms. Still slides, but doesn't block. */
+body[data-fast-ui="1"] .day-next,
+body[data-fast-ui="1"] .day-prev {
+  animation-duration: 140ms !important;
+}
+
+/* Status morph and number tween: cut to micro durations. The colour /
+   value change should land fast — operators glance, they don't watch. */
+body[data-fast-ui="1"] .status-morph    { animation-duration: 180ms !important; }
+body[data-fast-ui="1"] .number-tween    { animation-duration: 200ms !important; }
+body[data-fast-ui="1"] .save-success-in  { animation-duration: 240ms !important; }
+body[data-fast-ui="1"] .save-success-out { animation-duration: 160ms !important; }
+body[data-fast-ui="1"] .save-button-pulse { animation-duration: 220ms !important; }
+body[data-fast-ui="1"] .date-label-in   { animation-duration: 160ms !important; }
+
+/* Chip ticks fire constantly during filter scrubbing — keep them but
+   shorter so a flurry doesn't queue up. */
+body[data-fast-ui="1"] .chip-tick { animation-duration: 140ms !important; }
+
+/* Cards / FAB / day-btn: tighter feedback. */
+body[data-fast-ui="1"] .fab,
+body[data-fast-ui="1"] .day-btn,
+body[data-fast-ui="1"] .nav-btn {
+  transition-duration: 100ms !important;
+}
+
+/* Grain noise: tiny per-frame compositor cost. Keep it but shave alpha
+   so the multiply blend is cheaper to resolve. */
+body[data-fast-ui="1"] { --grain-opacity: 0.025; }
+
+/* ════════════════════════════════════════════════════════════════════════ */
