@@ -21,6 +21,7 @@ import { BUSINESSES, avIdx } from '@/data/mockData';
 import { useVisibleBusinesses } from '@/store/usePinScope';
 import { useDevice } from '@/hooks/useDevice';
 import { IS_FAST_UI } from '@/lib/uiMode';
+import { Z_INDEX } from '@/lib/zIndex';
 import { usePullToRefresh, PULL_THRESHOLD_PX } from '@/hooks/usePullToRefresh';
 import { useAmbientState } from '@/hooks/useAmbientState';
 import Toaster, { toast } from '@/components/shared/Toaster';
@@ -1551,7 +1552,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
   const inNit    = hourNow >= 19 && hourNow < 23.5;
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={500}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.picker}>
       <div style={{
         width: '100%',
         background: 'linear-gradient(180deg, var(--paper) 0%, var(--ink-50) 100%)',
@@ -1741,7 +1742,7 @@ function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployee
   };
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={500}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.picker}>
       <div style={{
         width: '100%',
         background: 'linear-gradient(180deg, var(--paper) 0%, var(--ink-50) 100%)',

@@ -16,6 +16,7 @@ import { isAuthRequired } from '@/lib/supabase';
 import { usePinScope } from '@/store/usePinScope';
 import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 
 type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats';
 
@@ -353,7 +354,7 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
     </div>
 
     {/* Sign-out confirmation — branded sheet replacing window.confirm() */}
-    <AnimatedSheet open={confirmSignOut} onClose={() => setConfirmSignOut(false)} zIndex={250}>
+    <AnimatedSheet open={confirmSignOut} onClose={() => setConfirmSignOut(false)} zIndex={Z_INDEX.action}>
       <div style={{
         background: 'var(--paper)',
         borderRadius: '20px 20px 0 0',

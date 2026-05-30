@@ -8,6 +8,7 @@
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import AnimatedSheet from './AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 import { Icon, I } from './Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { resPalette } from '@/utils/statusLabels';
@@ -139,7 +140,7 @@ export default function SearchSheet({ open, onClose, onNavigate }: Props) {
   }
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={200}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.sheet}>
       <div style={{
         background: 'var(--paper)', borderRadius: '18px 18px 0 0',
         boxShadow: '0 -4px 28px rgba(0,0,0,.18)',

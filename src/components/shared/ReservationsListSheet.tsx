@@ -10,6 +10,7 @@
  */
 import React, { useMemo } from 'react';
 import AnimatedSheet from './AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 import { Icon, I } from './Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { rankCustomers, type CustomerStats } from '@/utils/loyalty';
@@ -60,7 +61,7 @@ export default function ReservationsListSheet({ open, filter, title, onClose }: 
   }
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={210}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.sheet}>
       <div
         data-swipeable="true"
         style={{

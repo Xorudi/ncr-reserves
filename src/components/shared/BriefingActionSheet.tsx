@@ -23,6 +23,7 @@
 
 import { useMemo, useState } from 'react';
 import AnimatedSheet from './AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 import TableSelectorModal from './TableSelectorModal';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
@@ -101,7 +102,7 @@ export default function BriefingActionSheet({
 
   return (
     <>
-    <AnimatedSheet open={open} onClose={onClose} desktopMaxWidth={620} zIndex={120}>
+    <AnimatedSheet open={open} onClose={onClose} desktopMaxWidth={620} zIndex={Z_INDEX.action}>
       <div style={{
         padding: '18px 20px 22px',
         display: 'flex', flexDirection: 'column', gap: 14,

@@ -10,6 +10,7 @@
  */
 import React, { useEffect, useState, useMemo } from 'react';
 import AnimatedSheet from './AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
 import {
@@ -157,7 +158,7 @@ function WeatherDetailSheet({ open, onClose, forecast, date }: {
   const dateLabel = date.toLocaleDateString('ca-ES', { weekday:'long', day:'numeric', month:'long' });
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={210}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.sheet}>
       <div
         // data-swipeable tells the shell-level day-swipe handler that this
         // surface owns its horizontal gesture (so the hourly strip can scroll

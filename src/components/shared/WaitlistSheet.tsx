@@ -9,6 +9,7 @@
  */
 import React, { useEffect, useState } from 'react';
 import AnimatedSheet from './AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 import { Icon, I } from './Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
@@ -99,7 +100,7 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
   }
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={200}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.sheet} desktopMaxWidth={560}>
       <div style={{
         background: 'var(--paper)', borderRadius: '18px 18px 0 0',
         boxShadow: '0 -4px 28px rgba(0,0,0,.18)',

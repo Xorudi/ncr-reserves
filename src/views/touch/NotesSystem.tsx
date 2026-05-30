@@ -14,6 +14,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from '@/components/shared/Toaster';
@@ -173,7 +174,7 @@ export function NotesSheet({ open, bizId, date, authorName, onClose }: {
   const dayLabel = `${DAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`;
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={400}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.action}>
       <div style={{
         width: '100%',
         background: 'linear-gradient(180deg, var(--paper) 0%, var(--ink-50) 100%)',

@@ -1468,12 +1468,13 @@ body[data-fast-ui="0"] .glass {
   backdrop-filter: blur(14px);
 }
 
-/* Sheet panel gets a subtle inset highlight at the top edge — reinforces
-   that the panel sits ABOVE the dimmed/blurred backdrop. The 2xl shadow
-   here makes the lift unambiguous; the inset-top is preserved by content. */
-.sheet-panel {
-  box-shadow: var(--shadow-2xl), var(--shadow-inset-top);
-}
+/* The sheet panel used to carry an outer 2xl shadow + a 1px inset top
+   highlight. That inset rendered as a thin horizontal stripe across the
+   FULL viewport width at the top of the bottom-sheet panel (panel is
+   left:0 right:0). Visible as a bright line crossing the screen above
+   every sheet. Each sheet's own content card already provides its own
+   elevation shadow — the panel doesn't need to. */
+.sheet-panel { box-shadow: none; }
 
 /* ──────────────────────────────────────────────────────────────────────────
    Surface utilities — the new visual layer system. Components opt into

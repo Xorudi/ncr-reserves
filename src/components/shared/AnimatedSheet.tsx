@@ -29,11 +29,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useDevice } from '@/hooks/useDevice';
+import { Z_INDEX } from '@/lib/zIndex';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** z-index of the panel. Backdrop gets zIndex - 1. */
+  /** z-index of the panel. Backdrop gets zIndex - 1. Defaults to Z_INDEX.sheet. */
   zIndex?: number;
   /**
    * Max-width when rendered as a centered modal on non-touch desktop.
@@ -47,7 +48,7 @@ interface Props {
 export default function AnimatedSheet({
   open,
   onClose,
-  zIndex = 100,
+  zIndex = Z_INDEX.sheet,
   desktopMaxWidth = 620,
   children,
 }: Props) {

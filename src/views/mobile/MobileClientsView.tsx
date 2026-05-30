@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
 import TimePickerPopover from '@/components/shared/TimePickerPopover';
+import AnimatedSheet from '@/components/shared/AnimatedSheet';
+import { Z_INDEX } from '@/lib/zIndex';
 import { Tag } from '@/components/shared/StatusChip';
 import { initials, avIdx, isoDate } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
@@ -612,11 +614,8 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
   }
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,.35)' }} />
+    <AnimatedSheet open={true} onClose={onClose} zIndex={Z_INDEX.sheet} desktopMaxWidth={620}>
       <div style={{
-        position:'fixed', bottom:'calc(var(--mobile-nav-h) + env(safe-area-inset-bottom))',
-        left:0, right:0, zIndex:100,
         background:'var(--paper)', borderRadius:'20px 20px 0 0',
         boxShadow:'0 -4px 28px rgba(0,0,0,.2)',
         maxHeight:'82vh', overflowY:'auto',
@@ -774,7 +773,7 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
           )}
         </div>
       </div>
-    </>
+    </AnimatedSheet>
   );
 }
 
@@ -959,10 +958,8 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
   };
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:190, background:'rgba(0,0,0,.4)' }} />
+    <AnimatedSheet open={true} onClose={onClose} zIndex={Z_INDEX.sheet} desktopMaxWidth={640}>
       <div style={{
-        position:'fixed', bottom:0, left:0, right:0, zIndex:200,
         background:'var(--paper)', borderRadius:'20px 20px 0 0',
         boxShadow:'0 -4px 32px rgba(0,0,0,.2)',
         maxHeight:'92vh', overflowY:'auto',
@@ -1059,6 +1056,6 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
           </button>
         </div>
       </div>
-    </>
+    </AnimatedSheet>
   );
 }

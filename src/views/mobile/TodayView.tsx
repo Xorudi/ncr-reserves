@@ -15,6 +15,7 @@ import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
 import { useRenderCount } from '@/hooks/usePerf';
 import { IS_FAST_UI } from '@/lib/uiMode';
+import { Z_INDEX } from '@/lib/zIndex';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
@@ -1927,7 +1928,7 @@ function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizI
   const selStr   = isoDate(selected);
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={201}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.sheet}>
       <div style={{
         background:'var(--paper)', borderRadius:'20px 20px 0 0',
         padding:'14px 14px calc(24px + env(safe-area-inset-bottom))',
@@ -2082,7 +2083,7 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
   if (!r) return null;
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={100}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.sheet}>
       <div style={{
         background:'var(--paper)', borderRadius:'18px 18px 0 0',
         boxShadow:'0 -4px 24px rgba(0,0,0,.15)',
@@ -2515,7 +2516,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   };
 
   return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={100}>
+    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.sheet}>
       {/*
        * Layout: flex-column inside AnimatedSheet (which is position:fixed bottom:0)
        *   1. Sticky header  — drag handle + title + close
