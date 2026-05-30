@@ -550,20 +550,16 @@ export default function PinLockView() {
         </div>
       </div>
 
-      {/* ── BOOKPLATE (centered mono + name during book-opening) ─── */}
+      {/* ── BOOK-OPENING SUBTITLE (single caption under the flipped door)
+          The bookplate that used to render a second monogram+title block
+          here has been removed: it landed in the same viewport-center
+          spot as the door flying to center, producing a duplicated
+          "LA PISTA / LA PISTA" composition. The door alone is now the
+          splash (full name + monogram), with this short caption fading
+          in below to signal "we're opening the book". */}
       {bookOpening && (
-        <div className="pin-bookplate" data-biz={openingBiz} aria-hidden="true">
-          <div>
-            <div className={`pin-bookplate__mono pin-bookplate__mono--${BIZ_THEME[openingBiz!].monoStyle}`}>
-              {BUSINESSES.find(b => b.id === openingBiz)?.monogram?.[0] ?? openingBiz![0].toUpperCase()}
-            </div>
-            <h2 className={`pin-bookplate__title pin-bookplate__title--${BIZ_THEME[openingBiz!].nameStyle}`}>
-              {displayName(openingBiz!)}
-            </h2>
-            <p className="pin-bookplate__sub">
-              Obrint el llibre · {displayName(openingBiz!)}
-            </p>
-          </div>
+        <div className="pin-opening-caption" aria-hidden="true">
+          Obrint el llibre · {displayName(openingBiz!)}
         </div>
       )}
 
@@ -1244,66 +1240,31 @@ export default function PinLockView() {
           }
         }
 
-        /* ── Bookplate (centered mono + name) ────────────────────── */
-        .pin-bookplate {
-          position: fixed; inset: 0;
+        /* ── Opening caption — small subtitle below the flipped door
+              that signals "we're going in". Single, centered, fades in
+              after the door has reached center. No duplicated identity
+              card any more — the door itself carries the brand. */
+        .pin-opening-caption {
+          position: fixed;
+          left: 50%;
+          /* Sit ~22vh below viewport center so it lands under the
+             flipped door tile (which is centered at 50% / 50%). */
+          top: calc(50% + 22vh);
+          transform: translate(-50%, 0);
           z-index: 240;
           pointer-events: none;
-          display: grid;
-          place-items: center;
           text-align: center;
-          opacity: 0;
-          transform: scale(0.96);
-          animation: pin-bookplate-in 700ms var(--ease-cinema) forwards;
-          animation-delay: 1000ms;
-        }
-        @keyframes pin-bookplate-in {
-          to { opacity: 1; transform: scale(1); }
-        }
-        .pin-bookplate__mono {
-          display: inline-grid; place-items: center;
-          width: 88px; height: 88px;
-          border-radius: 22px;
-          margin: 0 auto 24px;
-          font-size: 46px;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.25),
-            0 22px 50px -10px rgba(0,0,0,.55);
-        }
-        .pin-bookplate[data-biz="ganxo"] .pin-bookplate__mono {
-          background: linear-gradient(180deg, #e09454, #d4843d);
-          color: #2a1a0e;
-        }
-        .pin-bookplate[data-biz="pista"] .pin-bookplate__mono {
-          background: linear-gradient(180deg, #8cc97c, #79b46a);
-          color: #122a1c;
-        }
-        .pin-bookplate[data-biz="esquitx"] .pin-bookplate__mono {
-          background: linear-gradient(180deg, #82d2e2, #6ec3d4);
-          color: #0e3540;
-        }
-        .pin-bookplate__mono--serif-italic { font-family: var(--font-serif); font-style: italic; font-weight: 500; }
-        .pin-bookplate__mono--sans-bold    { font-family: var(--font-sans);  font-weight: 800; }
-        .pin-bookplate__mono--sans-clean   { font-family: var(--font-sans);  font-weight: 600; }
-
-        .pin-bookplate__title {
-          margin: 0;
-          color: #f7f4ea;
-          font-size: clamp(34px, 6vw, 44px);
-          line-height: 1;
-          letter-spacing: -.01em;
-        }
-        .pin-bookplate__title--serif-italic { font-family: var(--font-serif); font-style: italic; font-weight: 500; }
-        .pin-bookplate__title--sans-upper   { font-family: var(--font-sans);  font-weight: 800; text-transform: uppercase; }
-        .pin-bookplate__title--sans-clean   { font-family: var(--font-sans);  font-weight: 500; }
-
-        .pin-bookplate__sub {
-          margin: 16px 0 0;
-          font-size: 10.5px;
+          font-size: 11px;
           letter-spacing: .3em;
           text-transform: uppercase;
-          color: rgba(247,244,234,.55);
+          color: rgba(247,244,234,.62);
           font-weight: 600;
+          opacity: 0;
+          animation: pin-opening-caption-in 420ms var(--ease-cinema) forwards;
+          animation-delay: 760ms;
+        }
+        @keyframes pin-opening-caption-in {
+          to { opacity: 1; }
         }
 
         /* ─── Top strip — editorial greeting + date (mobile only) ─────
@@ -1707,7 +1668,7 @@ export default function PinLockView() {
           .pin-lock__key,
           .pin-door,
           .pin-door--opening,
-          .pin-bookplate {
+          .pin-opening-caption {
             transform: none !important;
             filter: none !important;
             animation: none !important;
@@ -1718,7 +1679,7 @@ export default function PinLockView() {
           .pin-lock__dot-fill     { transform: none; }
           .pin-lock--shake        { animation: none; }
           .pin-lock__dots::after  { transform: translateX(-50%) scaleX(1); transition: none; }
-          .pin-lock-wrap--opening .pin-bookplate { opacity: 1; transform: none; }
+          .pin-lock-wrap--opening .pin-opening-caption { opacity: 1; transform: translate(-50%, 0); }
         }
       `}</style>
     </div>
