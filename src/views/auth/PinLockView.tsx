@@ -230,6 +230,24 @@ export default function PinLockView() {
     try { window.dispatchEvent(new Event('ncr:ambient-pulse')); } catch {}
   }
 
+  // Single-source-of-truth input dispatcher with a hard dedupe window.
+  // Prevents the classic "touch fires pointerdown + click" double entry:
+  // any second call within 280 ms is dropped silently. Also guards against
+  // hardware keyboard repeat triggering the same key twice in a frame.
+  const lastInputAtRef = useRef<{ t: number; k: string }>({ t: 0, k: '' });
+  function handlePinDigit(digit: string, kind: 'digit' | 'del') {
+    const now =
+      typeof performance !== 'undefined' && performance.now
+        ? performance.now()
+        : Date.now();
+    const key = `${kind}:${digit}`;
+    const last = lastInputAtRef.current;
+    if (key === last.k && now - last.t < 280) return; // dedupe
+    lastInputAtRef.current = { t: now, k: key };
+    if (kind === 'del') backspace();
+    else press(digit);
+  }
+
   // Hardware keyboard support. Also auto-opens the collapsed keypad on
   // the first digit so PC/Bluetooth-keyboard users never see the
   // mobile-collapsed state.
@@ -453,30 +471,18 @@ export default function PinLockView() {
                     type="button"
                     disabled={busy || bookOpening}
                     className={`pin-lock__key ${isDel ? 'pin-lock__key--del' : ''}`}
-                    // Use onPointerDown for touch/pen so the digit registers
-                    // at finger contact instead of waiting for the full
-                    // tap-release click event. On mouse we still fall through
-                    // to onClick (mousedown->click is ~instant). preventDefault
-                    // on pointerdown stops the synthesized click from firing
-                    // a second press a few ms later.
+                    // Single input path: onPointerDown for ALL pointer types
+                    // (mouse + touch + pen). preventDefault stops the
+                    // synthesized click from firing a duplicate. The
+                    // handlePinDigit dedupe (280 ms window) is the final
+                    // safety net in case a browser still emits both events.
                     onPointerDown={(e) => {
-                      if (e.pointerType === 'mouse') return;
-                      // Touch / pen: instant press + suppress the click echo.
                       e.preventDefault();
-                      if (isDel) backspace(); else press(String(n));
+                      handlePinDigit(String(n), isDel ? 'del' : 'digit');
                     }}
-                    onClick={(e) => {
-                      // Mouse path only. If a touch already handled it,
-                      // preventDefault on pointerdown suppressed this click.
-                      if (e.detail === 0) {
-                        // Activated by keyboard (Enter/Space). The global
-                        // keydown handler already routes 0-9; just no-op here
-                        // for digit keys, but still allow ⌫ via keyboard.
-                        if (isDel) backspace();
-                        return;
-                      }
-                      if (isDel) backspace(); else press(String(n));
-                    }}
+                    // No onClick — the global keydown listener handles
+                    // physical keyboards. Removing the click path eliminates
+                    // any chance of a "pointerdown + click" double press.
                     aria-label={isDel ? 'Esborrar' : `Tecla ${n}`}
                     style={{ animationDelay: `${i * 28}ms` }}
                   >
