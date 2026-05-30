@@ -453,7 +453,30 @@ export default function PinLockView() {
                     type="button"
                     disabled={busy || bookOpening}
                     className={`pin-lock__key ${isDel ? 'pin-lock__key--del' : ''}`}
-                    onClick={() => isDel ? backspace() : press(String(n))}
+                    // Use onPointerDown for touch/pen so the digit registers
+                    // at finger contact instead of waiting for the full
+                    // tap-release click event. On mouse we still fall through
+                    // to onClick (mousedown->click is ~instant). preventDefault
+                    // on pointerdown stops the synthesized click from firing
+                    // a second press a few ms later.
+                    onPointerDown={(e) => {
+                      if (e.pointerType === 'mouse') return;
+                      // Touch / pen: instant press + suppress the click echo.
+                      e.preventDefault();
+                      if (isDel) backspace(); else press(String(n));
+                    }}
+                    onClick={(e) => {
+                      // Mouse path only. If a touch already handled it,
+                      // preventDefault on pointerdown suppressed this click.
+                      if (e.detail === 0) {
+                        // Activated by keyboard (Enter/Space). The global
+                        // keydown handler already routes 0-9; just no-op here
+                        // for digit keys, but still allow ⌫ via keyboard.
+                        if (isDel) backspace();
+                        return;
+                      }
+                      if (isDel) backspace(); else press(String(n));
+                    }}
                     aria-label={isDel ? 'Esborrar' : `Tecla ${n}`}
                     style={{ animationDelay: `${i * 28}ms` }}
                   >
@@ -1627,6 +1650,39 @@ export default function PinLockView() {
         @media (prefers-reduced-motion: reduce) {
           .pin-door { animation: none !important; }
           .pin-lock__cta-arrow { animation: none !important; }
+        }
+
+        /* ── Touch performance mode ───────────────────────────────
+           When body[data-fast-ui="1"] is set (touch screens, tablets,
+           the restaurant counter PC), strip every effect that delays
+           the first paint of the keypad or wastes a frame on idle
+           animation. The PIN screen is THE first interaction — it has
+           to feel instant. */
+        body[data-fast-ui="1"] .pin-lock__key {
+          /* Skip the staggered fade-in entirely — keys visible the
+             instant the keypad renders. */
+          opacity: 1 !important;
+          transform: none !important;
+          animation: none !important;
+          /* Bigger, tap-friendly target on the touch PC. */
+          padding: clamp(16px, 2.8vw, 22px) 0;
+          font-size: clamp(22px, 4.8vw, 26px);
+          /* Single-frame press feedback. */
+          transition:
+            transform 80ms var(--ease-out),
+            background 120ms var(--ease-out);
+        }
+        body[data-fast-ui="1"] .pin-lock__keypad {
+          /* Slightly tighter gap so the larger keys still fit. */
+          gap: 10px;
+        }
+        body[data-fast-ui="1"] .pin-door {
+          /* Disable the slow breathing on the business cards while
+             the keypad is the focus. */
+          animation: none !important;
+        }
+        body[data-fast-ui="1"] .pin-lock__cta-arrow {
+          animation: none !important;
         }
 
         /* ── Animations ──────────────────────────────────────────── */
