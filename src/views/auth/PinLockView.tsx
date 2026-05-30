@@ -550,16 +550,35 @@ export default function PinLockView() {
         </div>
       </div>
 
-      {/* ── BOOK-OPENING SUBTITLE (single caption under the flipped door)
-          The bookplate that used to render a second monogram+title block
-          here has been removed: it landed in the same viewport-center
-          spot as the door flying to center, producing a duplicated
-          "LA PISTA / LA PISTA" composition. The door alone is now the
-          splash (full name + monogram), with this short caption fading
-          in below to signal "we're opening the book". */}
-      {bookOpening && (
-        <div className="pin-opening-caption" aria-hidden="true">
-          Obrint el llibre · {displayName(openingBiz!)}
+      {/* ── BUSINESS ENTRY SPLASH ──────────────────────────────────
+          Single premium composition shown while we wait for the app to
+          mount behind it. Replaces the old "door flying to center +
+          bookplate + caption" trio (which created a duplicated card
+          and a disconnected caption). All identity sits inside one
+          access capsule: logo + eyebrow + name + microcopy + status. */}
+      {bookOpening && openingBiz && (
+        <div className="biz-enter" data-biz={openingBiz} aria-hidden="true">
+          <div className="biz-enter__bg" />
+          <div className="biz-enter__glow" />
+          <div className="biz-enter__card">
+            <div className={`biz-enter__logo biz-enter__logo--${BIZ_THEME[openingBiz].monoStyle}`}>
+              {BUSINESSES.find(b => b.id === openingBiz)?.monogram?.[0] ?? openingBiz[0].toUpperCase()}
+            </div>
+            <div className="biz-enter__content">
+              <span className="biz-enter__eyebrow">Accedint a</span>
+              <h1 className={`biz-enter__name biz-enter__name--${BIZ_THEME[openingBiz].nameStyle}`}>
+                {displayName(openingBiz)}
+              </h1>
+              <p className="biz-enter__sub">{BIZ_THEME[openingBiz].sub}</p>
+            </div>
+            <div className="biz-enter__status">
+              <span className="biz-enter__dot" />
+              <span>Preparant</span>
+            </div>
+            <div className="biz-enter__progress" aria-hidden="true">
+              <span />
+            </div>
+          </div>
         </div>
       )}
 
@@ -1179,92 +1198,209 @@ export default function PinLockView() {
           font-style: italic;
         }
 
-        /* ── BOOK-OPENING — chosen card animation ─────────────────── */
+        /* ── BOOK-OPENING (legacy door flip) ──────────────────────
+           The flipping-door-to-center animation is no longer used:
+           identity now lives inside the .biz-enter splash capsule
+           rendered above the stage (.pin-stage fades to opacity 0).
+           Keeping a stub class in case any caller still references
+           .pin-door--opening; the door simply fades with the rest
+           of the stage. No compositor work wasted. */
         .pin-door--opening {
-          position: relative;
-          z-index: 220;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.7),
-            0 0 0 1px rgba(60,40,20,.06),
-            0 80px 140px -20px rgba(0,0,0,.55),
-            0 28px 56px -12px rgba(0,0,0,.32) !important;
-          animation: pin-book-open 900ms var(--ease-cinema) forwards;
-        }
-        @keyframes pin-book-open {
-          0% {
-            transform: perspective(1200px) rotateX(0deg) translate(0, 0) scale(1);
-          }
-          18% {
-            transform: perspective(1200px) rotateX(-9deg) translateY(-6px) scale(1.02);
-          }
-          100% {
-            transform:
-              perspective(1200px)
-              rotateX(0deg)
-              translate(var(--flip-dx, 0px), var(--flip-dy, 0px))
-              scale(var(--flip-scale, 1.6));
-          }
-        }
-        .pin-door--opening .pin-door__state,
-        .pin-door--opening .pin-door__sub,
-        .pin-door--opening .pin-door__kpi {
-          opacity: 0;
-          transition: opacity 320ms var(--ease-out) 360ms;
-        }
-        /* After the centered moment, the card fades out so the bookplate takes the stage. */
-        .pin-lock-wrap--opening .pin-door--opening {
-          animation: pin-book-open-out 1500ms var(--ease-cinema) forwards;
-        }
-        @keyframes pin-book-open-out {
-          0% {
-            transform: perspective(1200px) rotateX(0deg) translate(0, 0) scale(1);
-            opacity: 1;
-          }
-          12% {
-            transform: perspective(1200px) rotateX(-9deg) translateY(-6px) scale(1.02);
-            opacity: 1;
-          }
-          60% {
-            transform:
-              perspective(1200px) rotateX(0deg)
-              translate(var(--flip-dx, 0px), var(--flip-dy, 0px))
-              scale(var(--flip-scale, 1.6));
-            opacity: 1;
-          }
-          100% {
-            transform:
-              perspective(1200px) rotateX(0deg)
-              translate(var(--flip-dx, 0px), calc(var(--flip-dy, 0px) - 12px))
-              scale(var(--flip-scale, 1.6));
-            opacity: 0;
-          }
+          /* No animation — the parent .pin-stage handles the fade out. */
         }
 
-        /* ── Opening caption — small subtitle below the flipped door
-              that signals "we're going in". Single, centered, fades in
-              after the door has reached center. No duplicated identity
-              card any more — the door itself carries the brand. */
-        .pin-opening-caption {
-          position: fixed;
-          left: 50%;
-          /* Sit ~22vh below viewport center so it lands under the
-             flipped door tile (which is centered at 50% / 50%). */
-          top: calc(50% + 22vh);
-          transform: translate(-50%, 0);
-          z-index: 240;
-          pointer-events: none;
-          text-align: center;
-          font-size: 11px;
-          letter-spacing: .3em;
-          text-transform: uppercase;
-          color: rgba(247,244,234,.62);
-          font-weight: 600;
+        /* ══════════════════════════════════════════════════════════
+           BUSINESS ENTRY SPLASH — single premium access capsule.
+           Replaces the old door-flip + bookplate + caption trio.
+           Composition: solid biz-coloured background, soft central
+           glow, one floating card containing logo + identity stack +
+           status pill + thin progress bar. Animation budget: opacity
+           and transform only. No backdrop-filter, no shaders.
+           ══════════════════════════════════════════════════════════ */
+
+        /* Hide the lock/doors stage immediately when the splash takes
+           over, so we don't see the door flying behind the capsule. */
+        .pin-lock-wrap--opening .pin-stage {
           opacity: 0;
-          animation: pin-opening-caption-in 420ms var(--ease-cinema) forwards;
-          animation-delay: 760ms;
+          pointer-events: none;
+          transition: opacity 240ms var(--ease-out);
         }
-        @keyframes pin-opening-caption-in {
-          to { opacity: 1; }
+
+        .biz-enter {
+          position: fixed; inset: 0;
+          z-index: 250;
+          pointer-events: none;
+          display: grid;
+          place-items: center;
+          opacity: 0;
+          animation: biz-enter-in 280ms var(--ease-out) forwards;
+        }
+        @keyframes biz-enter-in { to { opacity: 1; } }
+
+        /* Solid biz-coloured background — covers PIN/doors entirely. */
+        .biz-enter__bg {
+          position: absolute; inset: 0;
+          pointer-events: none;
+        }
+        .biz-enter[data-biz="ganxo"]   .biz-enter__bg {
+          background: linear-gradient(180deg, #1a110a 0%, #0e0a08 100%);
+        }
+        .biz-enter[data-biz="pista"]   .biz-enter__bg {
+          background: linear-gradient(180deg, #2a4d38 0%, #1f3a2a 100%);
+        }
+        .biz-enter[data-biz="esquitx"] .biz-enter__bg {
+          background: linear-gradient(180deg, #3a7282 0%, #2d5e6b 100%);
+        }
+
+        /* Single soft central glow — static, cheap. */
+        .biz-enter__glow {
+          position: absolute;
+          left: 50%; top: 50%;
+          width: 72vmin; height: 72vmin;
+          transform: translate(-50%, -50%);
+          background: radial-gradient(circle, rgba(255,255,255,.10) 0%, transparent 62%);
+          pointer-events: none;
+        }
+
+        /* The access capsule. */
+        .biz-enter__card {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 22px;
+          padding: 26px 34px 28px;
+          border-radius: 22px;
+          background: rgba(255,255,255,.05);
+          border: 1px solid rgba(255,255,255,.10);
+          box-shadow:
+            0 28px 64px -16px rgba(0,0,0,.55),
+            0 10px 22px -10px rgba(0,0,0,.35),
+            inset 0 1px 0 rgba(255,255,255,.08);
+          min-width: min(460px, 88vw);
+          max-width: min(620px, 92vw);
+          opacity: 0;
+          transform: translateY(8px) scale(0.985);
+          animation: biz-enter-card-in 460ms var(--ease-cinema) 80ms forwards;
+          overflow: hidden;
+        }
+        @keyframes biz-enter-card-in {
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Logo / monogram tile — left side of the capsule. */
+        .biz-enter__logo {
+          flex-shrink: 0;
+          width: 62px; height: 62px;
+          display: grid; place-items: center;
+          border-radius: 16px;
+          font-size: 30px;
+          line-height: 1;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.20),
+            0 8px 18px -6px rgba(0,0,0,.50);
+        }
+        .biz-enter[data-biz="ganxo"]   .biz-enter__logo {
+          background: linear-gradient(180deg, #e09454, #d4843d);
+          color: #2a1a0e;
+        }
+        .biz-enter[data-biz="pista"]   .biz-enter__logo {
+          background: linear-gradient(180deg, #8cc97c, #79b46a);
+          color: #122a1c;
+        }
+        .biz-enter[data-biz="esquitx"] .biz-enter__logo {
+          background: linear-gradient(180deg, #82d2e2, #6ec3d4);
+          color: #0e3540;
+        }
+        .biz-enter__logo--serif-italic { font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+        .biz-enter__logo--sans-bold    { font-family: var(--font-sans);  font-weight: 800; }
+        .biz-enter__logo--sans-clean   { font-family: var(--font-sans);  font-weight: 600; }
+
+        /* Identity stack — eyebrow + name + microcopy. */
+        .biz-enter__content {
+          flex: 1;
+          min-width: 0;
+          display: flex; flex-direction: column;
+        }
+        .biz-enter__eyebrow {
+          font-size: 10px;
+          letter-spacing: .28em;
+          text-transform: uppercase;
+          color: rgba(247,244,234,.55);
+          font-weight: 600;
+          margin-bottom: 4px;
+        }
+        .biz-enter__name {
+          margin: 0;
+          color: #f7f4ea;
+          font-size: clamp(22px, 3.4vw, 30px);
+          line-height: 1.05;
+          letter-spacing: -.01em;
+        }
+        .biz-enter__name--serif-italic { font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+        .biz-enter__name--sans-upper   { font-family: var(--font-sans);  font-weight: 800; text-transform: uppercase; }
+        .biz-enter__name--sans-clean   { font-family: var(--font-sans);  font-weight: 500; }
+        .biz-enter__sub {
+          margin: 5px 0 0;
+          font-size: 11.5px;
+          color: rgba(247,244,234,.55);
+          font-weight: 500;
+        }
+
+        /* Status pill — right side. */
+        .biz-enter__status {
+          flex-shrink: 0;
+          display: flex; align-items: center; gap: 8px;
+          font-size: 10px;
+          letter-spacing: .20em;
+          text-transform: uppercase;
+          color: rgba(247,244,234,.70);
+          font-weight: 600;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.06);
+          border: 1px solid rgba(255,255,255,.10);
+        }
+        .biz-enter__dot {
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          animation: biz-enter-dot 1.4s ease-in-out infinite;
+        }
+        .biz-enter[data-biz="ganxo"]   .biz-enter__dot {
+          background:#d4843d; box-shadow: 0 0 8px 0 rgba(212,132,61,.7);
+        }
+        .biz-enter[data-biz="pista"]   .biz-enter__dot {
+          background:#79b46a; box-shadow: 0 0 8px 0 rgba(121,180,106,.7);
+        }
+        .biz-enter[data-biz="esquitx"] .biz-enter__dot {
+          background:#6ec3d4; box-shadow: 0 0 8px 0 rgba(110,195,212,.7);
+        }
+        @keyframes biz-enter-dot {
+          0%, 100% { opacity: .65; }
+          50%      { opacity: 1;   }
+        }
+
+        /* Hair-thin progress bar along the capsule's bottom edge.
+           Fills 0 -> 1 over the unlock budget (~1300ms). */
+        .biz-enter__progress {
+          position: absolute;
+          left: 0; right: 0; bottom: 0;
+          height: 2px;
+          overflow: hidden;
+          background: rgba(255,255,255,.04);
+        }
+        .biz-enter__progress > span {
+          display: block;
+          height: 100%;
+          background: rgba(255,255,255,.55);
+          transform-origin: 0 50%;
+          transform: scaleX(0);
+          animation: biz-enter-progress 1300ms linear 120ms forwards;
+        }
+        .biz-enter[data-biz="ganxo"]   .biz-enter__progress > span { background: rgba(243,197,129,.85); }
+        .biz-enter[data-biz="pista"]   .biz-enter__progress > span { background: rgba(200,160,74,.85); }
+        .biz-enter[data-biz="esquitx"] .biz-enter__progress > span { background: rgba(232,181,74,.85); }
+        @keyframes biz-enter-progress {
+          to { transform: scaleX(1); }
         }
 
         /* ─── Top strip — editorial greeting + date (mobile only) ─────
@@ -1668,7 +1804,10 @@ export default function PinLockView() {
           .pin-lock__key,
           .pin-door,
           .pin-door--opening,
-          .pin-opening-caption {
+          .biz-enter,
+          .biz-enter__card,
+          .biz-enter__dot,
+          .biz-enter__progress > span {
             transform: none !important;
             filter: none !important;
             animation: none !important;
@@ -1679,7 +1818,8 @@ export default function PinLockView() {
           .pin-lock__dot-fill     { transform: none; }
           .pin-lock--shake        { animation: none; }
           .pin-lock__dots::after  { transform: translateX(-50%) scaleX(1); transition: none; }
-          .pin-lock-wrap--opening .pin-opening-caption { opacity: 1; transform: translate(-50%, 0); }
+          .pin-lock-wrap--opening .biz-enter,
+          .pin-lock-wrap--opening .biz-enter__card { opacity: 1; }
         }
       `}</style>
     </div>
