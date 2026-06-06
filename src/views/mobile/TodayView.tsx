@@ -16,6 +16,7 @@ import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
 import { useRenderCount } from '@/hooks/usePerf';
 import { IS_FAST_UI } from '@/lib/uiMode';
 import { Z_INDEX } from '@/lib/zIndex';
+import CountUp from '@/components/shared/CountUp';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
@@ -662,6 +663,26 @@ export default function MobileTodayView({
   // Zone filter — null means "all zones". The reset effect lives further
   // down, after `dateStr` is in scope.
   const [zoneFilter, setZoneFilter] = useState<string | null>(null);
+  // Ids of reservations that just arrived via realtime from ANOTHER device.
+  // Drives the one-shot "row-arrived" glow. Each id auto-clears after 1.6s.
+  const [arrivedIds, setArrivedIds] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    const onArrived = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      setArrivedIds(prev => {
+        const next = new Set(prev); next.add(id); return next;
+      });
+      window.setTimeout(() => {
+        setArrivedIds(prev => {
+          if (!prev.has(id)) return prev;
+          const next = new Set(prev); next.delete(id); return next;
+        });
+      }, 1600);
+    };
+    window.addEventListener('ncr:res-arrived', onArrived);
+    return () => window.removeEventListener('ncr:res-arrived', onArrived);
+  }, []);
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
   // Initialize with the current trigger value so a remount (e.g. user
   // navigates away and back to the Reserves tab) doesn't re-fire the sheet
@@ -1147,10 +1168,10 @@ export default function MobileTodayView({
                 display:'flex', alignItems:'baseline', gap:14, flexWrap:'wrap',
               }}>
                 <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
-                  <span key={`r-${activeList.length}`} className="number-tween" style={{
+                  <CountUp value={activeList.length} style={{
                     fontFamily:'var(--font-serif)', fontSize:32, fontWeight:500,
                     color:'var(--ink-900)', letterSpacing:-.015, lineHeight:1,
-                  }}>{activeList.length}</span>
+                  }} />
                   <span style={{
                     fontSize:11, fontWeight:700, letterSpacing:.08,
                     color:'var(--ink-500)', textTransform:'uppercase',
@@ -1158,10 +1179,10 @@ export default function MobileTodayView({
                   }}>res</span>
                 </div>
                 <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
-                  <span key={`p-${activePax}`} className="number-tween" style={{
+                  <CountUp value={activePax} style={{
                     fontFamily:'var(--font-serif)', fontSize:28, fontWeight:500,
                     color:'var(--ink-900)', letterSpacing:-.01, lineHeight:1,
-                  }}>{activePax}</span>
+                  }} />
                   <span style={{
                     fontSize:11, fontWeight:700, letterSpacing:.08,
                     color:'var(--ink-500)', textTransform:'uppercase',
@@ -1177,14 +1198,14 @@ export default function MobileTodayView({
                             : occupancy >= 30 ? 'var(--olive-50)'
                             : 'var(--ink-100)',
                 }}>
-                  <span key={`o-${occupancy}`} className="number-tween" style={{
+                  <CountUp value={occupancy} style={{
                     fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
                     color: occupancy >= 85 ? 'var(--terracotta-700)'
                          : occupancy >= 60 ? 'var(--clay-700)'
                          : occupancy >= 30 ? 'var(--olive-700)'
                          : 'var(--ink-700)',
                     letterSpacing:-.005,
-                  }}>{occupancy}</span>
+                  }} />
                   <span style={{
                     fontSize:10, fontWeight:700, letterSpacing:.04,
                     color: occupancy >= 85 ? 'var(--terracotta-700)'
@@ -1480,6 +1501,7 @@ export default function MobileTodayView({
                         selected={sel?.id === r.id}
                         onSel={r => setSel(prev => prev?.id === r.id ? null : r)}
                         plan={plan}
+                        justArrived={arrivedIds.has(r.id)}
                         loyalty={lookupLoyalty(loyaltyLookup, r)}
                         microContext={(() => {
                           // Single most-relevant inline tag per row.
@@ -1655,7 +1677,7 @@ const STATUS_TINT: Record<string, { paxBg: string; paxFg: string; paxRing: strin
   noshow:    { paxBg:'var(--rose-50)',       paxFg:'var(--rose-700)',       paxRing:'var(--rose-600)',       rowTint:'rgba(194,74,74,.04)'    },
 };
 
-const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, microContext }: {
+const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, microContext, justArrived }: {
   res: Reservation; selected: boolean; onSel: (r: Reservation) => void;
   plan?: FloorPlan;
   loyalty?: LoyaltyEntry;
@@ -1663,6 +1685,10 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
    *  using head-of-room priority: no-table > big-group > peak-hour >
    *  recurring. Never more than one ambient label per row. */
   microContext?: 'no-table' | 'big-group' | 'peak-hour' | 'recurring' | null;
+  /** True for ~1.4s after this reservation arrived via realtime from
+   *  ANOTHER device — triggers a one-shot terracotta glow so the operator
+   *  notices the change that just synced in. */
+  justArrived?: boolean;
 }) {
   // Render-count instrumentation. Logs throttled to 1/sec so a 30-row
   // list at full speed only reports the latest aggregate count.
@@ -1686,7 +1712,7 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
     effectiveStatus === 'noshow'    ? 'var(--rose-500, #c24a4a)' :
     'transparent';
   return (
-    <button onClick={() => onSel(r)} className="press"
+    <button onClick={() => onSel(r)} className={`press${justArrived ? ' row-arrived' : ''}`}
       style={{
         position: 'relative',
         width: 'calc(100% - 16px)', margin: '0 8px 5px',

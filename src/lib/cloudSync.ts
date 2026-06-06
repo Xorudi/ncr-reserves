@@ -67,6 +67,24 @@ export function shouldProcessAuthSession(userId: string | null, expiresAt: numbe
 let lastLocalMutationAt = 0;
 export function markLocalMutation(): void { lastLocalMutationAt = Date.now(); }
 
+// Per-reservation timestamp of the last LOCAL upsert. Used so the
+// cross-device "arrival" highlight doesn't fire for our own change echoing
+// back through realtime (Supabase broadcasts a change to ALL subscribers,
+// including the originator). Only changes that did NOT originate here glow.
+const recentLocalResIds = new Map<string, number>();
+function markLocalRes(id: string): void {
+  recentLocalResIds.set(id, Date.now());
+  // Keep the map small.
+  if (recentLocalResIds.size > 200) {
+    const cutoff = Date.now() - 10000;
+    for (const [k, t] of recentLocalResIds) if (t < cutoff) recentLocalResIds.delete(k);
+  }
+}
+function isOwnRecentRes(id: string): boolean {
+  const t = recentLocalResIds.get(id);
+  return t != null && Date.now() - t < 6000;
+}
+
 // Timestamp of the last realtime event we received + whether the channel is
 // believed healthy. Used by the poller to decide how aggressively to refetch
 // and exposed for debugging.
@@ -505,6 +523,12 @@ export function push(table: PushTable, action: 'upsert' | 'delete', payload: any
   // Record the local mutation so the polling fallback won't overwrite this
   // optimistic edit before its push has round-tripped.
   markLocalMutation();
+  // Track local reservation upserts so the realtime echo of our own change
+  // doesn't trigger the cross-device "arrival" highlight on this device.
+  if (table === 'reservations' && action === 'upsert') {
+    const id = typeof payload === 'string' ? payload : payload?.id;
+    if (id) markLocalRes(id);
+  }
   if (!isCloudAvailable()) {
     queueOffline(table, action, payload);
     return;
@@ -684,6 +708,11 @@ async function applyRealtimeChange(table: string, payload: any) {
       } else {
         const r = rowToRes(row);
         setState(s => ({ reservations: s.reservations.filter(x => x.id !== r.id).concat(r) }));
+        // Cross-device arrival highlight — fire only for changes that did NOT
+        // originate on this device (skip our own realtime echo).
+        if (!isOwnRecentRes(r.id) && typeof window !== 'undefined') {
+          try { window.dispatchEvent(new CustomEvent('ncr:res-arrived', { detail: { id: r.id } })); } catch { /* ignore */ }
+        }
       }
       break;
     }

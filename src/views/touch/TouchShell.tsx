@@ -13,6 +13,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import DashboardAmbient from '@/components/shared/DashboardAmbient';
+import CountUp from '@/components/shared/CountUp';
 import { useRenderCount } from '@/hooks/usePerf';
 import DatePickerPopover from '@/components/shared/DatePickerPopover';
 import { Icon, I } from '@/components/shared/Icons';
@@ -1373,16 +1374,15 @@ function RailKpi({ value, label, accent }: {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
       lineHeight: 1,
     }}>
-      <span
-        key={value}
-        className="number-tween"
+      <CountUp
+        value={value}
         style={{
           fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
           color: accent && value > 0 ? 'var(--terracotta-700)' : 'var(--ink-900)',
           letterSpacing: -.005,
           transition: 'color 220ms var(--ease-in-out)',
         }}
-      >{value}</span>
+      />
       <span style={{
         fontSize: 8.5, fontWeight: 700, letterSpacing: .08,
         color: accent && value > 0 ? 'var(--terracotta-600)' : 'var(--ink-500)',

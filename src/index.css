@@ -770,6 +770,21 @@ body[data-fast-ui="0"] .sheet-backdrop {
 .save-success-out   { animation: save-success-out 280ms var(--ease-out) both; }
 .save-button-pulse  { animation: save-button-pulse 460ms var(--ease-in-out) both; }
 
+/* ── Row arrived — one-shot glow on a reservation row that just synced in
+   from ANOTHER device via realtime. A soft terracotta wash + ring fades
+   out over 1.4s so the operator's eye is drawn to what changed without it
+   feeling like an alert. opacity/background only — compositor-cheap. */
+@keyframes row-arrived {
+  0%   { box-shadow: 0 0 0 2px var(--terracotta-500), var(--shadow-md); background: var(--terracotta-50); }
+  100% { box-shadow: var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top); background: var(--surface-elevated); }
+}
+.row-arrived {
+  animation: row-arrived 1400ms var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .row-arrived { animation: none !important; }
+}
+
 /* ── Chip tick — fires once when a toggle chip becomes active.
    A subtle scale pop without harsh overshoot. */
 @keyframes chip-tick {
