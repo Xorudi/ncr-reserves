@@ -94,20 +94,31 @@ export function useAmbientState(opts: Opts): AmbientState {
     // ── Load level ──────────────────────────────────────────────────────
     // Ratio of today's active count to the 4-week same-DOW average. Falls
     // back to absolute count when we don't have enough history yet.
+    // Covers (pax) matter as much as reservation count: a day with few
+    // bookings but two 28-pax groups is a HEAVY service, not a calm one.
+    // We blend a count-ratio with a pax-load that mirrors the capacity
+    // insight (insights.ts: expectedPax = avgCount * 2.4) so the header
+    // subtitle and the insight banner never contradict each other
+    // ("Servei tranquil" vs "Servei més carregat del normal").
+    const totalPax = active.reduce((s, r) => s + (r.pax || 0), 0);
     let level: AmbientLevel = 'normal';
     let intensity = 0.5;
     if (avg >= 2) {
-      const ratio = active.length / avg;
-      if      (ratio >= 1.30) { level = 'peak';   intensity = 0.95; }
-      else if (ratio >= 1.10) { level = 'busy';   intensity = 0.75; }
-      else if (ratio <= 0.55) { level = 'calm';   intensity = 0.30; }
-      else                    { level = 'normal'; intensity = 0.50; }
+      const ratio       = active.length / avg;
+      const expectedPax = avg * 2.4;
+      const paxLoad     = expectedPax > 0 ? totalPax / expectedPax : 0;
+      const load        = Math.max(ratio, paxLoad); // either dimension can mark it busy
+      if      (load >= 1.30)                      { level = 'peak';   intensity = 0.95; }
+      else if (load >= 1.15)                      { level = 'busy';   intensity = 0.75; }
+      else if (ratio <= 0.55 && paxLoad <= 0.55)  { level = 'calm';   intensity = 0.30; }
+      else                                        { level = 'normal'; intensity = 0.50; }
     } else {
-      if (active.length === 0)      { level = 'calm';   intensity = 0.25; }
-      else if (active.length <= 3)  { level = 'calm';   intensity = 0.35; }
-      else if (active.length <= 8)  { level = 'normal'; intensity = 0.55; }
-      else if (active.length <= 14) { level = 'busy';   intensity = 0.75; }
-      else                          { level = 'peak';   intensity = 0.95; }
+      // Low history → absolute fallback, also pax-aware.
+      if      (active.length === 0)              { level = 'calm';   intensity = 0.25; }
+      else if (totalPax >= 40)                   { level = 'peak';   intensity = 0.95; }
+      else if (totalPax >= 24 || active.length > 8)  { level = 'busy';   intensity = 0.75; }
+      else if (active.length <= 3 && totalPax < 12)  { level = 'calm';   intensity = 0.35; }
+      else                                       { level = 'normal'; intensity = 0.55; }
     }
 
     // ── Flags ───────────────────────────────────────────────────────────

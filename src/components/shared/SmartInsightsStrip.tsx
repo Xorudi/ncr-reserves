@@ -223,7 +223,7 @@ const InsightChip = memo(function InsightChip({ ins, onAction, onDismiss }: {
         className="tac-btn tac-btn--ghost"
         style={{
           flexShrink: 0,
-          width: 32, height: 32, alignSelf: 'flex-start',
+          width: 36, height: 36, alignSelf: 'flex-start',
           margin: '-2px 0 0 2px', padding: 0,
           color: p.fg,
           display: 'grid', placeItems: 'center',

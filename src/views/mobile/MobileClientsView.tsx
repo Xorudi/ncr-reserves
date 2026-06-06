@@ -225,7 +225,8 @@ export default function MobileClientsView() {
         <div style={{ position:'relative', marginBottom:10 }}>
           <div style={{
             display:'flex', alignItems:'center', gap:8,
-            padding:'10px 12px 10px 38px', borderRadius:12,
+            // Taller field → comfortable ≥44 px touch target on the counter.
+            minHeight:44, padding:'10px 12px 10px 38px', borderRadius:12,
             background:'var(--cream)',
             border:'1px solid rgba(60,40,20,.08)',
           }}>
@@ -237,7 +238,8 @@ export default function MobileClientsView() {
               placeholder="Cerca per nom o telèfon"
               style={{
                 flex:1, border:'none', outline:'none', background:'transparent',
-                fontFamily:'inherit', fontSize:14, color:'var(--ink-900)',
+                fontFamily:'inherit', fontSize:15, color:'var(--ink-900)',
+                minHeight:24, alignSelf:'stretch',
               }} />
             {query && (
               <button onClick={() => setQuery('')}

@@ -293,7 +293,7 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
           style={{
             position: 'relative', zIndex: 1,
             flexShrink: 0,
-            width: 28, height: 28, padding: 0,
+            width: 36, height: 36, padding: 0,
             color: 'var(--ink-500)',
             display: 'grid', placeItems: 'center',
             fontSize: 16, lineHeight: 1,

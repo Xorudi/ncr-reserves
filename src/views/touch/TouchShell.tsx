@@ -837,6 +837,7 @@ export default function TouchShell() {
             <>
               <OpsLeftPanel
                 reservations={dayResAll}
+                selectedDate={selectedDate}
                 waitlistCount={waitlistCountForBiz}
                 onOpenWaitlist={onOpenWaitlistCb}
                 onOpenReservation={onOpenReservationCb}
@@ -1448,7 +1449,7 @@ function TabletTopBar({
       <button onClick={() => shiftDay(-1)} className="tac-btn"
         aria-label="Dia anterior"
         style={{
-          width: 38, height: 38,
+          width: 44, height: 44,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
         <Icon d={I.chevL} size={18} stroke={2} />
@@ -1497,7 +1498,9 @@ function TabletTopBar({
             onClick={() => onOpenBriefing?.()}
             style={{
               background: 'transparent', border: 'none',
-              padding: '2px 8px', margin: 0,
+              // Taller hit area for touch (was ~19 px tall) — vertical
+              // padding bumped; negative left margin keeps the text aligned.
+              padding: '7px 8px', margin: '0 0 0 -8px',
               cursor: onOpenBriefing ? 'pointer' : 'default',
               fontFamily: 'var(--font-mono)',
               fontSize: 10, fontWeight: 600, letterSpacing: .08,
@@ -1538,7 +1541,7 @@ function TabletTopBar({
       <button onClick={() => shiftDay(1)} className="tac-btn"
         aria-label="Dia següent"
         style={{
-          width: 38, height: 38,
+          width: 44, height: 44,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
         <Icon d={I.chevR} size={18} stroke={2} />
@@ -1552,7 +1555,7 @@ function TabletTopBar({
         disabled={isToday}
         className="tac-btn tac-btn--accent"
         style={{
-          padding: '0 16px', height: 38,
+          padding: '0 16px', height: 44,
           fontSize: 13, fontWeight: 700,
           flexShrink: 0,
         }}>
@@ -2368,11 +2371,12 @@ function emojiForCondition(c: WxCondition): string {
 // detail and the waitlist card opens the waitlist sheet.
 // ─────────────────────────────────────────────────────────────────────────────
 const OpsLeftPanel = memo(function OpsLeftPanel({
-  reservations, waitlistCount, onOpenWaitlist, onOpenReservation,
+  reservations, selectedDate, waitlistCount, onOpenWaitlist, onOpenReservation,
   latestNote, noteCount, onOpenNotes,
   pendingCount, onJumpToPending,
 }: {
   reservations: Reservation[];
+  selectedDate: Date;
   waitlistCount: number;
   onOpenWaitlist: () => void;
   onOpenReservation: (r: Reservation) => void;
@@ -2390,20 +2394,24 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
     return () => window.clearInterval(interval);
   }, []);
 
-  // Next upcoming reservation today — first one whose time hasn't passed
-  // and that isn't already seated/completed/cancelled.
-  const todayIso = isoDateLocal(now);
+  // `reservations` is already the SELECTED day's list. When that day is
+  // today, surface the next reservation whose time hasn't passed (with a
+  // live countdown). When browsing another day, surface the FIRST
+  // reservation of that day instead — the old code filtered by today's
+  // date here, so any other day showed "Cap reserva propera" while the
+  // main list clearly had reservations (a confusing contradiction).
+  const isToday = isoDateLocal(selectedDate) === isoDateLocal(now);
   const next = useMemo(() => {
-    return reservations
-      .filter(r => r.date === todayIso)
-      .filter(r => r.status === 'pending' || r.status === 'confirmed')
-      .filter(r => {
+    let list = reservations.filter(r => r.status === 'pending' || r.status === 'confirmed');
+    if (isToday) {
+      list = list.filter(r => {
         const [h, m] = r.time.split(':').map(Number);
         const t = new Date(); t.setHours(h, m, 0, 0);
         return t.getTime() >= now.getTime() - 5 * 60_000; // include reservations within the last 5 min
-      })
-      .sort((a, b) => a.time.localeCompare(b.time))[0] ?? null;
-  }, [reservations, todayIso, now]);
+      });
+    }
+    return list.sort((a, b) => a.time.localeCompare(b.time))[0] ?? null;
+  }, [reservations, isToday, now]);
 
   // Countdown phrase — "d'aquí 1h 6m", "d'aquí 8 min", "ara mateix"
   function countdown(timeStr: string): string {
@@ -2596,7 +2604,7 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
           fontSize: 10, fontWeight: 700, letterSpacing: .08,
           color: 'var(--ink-500)', textTransform: 'uppercase',
         }}>
-          Pròxima reserva
+          {isToday ? 'Pròxima reserva' : 'Primera reserva'}
         </div>
         {next ? (
           <>
@@ -2617,20 +2625,24 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
               <span style={{ opacity: .5 }}>·</span>
               <span>{next.pax}p</span>
             </div>
-            <div style={{
-              marginTop: 2,
-              fontSize: 11, fontWeight: 650,
-              color: 'var(--terracotta-700)',
-            }}>
-              {countdown(next.time)}
-            </div>
+            {/* Countdown only makes sense for today; on other days the
+                "d'aquí Xh" phrasing would be wrong, so we hide it. */}
+            {isToday && (
+              <div style={{
+                marginTop: 2,
+                fontSize: 11, fontWeight: 650,
+                color: 'var(--terracotta-700)',
+              }}>
+                {countdown(next.time)}
+              </div>
+            )}
           </>
         ) : (
           <div style={{
             fontFamily: 'var(--font-serif)', fontSize: 14, fontWeight: 500,
             color: 'var(--ink-600)', letterSpacing: -.005,
           }}>
-            Cap reserva propera
+            {isToday ? 'Cap reserva propera' : 'Cap reserva aquest dia'}
           </div>
         )}
       </button>
