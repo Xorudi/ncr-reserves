@@ -21,7 +21,7 @@
 import { supabase, isCloudAvailable } from './supabase';
 import type {
   Reservation, Customer, FloorPlan, ShiftNote, AppEvent,
-  Employee, EmployeeRole, EmployeeShift,
+  Employee, EmployeeRole, EmployeeShift, WaitlistEntry,
   BusinessConfig, BusinessHours, BizShift, NotifConfig,
 } from '@/types';
 
@@ -246,6 +246,33 @@ function rowToRole(row: any): EmployeeRole {
   };
 }
 
+function wlToRow(w: WaitlistEntry) {
+  return {
+    id:          w.id,
+    biz_id:      w.bizId,
+    name:        w.name,
+    pax:         w.pax,
+    phone:       w.phone      ?? null,
+    notes:       w.notes      ?? null,
+    added_at:    w.addedAt,
+    notified_at: w.notifiedAt ?? null,
+    status:      w.status,
+  };
+}
+function rowToWl(row: any): WaitlistEntry {
+  return {
+    id:         row.id,
+    bizId:      row.biz_id,
+    name:       row.name,
+    pax:        row.pax,
+    phone:      row.phone       ?? undefined,
+    notes:      row.notes       ?? undefined,
+    addedAt:    Number(row.added_at),
+    notifiedAt: row.notified_at != null ? Number(row.notified_at) : undefined,
+    status:     row.status,
+  };
+}
+
 function empShiftToRow(s: EmployeeShift) {
   return {
     id:          s.id,
@@ -285,6 +312,7 @@ export async function pushAllLocalToCloud(): Promise<void> {
     ...s.employees.map(e      => p(supabase!.from('employees').upsert(empToRow(e)))),
     ...s.employeeRoles.map(r  => p(supabase!.from('employee_roles').upsert(roleToRow(r)))),
     ...s.employeeShifts.map(sh => p(supabase!.from('employee_shifts').upsert(empShiftToRow(sh)))),
+    ...s.waitlist.map(w      => p(supabase!.from('waitlist').upsert(wlToRow(w)))),
     ...Object.entries(s.floorPlans).map(([bizId, plan]) =>
       p(supabase!.from('floor_plans').upsert({ biz_id: bizId, data: plan }))),
   ];
@@ -305,6 +333,7 @@ function sliceSignature(s: {
   employees: Employee[];
   employeeRoles: EmployeeRole[];
   employeeShifts: EmployeeShift[];
+  waitlist: WaitlistEntry[];
 }): string {
   const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   const j = (arr: Array<{ id: string }>) => JSON.stringify([...arr].sort(byId));
@@ -314,7 +343,7 @@ function sliceSignature(s: {
   );
   return [
     j(s.reservations), j(s.customers), fp, j(s.shiftNotes), j(s.appEvents),
-    j(s.employees), j(s.employeeRoles), j(s.employeeShifts),
+    j(s.employees), j(s.employeeRoles), j(s.employeeShifts), j(s.waitlist),
   ].join('§');
 }
 
@@ -331,7 +360,7 @@ export async function bootstrapFromCloud(opts?: { silent?: boolean }): Promise<b
   if (!silent) setStatus('syncing');
 
   try {
-    const [resR, custR, fpR, snR, aeR, empR, roleR, empShR] = await Promise.all([
+    const [resR, custR, fpR, snR, aeR, empR, roleR, empShR, wlR] = await Promise.all([
       supabase!.from('reservations').select('*'),
       supabase!.from('customers').select('*'),
       supabase!.from('floor_plans').select('*'),
@@ -340,6 +369,7 @@ export async function bootstrapFromCloud(opts?: { silent?: boolean }): Promise<b
       supabase!.from('employees').select('*'),
       supabase!.from('employee_roles').select('*'),
       supabase!.from('employee_shifts').select('*'),
+      supabase!.from('waitlist').select('*'),
     ]);
 
     const { useAppStore } = await import('@/store/useAppStore');
@@ -428,6 +458,7 @@ export async function bootstrapFromCloud(opts?: { silent?: boolean }): Promise<b
       employees:     (empR.data   ?? []).map(rowToEmp),
       employeeRoles: (roleR.data  ?? []).map(rowToRole),
       employeeShifts:(empShR.data ?? []).map(rowToEmpShift),
+      waitlist:      (wlR.data     ?? []).map(rowToWl),
     };
 
     // Skip the setState (and the cascade of re-renders) when the freshly
@@ -444,6 +475,7 @@ export async function bootstrapFromCloud(opts?: { silent?: boolean }): Promise<b
       employees:     local.employees,
       employeeRoles: local.employeeRoles,
       employeeShifts:local.employeeShifts,
+      waitlist:      local.waitlist,
     });
     const nextSig = sliceSignature(nextSlices);
     if (curSig === nextSig) {
@@ -467,7 +499,7 @@ type PushTable =
   | 'reservations' | 'customers' | 'floor_plans'
   | 'shift_notes'  | 'app_events'
   | 'employees'    | 'employee_roles' | 'employee_shifts'
-  | 'biz_settings';
+  | 'waitlist'     | 'biz_settings';
 
 export function push(table: PushTable, action: 'upsert' | 'delete', payload: any): void {
   // Record the local mutation so the polling fallback won't overwrite this
@@ -514,6 +546,8 @@ export const cloud = {
   deleteRole:         (id: string)        => push('employee_roles', 'delete', id),
   upsertEmpShift:     (s: EmployeeShift)  => push('employee_shifts','upsert', empShiftToRow(s)),
   deleteEmpShift:     (id: string)        => push('employee_shifts','delete', id),
+  upsertWaitlist:     (w: WaitlistEntry)  => push('waitlist',        'upsert', wlToRow(w)),
+  deleteWaitlist:     (id: string)        => push('waitlist',        'delete', id),
   upsertBizSettings:  (bizId: string, cfg: BusinessConfig, hours: BusinessHours,
                         shifts: BizShift[], notif: NotifConfig) =>
     push('biz_settings', 'upsert', { biz_id: bizId, config: cfg, hours, shifts, notif }),
@@ -528,6 +562,7 @@ export const cloud = {
 const REALTIME_TABLES = [
   'reservations', 'customers', 'floor_plans', 'shift_notes',
   'app_events', 'employees', 'employee_roles', 'employee_shifts',
+  'waitlist',
 ] as const;
 
 export function subscribeRealtime(): () => void {
@@ -711,6 +746,15 @@ async function applyRealtimeChange(table: string, payload: any) {
       } else {
         const sh = rowToEmpShift(row);
         setState(s => ({ employeeShifts: s.employeeShifts.filter(x => x.id !== sh.id).concat(sh) }));
+      }
+      break;
+    }
+    case 'waitlist': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ waitlist: s.waitlist.filter(x => x.id !== old.id) }));
+      } else {
+        const w = rowToWl(row);
+        setState(s => ({ waitlist: s.waitlist.filter(x => x.id !== w.id).concat(w) }));
       }
       break;
     }

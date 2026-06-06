@@ -540,6 +540,8 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     // ranking system sees them as a (newly-tracked) customer.
     const phone = (e.phone ?? '').trim();
     const name  = e.name.trim();
+    // Captured so we can push the new customer to the cloud after set().
+    let createdCustomer: Customer | null = null;
     set((s) => {
       const next: Partial<typeof s> = { waitlist: [...s.waitlist, entry] };
       if (name && phone) {
@@ -563,20 +565,30 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
             notes:     '',
           };
           next.customers = [...s.customers, newCust];
+          createdCustomer = newCust;
         }
       }
       return next as typeof s;
     });
+    // Cross-device sync: push the new queue entry (and any auto-created
+    // customer) to the cloud so other devices see the walk-in immediately.
+    cloud.upsertWaitlist(entry);
+    if (createdCustomer) cloud.upsertCustomer(createdCustomer);
   },
   removeFromWaitlist: (id) => {
     set((s) => ({ waitlist: s.waitlist.filter(w => w.id !== id) }));
+    cloud.deleteWaitlist(id);
   },
   notifyWaitlist: (id) => {
+    let updated: WaitlistEntry | undefined;
     set((s) => ({
-      waitlist: s.waitlist.map(w =>
-        w.id === id ? { ...w, status: 'notified' as const, notifiedAt: Date.now() } : w
-      ),
+      waitlist: s.waitlist.map(w => {
+        if (w.id !== id) return w;
+        updated = { ...w, status: 'notified' as const, notifiedAt: Date.now() };
+        return updated;
+      }),
     }));
+    if (updated) cloud.upsertWaitlist(updated);
   },
   seatFromWaitlist: (id) => {
     const entry = get().waitlist.find(w => w.id === id);
@@ -605,6 +617,7 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
     }));
 
     cloud.upsertReservation(newRes);
+    cloud.deleteWaitlist(id);   // remove the queue entry on every device too
     return newRes;
   },
   setMergeModalTable: (v) => set({ mergeModalTable: v }),
