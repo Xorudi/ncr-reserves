@@ -20,6 +20,7 @@ import {
   bootstrapFromCloud,
   subscribeRealtime,
   watchConnectivity,
+  startPollingSync,
 } from '@/lib/cloudSync';
 import { isAuthRequired } from '@/lib/supabase';
 import {
@@ -293,11 +294,16 @@ export default function App() {
     bootstrapFromCloud();
     const stopRealtime     = subscribeRealtime();
     const stopConnectivity = watchConnectivity();
+    // Polling fallback + focus re-sync. Guarantees cross-device convergence
+    // even if Supabase Realtime is misconfigured or the channel silently
+    // dies on unstable restaurant WiFi.
+    const stopPolling      = startPollingSync();
 
     return () => {
       stopBackup();
       stopRealtime();
       stopConnectivity();
+      stopPolling();
     };
   }, [ready]);
 

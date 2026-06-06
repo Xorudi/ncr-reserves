@@ -60,6 +60,22 @@ export function shouldProcessAuthSession(userId: string | null, expiresAt: numbe
   return true;
 }
 
+// ─── Live-sync health tracking ────────────────────────────────────────────────
+// Timestamp of the last local mutation (push). The polling fallback skips a
+// tick if a local change just happened, so it never clobbers an optimistic
+// edit that hasn't round-tripped to the server yet.
+let lastLocalMutationAt = 0;
+export function markLocalMutation(): void { lastLocalMutationAt = Date.now(); }
+
+// Timestamp of the last realtime event we received + whether the channel is
+// believed healthy. Used by the poller to decide how aggressively to refetch
+// and exposed for debugging.
+let lastRealtimeEventAt = 0;
+let realtimeHealthy = false;
+export function getRealtimeHealth(): { healthy: boolean; lastEventAt: number } {
+  return { healthy: realtimeHealthy, lastEventAt: lastRealtimeEventAt };
+}
+
 // ─── Sync status store (tiny, used by UI banner) ──────────────────────────────
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 let _status: SyncStatus = 'idle';
@@ -275,10 +291,44 @@ export async function pushAllLocalToCloud(): Promise<void> {
   await Promise.allSettled(promises);
 }
 
+// ─── State signature ──────────────────────────────────────────────────────────
+// A cheap, order-independent fingerprint of the synced slices. Used to skip
+// a setState (and therefore every downstream re-render) when a refetch returns
+// data identical to what's already in the store. Arrays are sorted by id so
+// cloud row order vs local array order never produces a false "changed".
+function sliceSignature(s: {
+  reservations: Reservation[];
+  customers: Customer[];
+  floorPlans: Record<string, FloorPlan>;
+  shiftNotes: ShiftNote[];
+  appEvents: AppEvent[];
+  employees: Employee[];
+  employeeRoles: EmployeeRole[];
+  employeeShifts: EmployeeShift[];
+}): string {
+  const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  const j = (arr: Array<{ id: string }>) => JSON.stringify([...arr].sort(byId));
+  // floorPlans is an object keyed by bizId → stable key order via sort.
+  const fp = JSON.stringify(
+    Object.keys(s.floorPlans).sort().map(k => [k, s.floorPlans[k]]),
+  );
+  return [
+    j(s.reservations), j(s.customers), fp, j(s.shiftNotes), j(s.appEvents),
+    j(s.employees), j(s.employeeRoles), j(s.employeeShifts),
+  ].join('§');
+}
+
 // ─── Bootstrap: load all data from Supabase ───────────────────────────────────
-export async function bootstrapFromCloud(): Promise<boolean> {
+// opts.silent  → used by the polling fallback: no status-banner flips, no
+//                tableIds re-push, and respects the recent-local-mutation
+//                guard so a poll never overwrites an un-acked optimistic edit.
+export async function bootstrapFromCloud(opts?: { silent?: boolean }): Promise<boolean> {
+  const silent = opts?.silent ?? false;
   if (!isCloudAvailable()) return false;
-  setStatus('syncing');
+  // Don't clobber an optimistic local change that may not have round-tripped
+  // to the server yet (only relevant for background polls).
+  if (silent && Date.now() - lastLocalMutationAt < 4000) return false;
+  if (!silent) setStatus('syncing');
 
   try {
     const [resR, custR, fpR, snR, aeR, empR, roleR, empShR] = await Promise.all([
@@ -311,7 +361,10 @@ export async function bootstrapFromCloud(): Promise<boolean> {
 
     if (cloudTotal === 0 && localTotal > 0) {
       // Cloud is empty but device has data → this is the first device connecting.
-      // Push local state up so other devices can sync from it.
+      // Push local state up so other devices can sync from it. Never do this
+      // from a background poll (silent) — only the explicit initial bootstrap
+      // should seed the cloud.
+      if (silent) return false;
       slog('Cloud empty, pushing local data to cloud…');
       await pushAllLocalToCloud();
       setStatus('synced');
@@ -339,7 +392,9 @@ export async function bootstrapFromCloud(): Promise<boolean> {
     // "Pushing 120 local tableIds" log multiple times even though the
     // assignments hadn't changed — bootstrap was re-firing on every
     // SIGNED_IN echo, so the same payload kept going up.
-    const toSync = mergedReservations.filter(r => r.tableIds && r.tableIds.length > 0 && localTableIds[r.id]);
+    const toSync = silent
+      ? []
+      : mergedReservations.filter(r => r.tableIds && r.tableIds.length > 0 && localTableIds[r.id]);
     if (toSync.length > 0) {
       // Cheap content hash: id + tableIds joined. Sorted so identical
       // contents always produce the same string regardless of order.
@@ -364,7 +419,7 @@ export async function bootstrapFromCloud(): Promise<boolean> {
       cloudFloorPlans[row.biz_id] = row.data as FloorPlan;
     }
 
-    useAppStore.setState({
+    const nextSlices = {
       reservations:  mergedReservations,
       customers:     (custR.data  ?? []).map(rowToCust),
       floorPlans:    cloudFloorPlans,
@@ -373,13 +428,36 @@ export async function bootstrapFromCloud(): Promise<boolean> {
       employees:     (empR.data   ?? []).map(rowToEmp),
       employeeRoles: (roleR.data  ?? []).map(rowToRole),
       employeeShifts:(empShR.data ?? []).map(rowToEmpShift),
-    });
+    };
 
-    setStatus('synced');
+    // Skip the setState (and the cascade of re-renders) when the freshly
+    // fetched cloud state is byte-identical to what's already in the store.
+    // This is what makes a 15 s polling fallback essentially free: a quiet
+    // poll on an unchanged service does zero React work. Order-independent
+    // (slices sorted by id inside the signature).
+    const curSig  = sliceSignature({
+      reservations:  local.reservations,
+      customers:     local.customers,
+      floorPlans:    local.floorPlans,
+      shiftNotes:    local.shiftNotes,
+      appEvents:     local.appEvents,
+      employees:     local.employees,
+      employeeRoles: local.employeeRoles,
+      employeeShifts:local.employeeShifts,
+    });
+    const nextSig = sliceSignature(nextSlices);
+    if (curSig === nextSig) {
+      if (!silent) setStatus('synced');
+      return true;
+    }
+
+    useAppStore.setState(nextSlices);
+
+    if (!silent) setStatus('synced');
     return true;
   } catch (err) {
     console.error('[CloudSync] bootstrap failed:', err);
-    setStatus('error');
+    if (!silent) setStatus('error');
     return false;
   }
 }
@@ -392,6 +470,9 @@ type PushTable =
   | 'biz_settings';
 
 export function push(table: PushTable, action: 'upsert' | 'delete', payload: any): void {
+  // Record the local mutation so the polling fallback won't overwrite this
+  // optimistic edit before its push has round-tripped.
+  markLocalMutation();
   if (!isCloudAvailable()) {
     queueOffline(table, action, payload);
     return;
@@ -439,27 +520,120 @@ export const cloud = {
 };
 
 // ─── Realtime: listen for changes from other devices ─────────────────────────
+// Hardened for unstable restaurant WiFi: the channel reports its status and
+// auto-resubscribes with backoff if Supabase drops it (CHANNEL_ERROR /
+// TIMED_OUT / CLOSED). On every successful (re)subscribe we run one silent
+// bootstrap so a device that was disconnected catches up on whatever it
+// missed while the channel was down.
+const REALTIME_TABLES = [
+  'reservations', 'customers', 'floor_plans', 'shift_notes',
+  'app_events', 'employees', 'employee_roles', 'employee_shifts',
+] as const;
+
 export function subscribeRealtime(): () => void {
   if (!supabase) return () => {};
-  const sb = supabase; // narrow to non-null for the cleanup closure
+  const sb = supabase; // narrow to non-null for the cleanup closures
 
-  const channel = sb
-    .channel('ncr-global-sync')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' },
-      payload => applyRealtimeChange('reservations', payload))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },
-      payload => applyRealtimeChange('customers', payload))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'floor_plans' },
-      payload => applyRealtimeChange('floor_plans', payload))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'shift_notes' },
-      payload => applyRealtimeChange('shift_notes', payload))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_events' },
-      payload => applyRealtimeChange('app_events', payload))
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' },
-      payload => applyRealtimeChange('employees', payload))
-    .subscribe();
+  let channel: ReturnType<typeof sb.channel> | null = null;
+  let disposed = false;
+  let retryTimer = 0;
+  let retryDelay = 1000; // backoff, capped at 15 s
 
-  return () => { sb.removeChannel(channel); };
+  const open = () => {
+    if (disposed) return;
+    let ch = sb.channel('ncr-global-sync');
+    for (const table of REALTIME_TABLES) {
+      ch = ch.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table },
+        payload => {
+          lastRealtimeEventAt = Date.now();
+          applyRealtimeChange(table, payload);
+        },
+      );
+    }
+    channel = ch.subscribe((status) => {
+      if (disposed) return;
+      if (status === 'SUBSCRIBED') {
+        realtimeHealthy = true;
+        retryDelay = 1000; // reset backoff
+        slog('realtime SUBSCRIBED');
+        // Catch up on anything missed while we were (re)connecting.
+        bootstrapFromCloud({ silent: true });
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        realtimeHealthy = false;
+        slog(`realtime ${status} → reconnecting in ${retryDelay}ms`);
+        // Tear down and re-open with exponential backoff (capped).
+        if (channel) { try { sb.removeChannel(channel); } catch { /* ignore */ } channel = null; }
+        window.clearTimeout(retryTimer);
+        retryTimer = window.setTimeout(open, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 15000);
+      }
+    });
+  };
+
+  open();
+
+  return () => {
+    disposed = true;
+    realtimeHealthy = false;
+    window.clearTimeout(retryTimer);
+    if (channel) { try { sb.removeChannel(channel); } catch { /* ignore */ } channel = null; }
+  };
+}
+
+// ─── Polling fallback + focus re-sync ─────────────────────────────────────────
+// The guarantee layer: even if Supabase Realtime is misconfigured (table not
+// in the `supabase_realtime` publication) or silently dies, every visible
+// device re-fetches on an interval and converges. Cheap because:
+//   • only runs when the tab is visible,
+//   • skips if a local mutation just happened (no clobber),
+//   • the signature check inside bootstrap means an unchanged service does
+//     zero React work,
+//   • backs off to a slow interval while realtime is proven healthy.
+// Also re-syncs immediately on visibilitychange/focus so waking a device
+// (or returning to the tab) shows fresh data at once.
+export function startPollingSync(baseIntervalMs = 15000): () => void {
+  if (!supabase) return () => {};
+  let timer = 0;
+  let stopped = false;
+
+  const tick = async () => {
+    if (stopped) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    if (!isCloudAvailable()) return;
+    await bootstrapFromCloud({ silent: true });
+  };
+
+  const schedule = () => {
+    window.clearTimeout(timer);
+    // When realtime is healthy AND recently active, we can poll slowly (a pure
+    // safety net). When it's unhealthy/quiet, poll at the base cadence so a
+    // broken channel still converges quickly.
+    const realtimeFresh = realtimeHealthy && (Date.now() - lastRealtimeEventAt < 60000);
+    const interval = realtimeFresh ? baseIntervalMs * 4 : baseIntervalMs;
+    timer = window.setTimeout(async () => {
+      await tick();
+      schedule();
+    }, interval);
+  };
+
+  // Immediate re-sync when the device wakes / the tab regains focus.
+  const onWake = () => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    tick();
+  };
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onWake);
+  window.addEventListener('focus', onWake);
+
+  schedule();
+
+  return () => {
+    stopped = true;
+    window.clearTimeout(timer);
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onWake);
+    window.removeEventListener('focus', onWake);
+  };
 }
 
 async function applyRealtimeChange(table: string, payload: any) {
@@ -519,6 +693,24 @@ async function applyRealtimeChange(table: string, payload: any) {
       } else {
         const e = rowToEmp(row);
         setState(s => ({ employees: s.employees.filter(x => x.id !== e.id).concat(e) }));
+      }
+      break;
+    }
+    case 'employee_roles': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ employeeRoles: s.employeeRoles.filter(x => x.id !== old.id) }));
+      } else {
+        const r = rowToRole(row);
+        setState(s => ({ employeeRoles: s.employeeRoles.filter(x => x.id !== r.id).concat(r) }));
+      }
+      break;
+    }
+    case 'employee_shifts': {
+      if (eventType === 'DELETE') {
+        setState(s => ({ employeeShifts: s.employeeShifts.filter(x => x.id !== old.id) }));
+      } else {
+        const sh = rowToEmpShift(row);
+        setState(s => ({ employeeShifts: s.employeeShifts.filter(x => x.id !== sh.id).concat(sh) }));
       }
       break;
     }

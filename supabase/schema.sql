@@ -150,6 +150,34 @@ alter table employee_roles  replica identity full;
 alter table employee_shifts replica identity full;
 
 -- ============================================================
+-- REALTIME PUBLICATION  ← CRITICAL for cross-device sync
+-- Without adding each table to the `supabase_realtime` publication,
+-- Supabase emits NO postgres_changes events and devices never see each
+-- other's changes in real time (they only catch up on reload). Run this
+-- once against the project. `add table` errors if the table is already a
+-- member, so we guard each one in a DO block that swallows the duplicate.
+-- ============================================================
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'reservations','customers','floor_plans','shift_notes','app_events',
+    'biz_settings','employees','employee_roles','employee_shifts'
+  ] loop
+    begin
+      execute format('alter publication supabase_realtime add table %I', t);
+    exception
+      when duplicate_object then null;  -- already in the publication
+      when undefined_object then
+        -- publication doesn't exist yet (fresh project) → create it empty,
+        -- then retry adding this table.
+        create publication supabase_realtime;
+        execute format('alter publication supabase_realtime add table %I', t);
+    end;
+  end loop;
+end $$;
+
+-- ============================================================
 -- Row-Level Security
 -- Temporary: allow all authenticated + anon reads and writes.
 -- Replace with proper policies once you add user auth.
