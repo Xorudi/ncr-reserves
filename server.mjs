@@ -131,7 +131,10 @@ async function handler(req, res) {
 
     const buf = await readFile(target);
     res.setHeader('Content-Type', mime);
-    if (isShell || ext === '.html') {
+    const base = target.slice(target.lastIndexOf(sep) + 1);
+    if (isShell || ext === '.html' || base === 'sw.js') {
+      // The service worker must never be HTTP-cached, or new versions
+      // (and the freshness logic they carry) would be delayed up to an hour.
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     } else if (target.includes(`${sep}assets${sep}`)) {
       // Vite emits hashed filenames in /assets — safe to cache long.
