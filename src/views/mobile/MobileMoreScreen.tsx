@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate, BUSINESSES } from '@/data/mockData';
@@ -9,8 +9,11 @@ import {
   importBackupFromFile, restoreFromBackup, deleteBackupById,
 } from '@/backup/backupService';
 import { idbGet } from '@/backup/indexedDB';
-import StatsScreen from './StatsScreen';
-import CalendarScreen from './CalendarScreen';
+// Stats + Calendar are the two heaviest sub-screens (~1.5k + ~0.8k lines)
+// and are only reached from the "Més" menu. Code-split them so their JS
+// downloads on first open instead of bloating the More-tab chunk.
+const StatsScreen    = lazy(() => import('./StatsScreen'));
+const CalendarScreen = lazy(() => import('./CalendarScreen'));
 import { signOut } from '@/lib/auth';
 import { isAuthRequired } from '@/lib/supabase';
 import { usePinScope } from '@/store/usePinScope';
@@ -28,14 +31,37 @@ export default function MobileMoreScreen({ onSwitchTab, onOpenNotes, onSwitchUse
   const [sub, setSub] = useState<SubScreen>('menu');
 
   if (sub === 'alerts')   return <AlertsScreen  onBack={() => setSub('menu')} />;
-  if (sub === 'calendar') return <CalendarScreen
-    onBack={() => setSub('menu')}
-    onSwitchToReserves={() => onSwitchTab('reservations')}
-  />;
+  if (sub === 'calendar') return (
+    <Suspense fallback={<SubScreenFallback />}>
+      <CalendarScreen
+        onBack={() => setSub('menu')}
+        onSwitchToReserves={() => onSwitchTab('reservations')}
+      />
+    </Suspense>
+  );
   if (sub === 'backups')  return <MobileBackupScreen onBack={() => setSub('menu')} />;
-  if (sub === 'stats')    return <StatsScreen onBack={() => setSub('menu')} />;
+  if (sub === 'stats')    return (
+    <Suspense fallback={<SubScreenFallback />}>
+      <StatsScreen onBack={() => setSub('menu')} />
+    </Suspense>
+  );
 
   return <MoreMenu onSub={setSub} onSwitchTab={onSwitchTab} onOpenNotes={onOpenNotes} onSwitchUser={onSwitchUser} />;
+}
+
+// Brief spinner shown while a lazily-loaded sub-screen chunk downloads.
+function SubScreenFallback() {
+  return (
+    <div style={{ flex: 1, display: 'grid', placeItems: 'center', minHeight: 240 }}>
+      <div style={{
+        width: 28, height: 28, borderRadius: '50%',
+        border: '3px solid rgba(60,40,20,.12)',
+        borderTopColor: 'var(--terracotta-500, #de7a51)',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 }
 
 // ─── More menu ───────────────────────────────────────────────────────────────

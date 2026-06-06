@@ -179,8 +179,9 @@ end $$;
 
 -- ============================================================
 -- Row-Level Security
--- Temporary: allow all authenticated + anon reads and writes.
--- Replace with proper policies once you add user auth.
+-- Enable RLS on every table → deny-by-default. The actual access
+-- policies (tenant-scoped by biz_ids) are created in
+-- supabase/auth-migration.sql, which MUST be run right after this file.
 -- ============================================================
 alter table reservations    enable row level security;
 alter table customers       enable row level security;
@@ -192,13 +193,19 @@ alter table employees       enable row level security;
 alter table employee_roles  enable row level security;
 alter table employee_shifts enable row level security;
 
--- Allow everything (anon + authenticated)
-create policy "allow_all_reservations"    on reservations    for all using (true) with check (true);
-create policy "allow_all_customers"       on customers       for all using (true) with check (true);
-create policy "allow_all_floor_plans"     on floor_plans     for all using (true) with check (true);
-create policy "allow_all_shift_notes"     on shift_notes     for all using (true) with check (true);
-create policy "allow_all_app_events"      on app_events      for all using (true) with check (true);
-create policy "allow_all_biz_settings"    on biz_settings    for all using (true) with check (true);
-create policy "allow_all_employees"       on employees       for all using (true) with check (true);
-create policy "allow_all_employee_roles"  on employee_roles  for all using (true) with check (true);
-create policy "allow_all_employee_shifts" on employee_shifts for all using (true) with check (true);
+-- ⚠️  SECURITY — NO "allow everything" POLICIES HERE (intentionally).
+--
+-- This file used to create `allow_all_*` policies (USING (true) WITH CHECK
+-- (true)) that let ANY anon/authenticated request read and write EVERY
+-- table. That is catastrophic for a multi-tenant product: re-running this
+-- schema on a fresh project would expose all data to the public.
+--
+-- RLS is ENABLED above, which means each table now DENIES everything by
+-- default until a policy grants access. The tenant-scoped policies
+-- (biz_id = ANY(auth_biz_ids())) live in `supabase/auth-migration.sql`.
+--
+--   ► REQUIRED: run `supabase/auth-migration.sql` immediately after this
+--     file. Until you do, the app cannot read/write (deny-by-default) —
+--     which is the safe failure mode, not the dangerous one.
+--
+-- Do NOT add `using (true)` policies here, even "temporarily".

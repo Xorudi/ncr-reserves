@@ -10,7 +10,7 @@
  * Any fix to a screen, sheet, or picker automatically applies to both.
  * Desktop remains fully independent in DesktopShell.
  */
-import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import DashboardAmbient from '@/components/shared/DashboardAmbient';
 import { useRenderCount } from '@/hooks/usePerf';
@@ -40,11 +40,16 @@ import {
 import type { Employee, EmployeeRole, BusinessId, Reservation } from '@/types';
 
 // ── Touch screens — shared between mobile and tablet ─────────────────────────
+// TodayView (reservations) is the default landing tab → keep it eager so the
+// first paint after unlock is instant. The other four tab screens are
+// code-split via React.lazy: their JS only downloads when the operator first
+// opens that tab, shrinking the initial bundle and speeding cold start on the
+// restaurant iPad/PC.
 import TouchReservationsScreen, { LiveServicePill } from '@/views/mobile/TodayView';
-import TouchTablesScreen       from '@/views/mobile/MobileTablesScreen';
-import TouchWalkInScreen       from '@/views/mobile/MobileWalkInScreen';
-import TouchClientsScreen      from '@/views/mobile/MobileClientsView';
-import TouchMoreScreen         from '@/views/mobile/MobileMoreScreen';
+const TouchTablesScreen  = lazy(() => import('@/views/mobile/MobileTablesScreen'));
+const TouchWalkInScreen  = lazy(() => import('@/views/mobile/MobileWalkInScreen'));
+const TouchClientsScreen = lazy(() => import('@/views/mobile/MobileClientsView'));
+const TouchMoreScreen    = lazy(() => import('@/views/mobile/MobileMoreScreen'));
 
 export type TouchTab = 'reservations' | 'tables' | 'walkin' | 'clients' | 'more';
 
@@ -481,16 +486,20 @@ export default function TouchShell() {
           onOpenNotes={() => setShowNotesSheet(true)}
         />
       )}
-      {tab === 'tables'       && <TouchTablesScreen />}
-      {tab === 'walkin'       && <TouchWalkInScreen onSwitchTab={setTab} />}
-      {tab === 'clients'      && <TouchClientsScreen />}
-      {tab === 'more'         && (
-        <TouchMoreScreen
-          onSwitchTab={setTab}
-          onOpenNotes={() => setShowNotesSheet(true)}
-          onSwitchUser={() => setShowUserPicker(true)}
-        />
-      )}
+      {/* Lazy tab screens — Suspense shows a brief spinner only on the very
+          first open of each (then the chunk is cached for the session). */}
+      <Suspense fallback={<TabLoadingFallback />}>
+        {tab === 'tables'       && <TouchTablesScreen />}
+        {tab === 'walkin'       && <TouchWalkInScreen onSwitchTab={setTab} />}
+        {tab === 'clients'      && <TouchClientsScreen />}
+        {tab === 'more'         && (
+          <TouchMoreScreen
+            onSwitchTab={setTab}
+            onOpenNotes={() => setShowNotesSheet(true)}
+            onSwitchUser={() => setShowUserPicker(true)}
+          />
+        )}
+      </Suspense>
     </div>
   );
 
@@ -1241,6 +1250,23 @@ export default function TouchShell() {
 
 // ─── Mobile nav button — bottom bar, same tactile language as the rail.
 //     At rest: just icon + label. Active: terracotta pill. Press: scale+invert. ──
+// Suspense fallback for lazily-loaded tab screens. Minimal + centered: a
+// brief terracotta spinner shown only the first time each tab's chunk
+// downloads (cached thereafter for the session). Matches the splash spinner.
+function TabLoadingFallback() {
+  return (
+    <div style={{ flex: 1, display: 'grid', placeItems: 'center', minHeight: 200 }}>
+      <div style={{
+        width: 28, height: 28, borderRadius: '50%',
+        border: '3px solid rgba(60,40,20,.12)',
+        borderTopColor: 'var(--terracotta-500, #de7a51)',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 function MobNavBtn({ id, tab, setTab, label, ico }: {
   id: TouchTab; tab: TouchTab; setTab: (t: TouchTab) => void;
   label: string; ico: React.ReactNode;
