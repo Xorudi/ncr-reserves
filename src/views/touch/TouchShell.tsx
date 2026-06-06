@@ -2228,7 +2228,10 @@ const LiveSidePanel = memo(function LiveSidePanel({
           <div style={{
             display: 'flex', alignItems: 'baseline', gap: 6,
             fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
-            color: trend.delta >= 0 ? 'var(--olive-700)' : 'var(--clay-700)',
+            // A below-average day is NOT a problem — show it in a neutral
+            // ink tone, not the amber "attention" clay that read as an alarm.
+            // Above average stays olive (a genuinely notable positive).
+            color: trend.delta >= 0 ? 'var(--olive-700)' : 'var(--ink-700)',
             letterSpacing: -.005,
           }}>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -2240,7 +2243,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
           </div>
           {/* Sparkline of past 4 weeks + today */}
           <Sparkline values={[...trend.past.slice().reverse(), trend.dayCount]}
-                     highlight={trend.delta >= 0 ? 'var(--olive-600)' : 'var(--clay-600)'} />
+                     highlight={trend.delta >= 0 ? 'var(--olive-600)' : 'var(--ink-400)'} />
           <div style={{
             fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 600,
           }}>

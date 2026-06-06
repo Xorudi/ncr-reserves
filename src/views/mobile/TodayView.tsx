@@ -1902,14 +1902,24 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
           </div>
         )}
 
-        {/* Notes preview */}
+        {/* Notes preview — for big-group menu briefs this is real
+            operational info, so it gets a note glyph, higher contrast and
+            up to 2 lines (was a single cramped grey line). Full text lives
+            in the detail sheet. */}
         {r.notes && (
           <div style={{
-            fontSize:12, color:'var(--ink-500)', fontStyle:'italic',
-            marginTop:2, overflow:'hidden', textOverflow:'ellipsis',
-            display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical' as const,
+            display:'flex', alignItems:'flex-start', gap:5, marginTop:3,
           }}>
-            “{r.notes}”
+            <span style={{ flexShrink:0, marginTop:1.5, color:'var(--ink-400)' }}>
+              <Icon d={I.note} size={12} stroke={2} />
+            </span>
+            <span style={{
+              fontSize:12.5, lineHeight:1.35, color:'var(--ink-600)',
+              overflow:'hidden', textOverflow:'ellipsis',
+              display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' as const,
+            }}>
+              {r.notes}
+            </span>
           </div>
         )}
       </div>
