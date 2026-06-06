@@ -770,6 +770,28 @@ body[data-fast-ui="0"] .sheet-backdrop {
 .save-success-out   { animation: save-success-out 280ms var(--ease-out) both; }
 .save-button-pulse  { animation: save-button-pulse 460ms var(--ease-in-out) both; }
 
+/* ── Skeleton shimmer — loading placeholders for the reservation list.
+   A soft highlight sweeps left→right across each box. Cheap (background
+   only). Static tint under reduced motion. */
+.skel-box {
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    rgba(60,40,20,.06) 25%,
+    rgba(60,40,20,.12) 37%,
+    rgba(60,40,20,.06) 63%
+  );
+  background-size: 400% 100%;
+  animation: skel-shimmer 1400ms ease-in-out infinite;
+}
+@keyframes skel-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel-box { animation: none; background: rgba(60,40,20,.08); }
+}
+
 /* ── Row arrived — one-shot glow on a reservation row that just synced in
    from ANOTHER device via realtime. A soft terracotta wash + ring fades
    out over 1.4s so the operator's eye is drawn to what changed without it

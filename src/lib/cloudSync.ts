@@ -98,7 +98,10 @@ export function getRealtimeHealth(): { healthy: boolean; lastEventAt: number } {
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error';
 let _status: SyncStatus = 'idle';
 let _statusListeners: Array<(s: SyncStatus) => void> = [];
-export const onSyncStatus = (fn: (s: SyncStatus) => void) => { _statusListeners.push(fn); };
+export const onSyncStatus = (fn: (s: SyncStatus) => void): (() => void) => {
+  _statusListeners.push(fn);
+  return () => { _statusListeners = _statusListeners.filter(f => f !== fn); };
+};
 const setStatus = (s: SyncStatus) => { _status = s; _statusListeners.forEach(f => f(s)); };
 export const getSyncStatus = () => _status;
 

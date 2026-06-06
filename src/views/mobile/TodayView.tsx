@@ -17,6 +17,8 @@ import { useRenderCount } from '@/hooks/usePerf';
 import { IS_FAST_UI } from '@/lib/uiMode';
 import { Z_INDEX } from '@/lib/zIndex';
 import CountUp from '@/components/shared/CountUp';
+import ResListSkeleton from '@/components/shared/ResListSkeleton';
+import { getSyncStatus, onSyncStatus } from '@/lib/cloudSync';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 
 interface LoyaltyEntry { stats: CustomerStats; rank: number; }
@@ -683,6 +685,16 @@ export default function MobileTodayView({
     window.addEventListener('ncr:res-arrived', onArrived);
     return () => window.removeEventListener('ncr:res-arrived', onArrived);
   }, []);
+  // Initial-load signal: true only until the FIRST successful cloud sync of
+  // this session. Used to show a skeleton (not the "no reservations" empty
+  // state) while a fresh device is still fetching from the cloud.
+  const [syncedOnce, setSyncedOnce] = useState(() => getSyncStatus() === 'synced');
+  useEffect(() => {
+    if (syncedOnce) return;
+    const off = onSyncStatus((s) => { if (s === 'synced') setSyncedOnce(true); });
+    return off;
+  }, [syncedOnce]);
+  const initialLoading = !syncedOnce && getSyncStatus() === 'syncing';
   const dayDirRef             = useRef<'next' | 'prev' | null>(null);
   // Initialize with the current trigger value so a remount (e.g. user
   // navigates away and back to the Reserves tab) doesn't re-fire the sheet
@@ -1390,7 +1402,11 @@ export default function MobileTodayView({
         key={`${dateStr}-${effectiveShift}`}
         className={dayDirRef.current === 'next' ? 'day-next' : dayDirRef.current === 'prev' ? 'day-prev' : 'tab-enter'}
       >
-        {dayRes.length === 0 && (
+        {/* Fresh device still fetching from the cloud → skeleton, not the
+            misleading "no reservations" empty state. */}
+        {dayRes.length === 0 && initialLoading && <ResListSkeleton rows={5} />}
+
+        {dayRes.length === 0 && !initialLoading && (
           <EmptyDayState dateStr={dateStr} effectiveShift={effectiveShift} variant="day" />
         )}
 

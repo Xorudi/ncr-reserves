@@ -33,15 +33,17 @@ export default function SyncBadge() {
   if (!supabase) return null;
 
   useEffect(() => {
-    onSyncStatus((s) => {
+    let hideTimer = 0;
+    const off = onSyncStatus((s) => {
       setStatus(s);
       setVisible(s !== 'idle');
       // Auto-hide "synced" after 4 s
+      window.clearTimeout(hideTimer);
       if (s === 'synced') {
-        const t = setTimeout(() => setVisible(false), 4000);
-        return () => clearTimeout(t);
+        hideTimer = window.setTimeout(() => setVisible(false), 4000);
       }
     });
+    return () => { off(); window.clearTimeout(hideTimer); };
   }, []);
 
   if (!visible || status === 'idle') return null;
