@@ -275,6 +275,24 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
           .da-blob { animation: none; }
           .da-sun  { transition: none; }
         }
+
+        /* ── FAST-UI (touch / restaurant counter PC / modest GPU) ─────
+           The blob orbit re-rasterizes a 48px gaussian blur + blend mode
+           on five large layers EVERY frame, forever — the single biggest
+           sustained compositor cost in the whole app, and it runs on the
+           exact devices least able to afford it. The orbit period is
+           70-110s (visually near-static), so freezing it is imperceptible
+           while it eliminates the continuous GPU load. The warm blobs
+           stay (painted once); only the animation stops. Premium desktops
+           (data-fast-ui="0") keep the live orbit. */
+        body[data-fast-ui="1"] .da-blob {
+          animation: none !important;
+          will-change: auto;
+        }
+        /* A static blur layer is painted once and cached; we can even
+           soften it a touch to cut the one-time raster cost without
+           changing the look. */
+        body[data-fast-ui="1"] .da-blob { filter: blur(40px); }
       `}</style>
     </div>
   );
