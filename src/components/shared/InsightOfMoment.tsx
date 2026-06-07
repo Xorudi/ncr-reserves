@@ -312,6 +312,11 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
           @media (prefers-reduced-motion: reduce) {
             .insight-moment > span[aria-hidden] { animation: none !important; }
           }
+          /* Fast-UI (touch / modest GPU): freeze the breathing glow. The
+             scale animates a blur(20px) layer, the last looping blurred
+             effect on the dashboard. Static glow keeps the premium look at
+             zero per-frame cost. Premium desktops keep it breathing. */
+          body[data-fast-ui="1"] .insight-moment > span[aria-hidden] { animation: none !important; }
         `}</style>
       </div>
       </div>
