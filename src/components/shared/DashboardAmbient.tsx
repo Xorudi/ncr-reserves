@@ -263,12 +263,14 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
            as warm light sources; sun becomes a low ember; grain flips
            to screen so the speckle stays perceptible. */
         html[data-theme="vespre"] .dashboard-ambient {
+          /* Floor lifted (v2): the rim stays warm espresso instead of
+             collapsing toward black — less harsh against cream text. */
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #1e160e 0%, #170f08 60%, #0f0a05 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #221910 0%, #1b140c 60%, #150f08 100%);
         }
         html[data-theme="vespre"] .dashboard-ambient[data-night="true"] {
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #1b130c 0%, #140d07 60%, #0c0703 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #1f160e 0%, #181009 60%, #120c06 100%);
         }
         html[data-theme="vespre"] .da-blob {
           mix-blend-mode: screen;

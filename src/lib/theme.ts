@@ -31,7 +31,7 @@ const VESPRE_FROM_H = 19;
 const VESPRE_TO_H   = 7;
 
 const THEME_COLOR_DAY    = '#F5EFE4';
-const THEME_COLOR_VESPRE = '#171109';
+const THEME_COLOR_VESPRE = '#1b140c';
 
 export function getThemeMode(): ThemeMode {
   try {

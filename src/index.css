@@ -2,8 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Design tokens ─── */
-:root {
+/* ─── Design tokens ───
+   `.theme-llum` re-declares the full day palette so a subtree can opt out
+   of mode vespre (custom properties resolve at the nearest ancestor that
+   declares them). Used by the PIN lock screen, whose atmosphere is
+   designed on the day palette and must not invert at night. */
+:root, .theme-llum {
   --ink-900: #241d17;
   --ink-800: #3a2e24;
   --ink-700: #564537;
@@ -146,18 +150,21 @@
 html[data-theme="vespre"] {
   color-scheme: dark;
 
-  --ink-900: #f2eadc;
-  --ink-800: #e2d6c2;
-  --ink-700: #c7b89e;
-  --ink-600: #a3937a;
-  --ink-500: #857662;
-  --ink-400: #685b49;
-  --ink-300: #4e4336;
-  --ink-200: #3a3128;
-  --ink-100: #2c241c;
-  --ink-50:  #231c15;
-  --cream:   #1d1610;
-  --paper:   #271e15;
+  /* Readability tuning (v2): max ink softened one step and the mid tones
+     lifted two — small text clears ~4.5:1 on elevated surfaces and the
+     jump between serif headlines and secondary copy stops being harsh. */
+  --ink-900: #f0e6d6;
+  --ink-800: #ded2bd;
+  --ink-700: #c6b89f;
+  --ink-600: #ab9a7c;
+  --ink-500: #998871;
+  --ink-400: #75684f;
+  --ink-300: #574a3b;
+  --ink-200: #41362b;
+  --ink-100: #322920;
+  --ink-50:  #281f17;
+  --cream:   #221a11;
+  --paper:   #2b2116;
 
   --terracotta-700: #e89a6f;
   --terracotta-600: #de7a51;
@@ -192,7 +199,7 @@ html[data-theme="vespre"] {
   --rose-100: #44211f;
   --rose-50:  #371c1b;
 
-  --state-cancelled-bg: #2a221b;
+  --state-cancelled-bg: #2e251c;
 
   --sh-1: 0 1px 2px rgba(0,0,0,.30), 0 1px 1px rgba(0,0,0,.22);
   --sh-2: 0 2px 6px rgba(0,0,0,.34), 0 1px 2px rgba(0,0,0,.24);
@@ -201,11 +208,14 @@ html[data-theme="vespre"] {
   --hair:        1px solid rgba(242,234,220,.08);
   --hair-strong: 1px solid rgba(242,234,220,.15);
 
-  --surface-app:       #171109;
-  --surface-rail:      #120d08;
-  --surface-base:      #1b140c;
-  --surface-elevated:  #271e15;
-  --surface-floating:  rgba(39,30,21,.88);
+  /* Surfaces lifted (v2): the floor never approaches black, and elevated
+     sits two visible steps above base so cards separate by surface, not
+     by text contrast alone. */
+  --surface-app:       #1b140c;
+  --surface-rail:      #161009;
+  --surface-base:      #20180f;
+  --surface-elevated:  #2b2116;
+  --surface-floating:  rgba(43,33,22,.90);
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,.28);
   --shadow-md: 0 2px 6px rgba(0,0,0,.32),
@@ -221,11 +231,11 @@ html[data-theme="vespre"] {
   --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.05);
   --shadow-ring: 0 0 0 1px rgba(242,234,220,.06);
 
-  --glass-soft:          rgba(28,21,14,.60);
-  --glass-strong:        rgba(28,21,14,.80);
-  --glass-opaque-soft:   rgba(24,18,12,.94);
-  --glass-opaque-strong: rgba(24,18,12,.97);
-  --glass-edge: inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.04);
+  --glass-soft:          rgba(34,26,17,.60);
+  --glass-strong:        rgba(34,26,17,.82);
+  --glass-opaque-soft:   rgba(30,23,15,.94);
+  --glass-opaque-strong: rgba(30,23,15,.97);
+  --glass-edge: inset 0 -1px 0 rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.04);
 }
 
 /* The day canvas paints warm radials on the body; at night they'd read as

@@ -399,7 +399,12 @@ export default function PinLockView() {
 
   return (
     <div
-      className={`pin-lock-wrap ${bookOpening ? 'pin-lock-wrap--opening' : ''}`}
+      // theme-llum: the lock screen carries its own self-contained
+      // atmosphere designed on the day palette. Re-declaring the day
+      // tokens at this subtree root makes it immune to mode vespre —
+      // otherwise the inverted ink tokens paint cream digits on the
+      // cream keypad (unreadable mix).
+      className={`pin-lock-wrap theme-llum ${bookOpening ? 'pin-lock-wrap--opening' : ''}`}
       data-open-biz={openingBiz ?? ''}
       data-keypad={keypadOpen ? 'open' : 'closed'}
     >
