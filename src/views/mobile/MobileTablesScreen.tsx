@@ -173,10 +173,10 @@ export default function MobileTablesScreen() {
       {/* Date header — glass material on top of the canvas */}
       <div style={{
         padding:'10px 14px 8px',
-        background: IS_FAST_UI ? 'rgba(253,249,242,.94)' : 'rgba(255,255,255,.55)',
+        background: IS_FAST_UI ? 'var(--glass-opaque-soft)' : 'var(--glass-soft)',
         WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
         backdropFilter:       IS_FAST_UI ? 'none' : 'blur(12px)',
-        boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06)',
+        boxShadow: 'var(--glass-edge)',
         flexShrink:0, display:'flex', alignItems:'center', gap:8,
         position: 'relative', zIndex: 5,
       }}>

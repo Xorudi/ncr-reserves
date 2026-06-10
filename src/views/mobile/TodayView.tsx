@@ -171,7 +171,7 @@ function SwipeableRow({
           display:'inline-flex', alignItems:'center', gap:6,
           color: forwardColor.fg, fontWeight:700, fontSize:13,
           padding:'4px 10px', borderRadius:999,
-          background:'rgba(255,255,255,.6)',
+          background:'var(--glass-strong)',
           border:`1px solid ${forwardColor.ring}`,
         }}>
           <Icon d={I.check} size={13} stroke={2.4} />
@@ -193,7 +193,7 @@ function SwipeableRow({
             display:'inline-flex', alignItems:'center', gap:6,
             color: bwdColor.fg, fontWeight:700, fontSize:13,
             padding:'4px 10px', borderRadius:999,
-            background:'rgba(255,255,255,.6)',
+            background:'var(--glass-strong)',
             border:`1px solid ${bwdColor.ring}`,
           }}>
             {backwardLabel ?? 'No-show'}
@@ -1074,10 +1074,10 @@ export default function MobileTodayView({
             style={{
               position: 'sticky', top: 0, zIndex: 6,
               padding: '6px 14px',
-              background: IS_FAST_UI ? 'rgba(253,249,242,.97)' : 'rgba(253,249,242,.86)',
+              background: IS_FAST_UI ? 'var(--glass-opaque-strong)' : 'var(--glass-strong)',
               WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(10px)',
               backdropFilter:       IS_FAST_UI ? 'none' : 'blur(10px)',
-              boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06)',
+              boxShadow: 'var(--glass-edge)',
               display: 'flex', alignItems: 'center', gap: 8,
               fontSize: 11.5, fontWeight: 600,
               opacity: scrolled ? 1 : 0,

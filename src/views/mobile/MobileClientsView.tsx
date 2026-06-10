@@ -674,7 +674,7 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
                 </div>
               )}
             </div>
-            <div style={{ height:6, borderRadius:3, background:'rgba(255,255,255,.6)', overflow:'hidden' }}>
+            <div style={{ height:6, borderRadius:3, background:'var(--glass-strong)', overflow:'hidden' }}>
               <div style={{ height:'100%', width:`${fidelity.progressPct}%`, background: fidelity.level.color, transition:'width 320ms ease' }} />
             </div>
             <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:10 }}>

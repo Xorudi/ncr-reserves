@@ -238,6 +238,21 @@ html[data-theme="vespre"] {
   --glass-edge: inset 0 -1px 0 rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.04);
 }
 
+/* Functional text lift — light-on-dark halation makes glyphs read thinner
+   than they are, so small labels feel washed out mid-service. A 1px
+   same-color halo restores perceived stroke weight without raising
+   luminance: text reads CRISPER, not brighter. text-shadow inherits, so
+   one declaration covers the whole app. */
+html[data-theme="vespre"] body {
+  text-shadow: 0 0 1px rgba(240,230,214,.26);
+}
+/* …but never inside day-palette islands (PIN lock screen): a cream halo
+   around dark glyphs would look like smudged ink. */
+html[data-theme="vespre"] .theme-llum,
+html[data-theme="vespre"] .theme-llum * {
+  text-shadow: none;
+}
+
 /* The day canvas paints warm radials on the body; at night they'd read as
    stains. Swap for a single deep ember glow at the top edge — the room at
    service, lit from the pass. */
