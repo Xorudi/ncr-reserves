@@ -21,6 +21,8 @@
  * theme is correct before React's first paint — no light flash.
  */
 
+import { useSyncExternalStore } from 'react';
+
 export type ThemeMode = 'auto' | 'llum' | 'vespre';
 
 const STORAGE_KEY = 'ncr-theme-mode';
@@ -71,6 +73,17 @@ export function applyTheme(): void {
 export function onThemeChange(cb: () => void): () => void {
   window.addEventListener(EVENT, cb);
   return () => window.removeEventListener(EVENT, cb);
+}
+
+/** React hook — re-renders when the RESOLVED theme flips (manual toggle
+ *  or the 19:00 auto crossover). Use for inline styles that can't read
+ *  CSS variables, e.g. per-business brand tints. */
+export function useResolvedTheme(): 'llum' | 'vespre' {
+  return useSyncExternalStore(
+    onThemeChange,
+    resolveTheme,
+    () => 'llum' as const,
+  );
 }
 
 // ── Self-init ────────────────────────────────────────────────────────────────

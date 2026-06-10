@@ -24,10 +24,9 @@ import { getThemeMode, setThemeMode, onThemeChange, type ThemeMode } from '@/lib
 
 type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats';
 
-export default function MobileMoreScreen({ onSwitchTab, onOpenNotes, onSwitchUser }: {
+export default function MobileMoreScreen({ onSwitchTab, onOpenNotes }: {
   onSwitchTab: (tab: MobileTab) => void;
   onOpenNotes?: () => void;
-  onSwitchUser?: () => void;
 }) {
   const [sub, setSub] = useState<SubScreen>('menu');
 
@@ -47,7 +46,7 @@ export default function MobileMoreScreen({ onSwitchTab, onOpenNotes, onSwitchUse
     </Suspense>
   );
 
-  return <MoreMenu onSub={setSub} onSwitchTab={onSwitchTab} onOpenNotes={onOpenNotes} onSwitchUser={onSwitchUser} />;
+  return <MoreMenu onSub={setSub} onSwitchTab={onSwitchTab} onOpenNotes={onOpenNotes} />;
 }
 
 // Brief spinner shown while a lazily-loaded sub-screen chunk downloads.
@@ -66,14 +65,13 @@ function SubScreenFallback() {
 }
 
 // ─── More menu ───────────────────────────────────────────────────────────────
-function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
+function MoreMenu({ onSub, onSwitchTab, onOpenNotes }: {
   onSub: (s: SubScreen) => void;
   onSwitchTab: (tab: MobileTab) => void;
   onOpenNotes?: () => void;
-  onSwitchUser?: () => void;
 }) {
   const {
-    selectedBusiness, employees, employeeRoles, activeEmployeeId,
+    selectedBusiness,
     reservations, shiftNotes, appEvents, selectedDate,
     waitlist, setShowWaitlist,
   } = useAppStore();
@@ -82,9 +80,6 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
   // window.confirm() dialog so the kiosk feel never breaks.
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const biz     = BUSINESSES.find(b => b.id === selectedBusiness)!;
-  const emp     = employees.find(e => e.id === activeEmployeeId) ?? null;
-  const roleMap = Object.fromEntries(employeeRoles.map(r => [r.id, r]));
-  const role    = emp ? roleMap[emp.roleId] : null;
 
   // Live counts for menu badges
   const todayIso     = isoDate(selectedDate);
@@ -250,99 +245,6 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
           Operacions, dades i configuració
         </div>
       </div>
-
-      {/* User + biz card */}
-      {emp ? (
-        <button onClick={() => onSwitchUser?.()} className="press"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '14px 14px', borderRadius: 16,
-            background: `linear-gradient(180deg, ${biz.hueSoft} 0%, var(--paper) 70%)`,
-            border: `1px solid ${biz.hue}22`,
-            marginBottom: 20, width: '100%',
-            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-            boxShadow: `0 2px 8px ${biz.hue}14`,
-          }}>
-          <span style={{
-            position: 'relative',
-            width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-            background: role?.color ?? 'var(--terracotta-50)',
-            color: role?.textColor ?? 'var(--terracotta-700)',
-            display: 'grid', placeItems: 'center',
-            fontFamily: 'var(--font-serif)', fontWeight: 500, fontSize: 17,
-            boxShadow: emp.clockedIn ? '0 0 0 2px var(--olive-500)' : 'none',
-          }}>
-            {emp.initials}
-            {emp.clockedIn && (
-              <span style={{
-                position: 'absolute', bottom: -2, right: -2,
-                width: 13, height: 13, borderRadius: 999,
-                background: 'var(--olive-600)',
-                border: '2px solid var(--paper)',
-              }} />
-            )}
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500,
-              color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
-            }}>
-              {emp.fullName}
-            </div>
-            <div style={{
-              fontSize: 10.5, color: 'var(--ink-500)', fontWeight: 600,
-              letterSpacing: .06, textTransform: 'uppercase', marginTop: 4,
-              fontFamily: 'var(--font-mono)',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-            }}>
-              {role && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
-                  background: role.color, color: role.textColor,
-                }}>{role.name}</span>
-              )}
-              <span style={{ color: biz.hue, opacity: .85 }}>{biz.name}</span>
-            </div>
-          </div>
-          <span style={{
-            fontSize: 11, color: 'var(--ink-500)', fontWeight: 700,
-            letterSpacing: .04,
-            display: 'inline-flex', alignItems: 'center', gap: 4,
-          }}>
-            Canviar
-            <Icon d={I.chevR} size={13} />
-          </span>
-        </button>
-      ) : (
-        <button onClick={() => onSwitchUser?.()} className="press"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '14px 16px', borderRadius: 16,
-            background: 'var(--paper)',
-            border: '1px dashed rgba(60,40,20,.20)',
-            marginBottom: 20, width: '100%',
-            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-            color: 'var(--ink-500)',
-          }}>
-          <span style={{
-            width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-            background: 'var(--ink-100)', color: 'var(--ink-500)',
-            display: 'grid', placeItems: 'center',
-          }}>
-            <Icon d={I.users} size={18} />
-          </span>
-          <div style={{ flex: 1 }}>
-            <div style={{
-              fontFamily: 'var(--font-serif)', fontSize: 15, fontWeight: 500,
-              color: 'var(--ink-700)',
-            }}>Cap usuari fitxat</div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-500)', marginTop: 2 }}>
-              Toca per fitxar · {biz.name}
-            </div>
-          </div>
-          <Icon d={I.chevR} size={14} />
-        </button>
-      )}
 
       {/* Operational group */}
       {/* Install hint — only when NOT yet installed as a PWA. iOS Safari

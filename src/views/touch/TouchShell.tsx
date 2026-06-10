@@ -39,6 +39,17 @@ import {
   type WeatherForecast, type WxCondition,
 } from '@/lib/weather';
 import type { Employee, EmployeeRole, BusinessId, Reservation } from '@/types';
+import { useResolvedTheme } from '@/lib/theme';
+
+/** Per-business brand tile tints for mode vespre — a deep wash of each
+ *  local's hue with a light monogram, matched to the vespre accent ramps.
+ *  The day values stay in BUSINESSES (hueSoft/hue); these are their
+ *  after-dark equivalents so the brand tiles stop glowing on espresso. */
+const BIZ_TILE_DARK: Record<BusinessId, { bg: string; fg: string }> = {
+  ganxo:   { bg: '#3a2114', fg: '#e69d75' },
+  pista:   { bg: '#262d15', fg: '#b2c285' },
+  esquitx: { bg: '#16313c', fg: '#8fc5db' },
+};
 
 // ── Touch screens — shared between mobile and tablet ─────────────────────────
 // TodayView (reservations) is the default landing tab → keep it eager so the
@@ -94,7 +105,6 @@ const RAIL_ENTRIES: RailEntry[] = [
 export default function TouchShell() {
   const [tab, setTab]                       = useState<TouchTab>('reservations');
   const [showBizPicker,  setShowBizPicker]  = useState(false);
-  const [showUserPicker, setShowUserPicker] = useState(false);
   const [showNotesSheet, setShowNotesSheet] = useState(false);
   const [showSearch,     setShowSearch]     = useState(false);
   const [showBriefing,   setShowBriefing]   = useState(false);
@@ -147,10 +157,6 @@ export default function TouchShell() {
   // (e.g. a different business's reservations) was mutated.
   const selectedBusiness    = useAppStore(s => s.selectedBusiness);
   const setSelectedBusiness = useAppStore(s => s.setSelectedBusiness);
-  const employees           = useAppStore(s => s.employees);
-  const employeeRoles       = useAppStore(s => s.employeeRoles);
-  const activeEmployeeId    = useAppStore(s => s.activeEmployeeId);
-  const setActiveEmployee   = useAppStore(s => s.setActiveEmployee);
   const selectedDate        = useAppStore(s => s.selectedDate);
   const setSelectedDate     = useAppStore(s => s.setSelectedDate);
   const reservations        = useAppStore(s => s.reservations);
@@ -251,7 +257,7 @@ export default function TouchShell() {
   const railWide = isLargeScreen;
   const visibleBusinesses = useVisibleBusinesses();
   const biz       = BUSINESSES.find(b => b.id === selectedBusiness)!;
-  const activeEmp = employees.find(e => e.id === activeEmployeeId) ?? null;
+  const resolvedTheme = useResolvedTheme();
 
   // ── Day-aware metrics + shift detection ─────────────────────────────────
   const dayIso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,'0')}-${String(selectedDate.getDate()).padStart(2,'0')}`;
@@ -497,7 +503,6 @@ export default function TouchShell() {
           <TouchMoreScreen
             onSwitchTab={setTab}
             onOpenNotes={() => setShowNotesSheet(true)}
-            onSwitchUser={() => setShowUserPicker(true)}
           />
         )}
       </Suspense>
@@ -505,9 +510,7 @@ export default function TouchShell() {
   );
 
   // ── Shared: animated picker sheets ────────────────────────────────────────
-  // Lazy-mount: BizPickerSheet and UserPickerSheet were always rendered,
-  // running their useState/useEffect/sub-mounts even when invisible.
-  // Each is now gated on its open flag so the sub-tree (and its data
+  // Lazy-mount: gated on the open flag so the sub-tree (and its data
   // fetches / list renders) only enters the React tree when the operator
   // actually opens the picker.
   const pickers = (
@@ -518,17 +521,6 @@ export default function TouchShell() {
           current={selectedBusiness}
           onSelect={id => { setSelectedBusiness(id); setShowBizPicker(false); }}
           onClose={() => setShowBizPicker(false)}
-        />
-      )}
-      {showUserPicker && (
-        <UserPickerSheet
-          open={showUserPicker}
-          bizId={selectedBusiness}
-          employees={employees}
-          employeeRoles={employeeRoles}
-          activeEmployeeId={activeEmployeeId}
-          onSelect={id => { setActiveEmployee(id); setShowUserPicker(false); }}
-          onClose={() => setShowUserPicker(false)}
         />
       )}
     </>
@@ -580,10 +572,13 @@ export default function TouchShell() {
               margin: '0 auto 4px',
               width: railWide ? 64 : 52, height: railWide ? 64 : 52,
               borderRadius: railWide ? 16 : 14,
-              background: biz.hueSoft, color: biz.hue,
+              background: resolvedTheme === 'vespre' ? BIZ_TILE_DARK[biz.id].bg : biz.hueSoft,
+              color:      resolvedTheme === 'vespre' ? BIZ_TILE_DARK[biz.id].fg : biz.hue,
               fontWeight: 600, fontSize: railWide ? 22 : 18, fontFamily: 'var(--font-serif)',
               display: 'grid', placeItems: 'center',
-              border: `1px solid ${biz.hue}22`,
+              border: resolvedTheme === 'vespre'
+                ? `1px solid ${BIZ_TILE_DARK[biz.id].fg}33`
+                : `1px solid ${biz.hue}22`,
               cursor: 'pointer', letterSpacing: -.005,
               boxShadow: '0 1px 2px rgba(60,40,20,.04)',
             }}>
@@ -691,53 +686,6 @@ export default function TouchShell() {
             </button>
           </div>
 
-          {/* ── Active user avatar at bottom ───────────────────────── */}
-          <div style={{ flexShrink: 0, padding: '14px 12px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{
-              width: '100%', height: 1,
-              background: 'rgba(60,40,20,.07)', marginBottom: 10,
-            }} />
-            <button onClick={() => setShowUserPicker(true)} title={activeEmp?.fullName ?? 'Canviar usuari'}
-              className="tac-btn"
-              style={{
-                width: railWide ? 54 : 42, height: railWide ? 54 : 42,
-                borderRadius: railWide ? 14 : 12,
-                display: 'grid', placeItems: 'center',
-                color: activeEmp ? 'var(--ink-900)' : 'var(--ink-500)',
-                fontWeight: 700, fontSize: railWide ? 14 : 12, fontFamily: 'var(--font-serif)',
-                letterSpacing: -.005,
-              }}>
-              {activeEmp ? activeEmp.initials : <Icon d={I.users} size={railWide ? 20 : 16} />}
-            </button>
-            {activeEmp && (
-              <span style={{
-                fontSize: 8.5, color: 'var(--ink-500)', fontWeight: 700,
-                letterSpacing: .12, textTransform: 'uppercase',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                maxWidth: '100%', padding: '0 2px',
-              }}>
-                {activeEmp.fullName.split(' ')[0]}
-              </span>
-            )}
-            {/* Operator shift indicator (only when an active shift is on) */}
-            {operatorShift && (
-              <span style={{
-                marginTop: 4,
-                fontSize: 8.5, fontWeight: 700,
-                letterSpacing: .1,
-                color: operatorShift === 'M' ? 'var(--clay-700)' : 'var(--plum-700)',
-                background: operatorShift === 'M' ? 'var(--clay-50)' : 'var(--plum-100)',
-                padding: '2px 7px', borderRadius: 999,
-                display: 'inline-flex', alignItems: 'center', gap: 3,
-              }}>
-                <span style={{
-                  width: 5, height: 5, borderRadius: 999,
-                  background: operatorShift === 'M' ? 'var(--clay-500)' : 'var(--plum-600)',
-                }} />
-                {operatorShift === 'M' ? 'Migdia' : 'Nit'}
-              </span>
-            )}
-          </div>
         </nav>
 
         {/* ── Main content ────────────────────────────────────────────── */}
@@ -888,7 +836,7 @@ export default function TouchShell() {
             open={showNotesSheet}
             bizId={selectedBusiness}
             date={selectedDate}
-            authorName={activeEmp?.fullName ?? ''}
+            authorName=""
             onClose={() => setShowNotesSheet(false)}
           />
         )}
@@ -1010,23 +958,6 @@ export default function TouchShell() {
         transition:
           'padding-top 220ms var(--ease-out), padding-bottom 220ms var(--ease-out), background 220ms linear',
       }}>
-        <button onClick={() => setShowUserPicker(true)}
-          style={{
-            width: headerCompact ? 30 : 36, height: headerCompact ? 30 : 36,
-            borderRadius: '50%', flexShrink: 0,
-            background: activeEmp
-              ? 'linear-gradient(160deg, var(--ink-700) 0%, var(--ink-800) 100%)'
-              : 'var(--ink-200)',
-            color: activeEmp ? '#fef9ee' : 'var(--ink-600)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 600, fontSize: headerCompact ? 12 : 13, fontFamily: 'var(--font-serif)',
-            border: 'none', cursor: 'pointer',
-            boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
-            transition: 'width 220ms var(--ease-out), height 220ms var(--ease-out), font-size 220ms var(--ease-out)',
-          }}>
-          {activeEmp ? activeEmp.initials : <Icon d={I.users} size={headerCompact ? 14 : 16} />}
-        </button>
-
         <div style={{ flex: 1, minWidth: 0 }}>
           <button onClick={() => setShowBizPicker(true)} style={{
             fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
@@ -1202,7 +1133,7 @@ export default function TouchShell() {
           open={showNotesSheet}
           bizId={selectedBusiness}
           date={selectedDate}
-          authorName={activeEmp?.fullName ?? ''}
+          authorName=""
           onClose={() => setShowNotesSheet(false)}
         />
       )}
@@ -1572,6 +1503,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
 }) {
   const { reservations } = useAppStore();
   const visibleBusinesses = useVisibleBusinesses();
+  const resolvedTheme = useResolvedTheme();
   const todayIso = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1649,10 +1581,12 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
                   style={{
                     display: 'flex', flexDirection: 'column', gap: 10,
                     width: '100%', padding: '14px 14px 12px',
-                    border: isCur ? `1.5px solid ${b.hue}` : '1px solid rgba(60,40,20,.08)',
+                    border: isCur
+                      ? `1.5px solid ${resolvedTheme === 'vespre' ? BIZ_TILE_DARK[b.id].fg : b.hue}`
+                      : '1px solid rgba(60,40,20,.08)',
                     borderRadius: 14,
                     background: isCur
-                      ? `linear-gradient(180deg, ${b.hueSoft} 0%, var(--paper) 100%)`
+                      ? `linear-gradient(180deg, ${resolvedTheme === 'vespre' ? BIZ_TILE_DARK[b.id].bg : b.hueSoft} 0%, var(--paper) 100%)`
                       : 'var(--paper)',
                     cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                     boxShadow: isCur
@@ -1664,11 +1598,14 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <span style={{
                       width: 46, height: 46, borderRadius: 12,
-                      background: b.hueSoft, color: b.hue,
+                      background: resolvedTheme === 'vespre' ? BIZ_TILE_DARK[b.id].bg : b.hueSoft,
+                      color:      resolvedTheme === 'vespre' ? BIZ_TILE_DARK[b.id].fg : b.hue,
                       fontWeight: 600, fontSize: 17, fontFamily: 'var(--font-serif)',
                       display: 'grid', placeItems: 'center', flexShrink: 0,
                       letterSpacing: -.005,
-                      border: `1px solid ${b.hue}22`,
+                      border: resolvedTheme === 'vespre'
+                        ? `1px solid ${BIZ_TILE_DARK[b.id].fg}33`
+                        : `1px solid ${b.hue}22`,
                     }}>
                       {b.monogram}
                     </span>
@@ -1737,230 +1674,6 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
             );
           })}
         </div>
-      </div>
-    </AnimatedSheet>
-  );
-}
-
-// ─── User picker sheet — elevated, with clocked-in status + role hierarchy ───
-function UserPickerSheet({ open, bizId, employees, employeeRoles, activeEmployeeId, onSelect, onClose }: {
-  open: boolean; bizId: BusinessId;
-  employees: Employee[]; employeeRoles: EmployeeRole[];
-  activeEmployeeId: string | null;
-  onSelect: (id: string | null) => void; onClose: () => void;
-}) {
-  const bizEmps = employees.filter(e => e.bizId === bizId && e.active);
-  const roleMap = Object.fromEntries(employeeRoles.map(r => [r.id, r]));
-  const sorted  = [...bizEmps].sort((a, b) => (roleMap[a.roleId]?.order ?? 99) - (roleMap[b.roleId]?.order ?? 99));
-
-  // How many are clocked in right now — shown in the header subtitle
-  const inCount = bizEmps.filter(e => e.clockedIn).length;
-
-  // Format an HH:MM "started X ago" for clocked-in operators
-  const startedLabel = (startedAt?: string | null) => {
-    if (!startedAt) return null;
-    try {
-      const t = new Date(startedAt);
-      const diff = Math.max(0, Date.now() - t.getTime());
-      const mins = Math.floor(diff / 60000);
-      if (mins < 60) return `Des de fa ${mins} min`;
-      const hrs = Math.floor(mins / 60);
-      const rem = mins % 60;
-      return rem === 0 ? `Des de fa ${hrs}h` : `Des de fa ${hrs}h ${rem}m`;
-    } catch { return null; }
-  };
-
-  return (
-    <AnimatedSheet open={open} onClose={onClose} zIndex={Z_INDEX.picker}>
-      <div style={{
-        width: '100%',
-        background: 'linear-gradient(180deg, var(--paper) 0%, var(--ink-50) 100%)',
-        borderRadius: '22px 22px 0 0',
-        padding: '10px 16px 24px',
-        boxShadow: '0 -8px 32px rgba(60,40,20,.18)',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)',
-        maxHeight: '82dvh', overflowY: 'auto',
-      }}>
-        <div style={{
-          width: 38, height: 4, borderRadius: 2,
-          background: 'var(--ink-200)', margin: '8px auto 16px',
-        }} />
-
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-          padding: '0 4px', marginBottom: 18,
-        }}>
-          <div>
-            <div style={{
-              fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500,
-              color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
-            }}>
-              Qui hi és?
-            </div>
-            <div style={{
-              fontSize: 11, color: 'var(--ink-500)', fontWeight: 600,
-              letterSpacing: .08, textTransform: 'uppercase', marginTop: 4,
-              fontFamily: 'var(--font-mono)',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              {inCount > 0 ? (
-                <>
-                  <span style={{
-                    width: 5, height: 5, borderRadius: 999,
-                    background: 'var(--olive-600)',
-                    boxShadow: '0 0 0 3px rgba(116,133,74,.18)',
-                  }} />
-                  {inCount} fitxat{inCount !== 1 ? 's' : ''} · {sorted.length} actius
-                </>
-              ) : (
-                <>{sorted.length} actius · ningú fitxat</>
-              )}
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Tancar" className="tac-btn"
-            style={{
-              width: 34, height: 34, borderRadius: 999,
-              color: 'var(--ink-600)',
-              display: 'grid', placeItems: 'center', flexShrink: 0,
-            }}>
-            <Icon d={I.x} size={15} />
-          </button>
-        </div>
-
-        {/* Operator cards — stacked, staggered */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {sorted.map((emp, i) => {
-            const role     = roleMap[emp.roleId];
-            const isActive = emp.id === activeEmployeeId;
-            const inShift  = !!emp.clockedIn;
-            const since    = inShift ? startedLabel(emp.startedAt) : null;
-            return (
-              <div key={emp.id}
-                className="row-stagger"
-                style={{ ['--row-i' as string]: Math.min(i, 7) }}>
-                <button onClick={() => onSelect(emp.id)} className="press"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    width: '100%', padding: '12px 14px',
-                    border: isActive ? '1.5px solid var(--terracotta-500)' : '1px solid rgba(60,40,20,.08)',
-                    borderRadius: 14,
-                    background: isActive
-                      ? 'linear-gradient(180deg, var(--terracotta-50) 0%, var(--paper) 100%)'
-                      : 'var(--paper)',
-                    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                    boxShadow: isActive
-                      ? '0 2px 8px rgba(168,74,42,.16), 0 1px 2px rgba(60,40,20,.04)'
-                      : '0 1px 2px rgba(60,40,20,.04)',
-                    transition: 'background 220ms var(--ease-in-out), border-color 220ms var(--ease-in-out), box-shadow 220ms var(--ease-in-out)',
-                  }}>
-                  {/* Avatar with subtle clocked-in ring */}
-                  <span style={{ position: 'relative', flexShrink: 0 }}>
-                    <span className={`avatar av-${avIdx(emp.fullName)}`}
-                      style={{
-                        width: 44, height: 44, fontSize: 14,
-                        fontFamily: 'var(--font-serif)', fontWeight: 500,
-                        display: 'grid', placeItems: 'center',
-                        borderRadius: '50%',
-                        boxShadow: inShift ? '0 0 0 2px var(--olive-500)' : 'none',
-                      }}>
-                      {emp.initials}
-                    </span>
-                    {inShift && (
-                      <span style={{
-                        position: 'absolute', bottom: -2, right: -2,
-                        width: 12, height: 12, borderRadius: 999,
-                        background: 'var(--olive-600)',
-                        border: '2px solid var(--paper)',
-                      }} />
-                    )}
-                  </span>
-
-                  {/* Name + role + since */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      flexWrap: 'wrap',
-                    }}>
-                      <span style={{
-                        fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500,
-                        color: 'var(--ink-900)', letterSpacing: -.005, lineHeight: 1.1,
-                      }}>
-                        {emp.fullName}
-                      </span>
-                      {role && (
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '2px 7px',
-                          borderRadius: 5, background: role.color, color: role.textColor,
-                          letterSpacing: .04, textTransform: 'uppercase',
-                        }}>
-                          {role.name}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{
-                      fontSize: 11.5, color: 'var(--ink-500)', fontWeight: 550,
-                      marginTop: 4, display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
-                      {inShift ? (
-                        <>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            color: 'var(--olive-700)', fontWeight: 700,
-                          }}>
-                            <span style={{
-                              width: 5, height: 5, borderRadius: 999,
-                              background: 'var(--olive-600)',
-                            }} />
-                            Fitxat
-                          </span>
-                          {since && (
-                            <>
-                              <span style={{ width: 3, height: 3, borderRadius: 999, background: 'var(--ink-300)' }} />
-                              <span style={{ fontFamily: 'var(--font-mono)' }}>{since}</span>
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <span style={{ fontStyle: 'italic', color: 'var(--ink-400)' }}>
-                          Fora de torn
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Active marker */}
-                  {isActive && (
-                    <span style={{
-                      width: 26, height: 26, borderRadius: 999,
-                      background: 'var(--terracotta-600)', color: '#fff',
-                      display: 'grid', placeItems: 'center', flexShrink: 0,
-                      boxShadow: '0 2px 6px rgba(168,74,42,.30)',
-                    }}>
-                      <Icon d={I.check} size={14} stroke={2.6} />
-                    </span>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Continue without active operator */}
-        {activeEmployeeId && (
-          <button onClick={() => onSelect(null)} className="press"
-            style={{
-              marginTop: 14, width: '100%', padding: '12px 14px',
-              border: '1px dashed rgba(60,40,20,.18)',
-              borderRadius: 12, background: 'transparent',
-              cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 13, color: 'var(--ink-500)', fontWeight: 600,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-            }}>
-            <Icon d={I.x} size={13} />
-            Continuar sense usuari actiu
-          </button>
-        )}
       </div>
     </AnimatedSheet>
   );
