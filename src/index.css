@@ -248,6 +248,90 @@ html[data-theme="vespre"] {
    pills, terracotta-tinted rail tiles). Re-skin them for espresso so the
    selected state never renders light-on-light. */
 
+/* Tactile button family — the day material is warm paper chrome with
+   hardcoded cream gradient stops; on espresso those stops turn into the
+   muddy grey pills the operator flagged. Re-skin the whole family. */
+html[data-theme="vespre"] .tac-btn {
+  border-color: rgba(255,232,200,.10);
+  background: linear-gradient(180deg, #3b2e1f, #332719);
+  color: var(--ink-700);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.25),
+    0 1px 2px rgba(0,0,0,.22);
+}
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="vespre"] .tac-btn:hover:not(:disabled) {
+    background: linear-gradient(180deg, #423420, #3a2c1b);
+    border-color: rgba(255,232,200,.15);
+  }
+  html[data-theme="vespre"] .tac-btn--ghost:hover:not(:disabled) {
+    background: linear-gradient(180deg, #3b2e1f, #332719);
+    border-color: rgba(255,232,200,.10);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.06),
+      inset 0 -1px 0 rgba(0,0,0,.22),
+      0 1px 2px rgba(0,0,0,.20);
+    color: var(--ink-700);
+  }
+}
+html[data-theme="vespre"] .tac-btn:active:not(:disabled) {
+  background: linear-gradient(180deg, #2c2114, #271d12);
+  border-color: rgba(255,232,200,.12);
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,.32),
+    inset 0 -1px 0 rgba(255,255,255,.05);
+}
+html[data-theme="vespre"] .tac-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ink-500);
+}
+html[data-theme="vespre"] .tac-btn--ghost:active:not(:disabled) {
+  background: linear-gradient(180deg, #2c2114, #271d12);
+  border-color: rgba(255,232,200,.12);
+  color: var(--ink-700);
+}
+/* Accent (terracotta) variant — day mixes a light peach stop; at night the
+   CTA face becomes a deep ember wash with a light ember label. */
+html[data-theme="vespre"] .tac-btn--accent {
+  background: linear-gradient(180deg, #4d2c1a, #422413);
+  border-color: rgba(230,157,117,.30);
+  color: var(--terracotta-700);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(0,0,0,.28),
+    0 2px 6px rgba(0,0,0,.25);
+}
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="vespre"] .tac-btn--accent:hover:not(:disabled) {
+    background: linear-gradient(180deg, #553120, #482817);
+  }
+}
+html[data-theme="vespre"] .tac-btn--accent:active:not(:disabled) {
+  background: linear-gradient(180deg, #3f2415, #371f11);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.32);
+}
+
+/* FAB — pin the ember gradient explicitly: the day rule reads
+   terracotta-600/700 vars, and vespre's 700 is a LIGHT fg tone that
+   would wash the button face. */
+html[data-theme="vespre"] .tac-fab {
+  background: linear-gradient(180deg, #c96f45 0%, #a8502f 100%);
+  color: #fff7ee;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.15),
+    inset 0 -1px 0 rgba(0,0,0,.20),
+    0 8px 24px rgba(0,0,0,.35),
+    0 2px 6px rgba(0,0,0,.22);
+}
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="vespre"] .tac-fab:hover:not(:disabled) {
+    background: linear-gradient(180deg, #d4794e 0%, #b25a36 100%);
+  }
+}
+
 /* Segmented pills (Migdia/Nit, period toggles…) — selected = raised dark
    pill, not a glowing cream one. */
 html[data-theme="vespre"] .tac-seg-btn[data-active="true"] {
