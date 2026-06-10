@@ -154,7 +154,7 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
                 fontFamily:'inherit', fontSize:13, fontWeight:600, cursor:'pointer',
                 minHeight: 36,
                 background: zoneFilter === z.id ? 'var(--ink-900)' : 'var(--cream)',
-                color:      zoneFilter === z.id ? 'white' : 'var(--ink-700)',
+                color:      zoneFilter === z.id ? 'var(--cream)' : 'var(--ink-700)',
                 boxShadow: zoneFilter === z.id ? 'var(--sh-1)' : 'none',
                 transition: 'background 160ms var(--ease-out), color 160ms var(--ease-out)',
               }}>

@@ -153,55 +153,55 @@ html[data-theme="vespre"] {
   /* Readability tuning (v2): max ink softened one step and the mid tones
      lifted two — small text clears ~4.5:1 on elevated surfaces and the
      jump between serif headlines and secondary copy stops being harsh. */
-  --ink-900: #f0e6d6;
-  --ink-800: #ded2bd;
-  --ink-700: #c6b89f;
-  --ink-600: #ab9a7c;
-  --ink-500: #998871;
-  --ink-400: #75684f;
-  --ink-300: #574a3b;
-  --ink-200: #41362b;
-  --ink-100: #322920;
-  --ink-50:  #281f17;
-  --cream:   #231a12;
-  --paper:   #2d2218;
+  --ink-900: #f1e7d8;
+  --ink-800: #e0d4bf;
+  --ink-700: #cabca3;
+  --ink-600: #b2a183;
+  --ink-500: #a08f76;
+  --ink-400: #7d6f57;
+  --ink-300: #5e5040;
+  --ink-200: #483a2d;
+  --ink-100: #392e23;
+  --ink-50:  #2e241b;
+  --cream:   #281e15;
+  --paper:   #332719;
 
   /* Terracotta dimmed for dark (v3): the day oranges saturate too hard
      on espresso. CTAs keep presence as ember, not neon. */
   --terracotta-700: #e69d75;
   --terracotta-600: #c96f45;
   --terracotta-500: #b95f3b;
-  --terracotta-100: #46291a;
-  --terracotta-50:  #381f14;
+  --terracotta-100: #4d2e1e;
+  --terracotta-50:  #3f251a;
 
   --olive-700: #b2c285;
   --olive-600: #93a565;
   --olive-500: #74854a;
-  --olive-100: #2c3219;
-  --olive-50:  #242a15;
+  --olive-100: #333a1e;
+  --olive-50:  #2b3019;
 
   --clay-700: #e2b271;
   --clay-600: #cc9049;
   --clay-500: #b07636;
-  --clay-100: #3f301a;
-  --clay-50:  #332714;
+  --clay-100: #46361e;
+  --clay-50:  #3a2d18;
 
   --sky-700: #8fc5db;
   --sky-600: #5aa3c0;
   --sky-500: #3b86a5;
-  --sky-100: #1d3540;
-  --sky-50:  #182b34;
+  --sky-100: #224050;
+  --sky-50:  #1d3441;
 
   --plum-700: #d2a2c1;
   --plum-600: #a86e93;
-  --plum-100: #3a2433;
+  --plum-100: #43293a;
 
   --rose-700: #e69090;
   --rose-600: #cf5e5e;
-  --rose-100: #44211f;
-  --rose-50:  #371c1b;
+  --rose-100: #4c2624;
+  --rose-50:  #3f211f;
 
-  --state-cancelled-bg: #2e251c;
+  --state-cancelled-bg: #352b21;
 
   /* Shadows softened (v3) — separation now comes mostly from the surface
      ladder, so shadows whisper instead of punching black holes. */
@@ -213,14 +213,14 @@ html[data-theme="vespre"] {
   --hair:        1px solid rgba(255,232,200,.09);
   --hair-strong: 1px solid rgba(255,232,200,.15);
 
-  /* Surface ladder (v3) — four warm steps, cacao not charcoal. Each level
-     is a visible notch above the previous so hierarchy reads by material:
+  /* Surface ladder (v4) — lifted a full notch after operator feedback:
+     "cacao amb llet", never charcoal. Hierarchy reads by material:
        app (canvas)  →  base (panels)  →  elevated (cards)  →  floating (sheets) */
-  --surface-app:       #1c140d;
-  --surface-rail:      #171009;
-  --surface-base:      #231a11;
-  --surface-elevated:  #2d2218;
-  --surface-floating:  rgba(50,37,26,.94);
+  --surface-app:       #211811;
+  --surface-rail:      #1b140d;
+  --surface-base:      #281e14;
+  --surface-elevated:  #332719;
+  --surface-floating:  rgba(58,44,31,.94);
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,.20);
   --shadow-md: 0 2px 6px rgba(0,0,0,.24),
@@ -236,12 +236,82 @@ html[data-theme="vespre"] {
   --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.05);
   --shadow-ring: 0 0 0 1px rgba(242,234,220,.06);
 
-  --glass-soft:          rgba(38,29,20,.60);
-  --glass-strong:        rgba(38,29,20,.82);
-  --glass-opaque-soft:   rgba(33,25,17,.94);
-  --glass-opaque-strong: rgba(33,25,17,.97);
+  --glass-soft:          rgba(45,35,24,.60);
+  --glass-strong:        rgba(45,35,24,.82);
+  --glass-opaque-soft:   rgba(40,31,21,.94);
+  --glass-opaque-strong: rgba(40,31,21,.97);
   --glass-edge: inset 0 -1px 0 rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.04);
 }
+
+/* ── Vespre: interactive-class overrides ───────────────────────────────────
+   These classes bake light-day gradients into their active states (paper
+   pills, terracotta-tinted rail tiles). Re-skin them for espresso so the
+   selected state never renders light-on-light. */
+
+/* Segmented pills (Migdia/Nit, period toggles…) — selected = raised dark
+   pill, not a glowing cream one. */
+html[data-theme="vespre"] .tac-seg-btn[data-active="true"] {
+  background: linear-gradient(180deg, #41331f 0%, #3a2c1b 100%);
+  color: var(--ink-900);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    inset 0 -1px 0 rgba(0,0,0,.28),
+    0 1px 3px rgba(0,0,0,.28);
+}
+html[data-theme="vespre"] .tac-seg-btn[data-active="true"]:active {
+  background: linear-gradient(180deg, #352818 0%, #2f2315 100%);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.32);
+}
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="vespre"] .tac-seg-btn:not([data-active="true"]):hover {
+    background: rgba(255,255,255,.06);
+    color: var(--ink-700);
+  }
+}
+
+/* Left-rail nav tiles — active = deep terracotta wash with ember label
+   (the day version mixes a hardcoded light peach that washed out). */
+html[data-theme="vespre"] .rail-nav-btn[data-active="true"] {
+  background: linear-gradient(180deg, #4d2c1a 0%, #422413 100%);
+  border-color: rgba(230,157,117,.28);
+  color: var(--terracotta-700);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 -1px 0 rgba(0,0,0,.28),
+    0 2px 6px rgba(0,0,0,.25);
+}
+html[data-theme="vespre"] .rail-nav-btn:not([data-active="true"]):active {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,232,200,.12);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,.30);
+  color: var(--ink-700);
+}
+@media (hover: hover) and (pointer: fine) {
+  html[data-theme="vespre"] .rail-nav-btn:not([data-active="true"]):hover {
+    background: rgba(255,255,255,.05);
+    border-color: rgba(255,232,200,.10);
+    box-shadow: none;
+    color: var(--ink-700);
+  }
+  html[data-theme="vespre"] .rail-nav-btn[data-active="true"]:hover {
+    background: linear-gradient(180deg, #553120 0%, #482817 100%);
+  }
+}
+
+/* Client avatar bubbles — same 12 hues, after dark: deep wash + light
+   initials instead of day pastels that glowed like lanterns. */
+html[data-theme="vespre"] .av-0  { background: #462916; color: #f0b687; }
+html[data-theme="vespre"] .av-1  { background: #333c1c; color: #ccdf9a; }
+html[data-theme="vespre"] .av-2  { background: #1d3a47; color: #a3d4e6; }
+html[data-theme="vespre"] .av-3  { background: #3e2535; color: #e2b3cd; }
+html[data-theme="vespre"] .av-4  { background: #443414; color: #ecd089; }
+html[data-theme="vespre"] .av-5  { background: #3d2f1e; color: #dcc3a0; }
+html[data-theme="vespre"] .av-6  { background: #46241c; color: #f2ab9a; }
+html[data-theme="vespre"] .av-7  { background: #20392a; color: #a8d8b9; }
+html[data-theme="vespre"] .av-8  { background: #2f2742; color: #c8bbe8; }
+html[data-theme="vespre"] .av-9  { background: #403418; color: #e6d295; }
+html[data-theme="vespre"] .av-10 { background: #25303d; color: #aabfd6; }
+html[data-theme="vespre"] .av-11 { background: #3f2a1a; color: #ddb088; }
 
 /* Functional text lift — light-on-dark halation makes glyphs read thinner
    than they are, so small labels feel washed out mid-service. A 1px

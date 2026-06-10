@@ -263,14 +263,14 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
            as warm light sources; sun becomes a low ember; grain flips
            to screen so the speckle stays perceptible. */
         html[data-theme="vespre"] .dashboard-ambient {
-          /* Cacao wash (v3): warm all the way to the rim — the canvas
-             accompanies the surface ladder instead of dropping below it. */
+          /* Cacao wash (v4): lifted with the surface ladder — warm milk
+             chocolate at the centre, never charcoal at the rim. */
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #241a11 0%, #1d150d 60%, #171009 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #2a2015 0%, #231a10 60%, #1c150d 100%);
         }
         html[data-theme="vespre"] .dashboard-ambient[data-night="true"] {
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #21170f 0%, #1a120b 60%, #140d07 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #271d12 0%, #20170e 60%, #1a110a 100%);
         }
         html[data-theme="vespre"] .da-blob {
           mix-blend-mode: screen;

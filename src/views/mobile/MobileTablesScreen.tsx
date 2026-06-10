@@ -353,7 +353,7 @@ export default function MobileTablesScreen() {
                         position:'absolute', top:5, right:5,
                         width:18, height:18, borderRadius:999,
                         background: isEditSel ? 'var(--ink-900)' : 'rgba(60,40,20,.10)',
-                        color:'#fff',
+                        color:'var(--cream)',
                         display:'grid', placeItems:'center',
                         transition:'background 160ms var(--ease-out)',
                       }}>

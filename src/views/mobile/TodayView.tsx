@@ -3126,7 +3126,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                           padding:'8px 4px', borderRadius:9,
                           border: active ? '1.5px solid var(--ink-700)' : '1px solid rgba(60,40,20,.10)',
                           background: active ? 'var(--ink-900)' : 'var(--paper)',
-                          color: active ? '#fff' : 'var(--ink-600)',
+                          color: active ? 'var(--cream)' : 'var(--ink-600)',
                           fontFamily:'inherit', fontSize:11.5, fontWeight: active ? 700 : 550,
                           cursor:'pointer', textTransform:'capitalize',
                         }}>
