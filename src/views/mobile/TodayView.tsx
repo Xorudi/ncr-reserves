@@ -2174,9 +2174,13 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
         <>
             {r.notes && (
               <div style={{
-                background:'rgba(250,230,120,.2)', borderRadius:8,
-                padding:'8px 11px', fontSize:13, color:'#5a4a1a', marginBottom:12,
-                border:'1px solid rgba(200,170,50,.25)',
+                // Design tokens (clay = warm note tint) instead of the old
+                // hardcoded yellow + #5a4a1a, which went unreadable under
+                // browser forced-dark. Tokens keep contrast predictable.
+                background:'var(--clay-50)', borderRadius:8,
+                padding:'8px 11px', fontSize:13, color:'var(--clay-700)',
+                marginBottom:12, lineHeight:1.45,
+                border:'1px solid rgba(176,118,54,.25)',
               }}>
                 {r.notes}
               </div>
