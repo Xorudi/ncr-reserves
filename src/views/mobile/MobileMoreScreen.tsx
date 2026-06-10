@@ -20,6 +20,7 @@ import { usePinScope } from '@/store/usePinScope';
 import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Z_INDEX } from '@/lib/zIndex';
+import { getThemeMode, setThemeMode, onThemeChange, type ThemeMode } from '@/lib/theme';
 
 type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats';
 
@@ -360,6 +361,12 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes, onSwitchUser }: {
         {SYSTEM.map(renderItem)}
       </div>
 
+      {/* Appearance — day / vespre theme */}
+      <div style={{ marginTop: 18 }}>
+        <SectionLabel>Aparença</SectionLabel>
+        <ThemeSelector />
+      </div>
+
       {/* App version */}
       <div style={{
         marginTop: 28, textAlign: 'center',
@@ -543,6 +550,62 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       padding: '0 4px 8px',
     }}>
       {children}
+    </div>
+  );
+}
+
+// ─── Theme selector (Aparença) ────────────────────────────────────────────────
+// Segmented Auto / Dia / Vespre. 'Auto' follows the service clock (vespre
+// from 19:00) — see lib/theme.ts. State re-syncs on the theme-change event
+// so an auto crossover while this screen is open updates the description.
+function ThemeSelector() {
+  const [mode, setMode] = useState<ThemeMode>(getThemeMode);
+  useEffect(() => onThemeChange(() => setMode(getThemeMode())), []);
+
+  const OPTIONS: { id: ThemeMode; label: string }[] = [
+    { id: 'auto',   label: 'Auto' },
+    { id: 'llum',   label: 'Dia' },
+    { id: 'vespre', label: 'Vespre' },
+  ];
+
+  const desc =
+    mode === 'auto'   ? 'Mode vespre automàtic a partir de les 19:00.' :
+    mode === 'vespre' ? 'Ambient espresso per al servei de nit.' :
+                        'Llum de dia sempre, passi l\'hora que passi.';
+
+  return (
+    <div style={{
+      padding: '14px', borderRadius: 16,
+      background: 'var(--paper)', border: 'var(--hair)',
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{
+        display: 'flex', gap: 4, padding: 3, borderRadius: 11,
+        background: 'var(--ink-100)',
+      }}>
+        {OPTIONS.map(o => {
+          const active = mode === o.id;
+          return (
+            <button key={o.id} onClick={() => setThemeMode(o.id)} className="press"
+              aria-pressed={active}
+              style={{
+                flex: 1, padding: '9px 0', borderRadius: 9, border: 'none',
+                cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 13, fontWeight: active ? 700 : 600,
+                minHeight: 38,
+                background: active ? 'var(--paper)' : 'transparent',
+                color: active ? 'var(--ink-900)' : 'var(--ink-500)',
+                boxShadow: active ? 'var(--sh-1), var(--shadow-ring)' : 'none',
+                transition: 'background 160ms var(--ease-out), color 160ms var(--ease-out)',
+              }}>
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.4, padding: '0 2px' }}>
+        {desc}
+      </div>
     </div>
   );
 }

@@ -1106,7 +1106,7 @@ export default function TouchShell() {
         flexShrink: 0,
         zIndex: 50,
         position: 'relative',
-        background: '#fffefb',          // near-solid warm white — opaque, no cream bleed
+        background: 'var(--surface-elevated)', // opaque elevated surface — no cream bleed, theme-aware
         boxShadow: '0 -8px 24px rgba(40,28,16,.05), 0 -1px 0 rgba(40,28,16,.06)',
         display: 'flex', alignItems: 'flex-start',
         paddingTop: 6,

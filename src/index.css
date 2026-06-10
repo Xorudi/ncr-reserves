@@ -125,6 +125,105 @@
   --shadow-ring: 0 0 0 1px rgba(40,28,16,.04);
 }
 
+/* ─── Mode vespre — evening service theme ──────────────────────────────────
+   Same warm Mediterranean identity, after dark: espresso canvas, cream
+   text, terracotta as ember. Activated by lib/theme.ts setting
+   data-theme="vespre" on <html> (auto from 19:00, or manual from Més).
+   Only tokens change — components keep reading the same var() names.
+   The ink ramp inverts: 900 stays "strongest contrast" (now light text),
+   50 stays "subtlest tint" (now barely-lifted dark). Accent ramps keep
+   500/600 as the brand anchors and swap the 700 (fg-on-tint) and 50/100
+   (tint-bg) ends for dark-legible equivalents. */
+html[data-theme="vespre"] {
+  color-scheme: dark;
+
+  --ink-900: #f2eadc;
+  --ink-800: #e2d6c2;
+  --ink-700: #c7b89e;
+  --ink-600: #a3937a;
+  --ink-500: #857662;
+  --ink-400: #685b49;
+  --ink-300: #4e4336;
+  --ink-200: #3a3128;
+  --ink-100: #2c241c;
+  --ink-50:  #231c15;
+  --cream:   #1d1610;
+  --paper:   #271e15;
+
+  --terracotta-700: #e89a6f;
+  --terracotta-600: #de7a51;
+  --terracotta-500: #c8613a;
+  --terracotta-100: #46291a;
+  --terracotta-50:  #381f14;
+
+  --olive-700: #b2c285;
+  --olive-600: #93a565;
+  --olive-500: #74854a;
+  --olive-100: #2c3219;
+  --olive-50:  #242a15;
+
+  --clay-700: #e2b271;
+  --clay-600: #cc9049;
+  --clay-500: #b07636;
+  --clay-100: #3f301a;
+  --clay-50:  #332714;
+
+  --sky-700: #8fc5db;
+  --sky-600: #5aa3c0;
+  --sky-500: #3b86a5;
+  --sky-100: #1d3540;
+  --sky-50:  #182b34;
+
+  --plum-700: #d2a2c1;
+  --plum-600: #a86e93;
+  --plum-100: #3a2433;
+
+  --rose-700: #e69090;
+  --rose-600: #cf5e5e;
+  --rose-100: #44211f;
+  --rose-50:  #371c1b;
+
+  --state-cancelled-bg: #2a221b;
+
+  --sh-1: 0 1px 2px rgba(0,0,0,.30), 0 1px 1px rgba(0,0,0,.22);
+  --sh-2: 0 2px 6px rgba(0,0,0,.34), 0 1px 2px rgba(0,0,0,.24);
+  --sh-3: 0 8px 24px rgba(0,0,0,.42), 0 2px 6px rgba(0,0,0,.28);
+
+  --hair:        1px solid rgba(242,234,220,.08);
+  --hair-strong: 1px solid rgba(242,234,220,.15);
+
+  --surface-app:       #171109;
+  --surface-rail:      #120d08;
+  --surface-base:      #1b140c;
+  --surface-elevated:  #271e15;
+  --surface-floating:  rgba(39,30,21,.88);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.28);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.32),
+               0 1px 2px rgba(0,0,0,.24);
+  --shadow-lg: 0 8px 22px rgba(0,0,0,.40),
+               0 2px 6px  rgba(0,0,0,.26);
+  --shadow-xl: 0 16px 40px rgba(0,0,0,.48),
+               0 6px 12px  rgba(0,0,0,.32);
+  --shadow-2xl: 0 24px 56px rgba(0,0,0,.55),
+                0 10px 20px rgba(0,0,0,.38);
+
+  /* On dark the top-edge highlight must whisper, not glow. */
+  --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-ring: 0 0 0 1px rgba(242,234,220,.06);
+}
+
+/* The day canvas paints warm radials on the body; at night they'd read as
+   stains. Swap for a single deep ember glow at the top edge — the room at
+   service, lit from the pass. */
+html[data-theme="vespre"] body {
+  background:
+    radial-gradient(1200px 800px at 100% -10%, rgba(200,97,58,.10) 0%, transparent 55%),
+    radial-gradient(900px 700px  at -5% 110%, rgba(143,197,219,.05) 0%, transparent 55%),
+    var(--surface-app);
+  background-attachment: fixed;
+}
+
 /* ─── Layout helpers ─────────────────────────────────────────────────────── */
 :root {
   /* Bottom-nav height used by mobile & tablet shells (new design: 56px + safe area) */

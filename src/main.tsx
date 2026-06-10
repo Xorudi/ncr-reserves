@@ -6,6 +6,8 @@ import './index.css'
 // Resolve fast-UI gate before the first render so the body data attribute
 // is in place when CSS selectors evaluate (sheet-backdrop blur, etc).
 import './lib/uiMode'
+// Resolve day/vespre theme before first paint — no light flash at night.
+import './lib/theme'
 import { registerSW } from './lib/registerSW'
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
