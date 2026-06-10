@@ -123,6 +123,15 @@
      an alternative to a hairline border — looks like the card has a ring
      instead of a "drawn line", which reads more premium. */
   --shadow-ring: 0 0 0 1px rgba(40,28,16,.04);
+
+  /* Glass header materials — translucent paper over the canvas. The
+     opaque-* pair is the fast-UI variant (no backdrop blur). Tokenized so
+     mode vespre can swap them for espresso glass in one place. */
+  --glass-soft:          rgba(255,255,255,.55);
+  --glass-strong:        rgba(255,255,255,.78);
+  --glass-opaque-soft:   rgba(253,249,242,.92);
+  --glass-opaque-strong: rgba(253,249,242,.96);
+  --glass-edge: inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4);
 }
 
 /* ─── Mode vespre — evening service theme ──────────────────────────────────
@@ -211,6 +220,12 @@ html[data-theme="vespre"] {
   /* On dark the top-edge highlight must whisper, not glow. */
   --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.05);
   --shadow-ring: 0 0 0 1px rgba(242,234,220,.06);
+
+  --glass-soft:          rgba(28,21,14,.60);
+  --glass-strong:        rgba(28,21,14,.80);
+  --glass-opaque-soft:   rgba(24,18,12,.94);
+  --glass-opaque-strong: rgba(24,18,12,.97);
+  --glass-edge: inset 0 -1px 0 rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.04);
 }
 
 /* The day canvas paints warm radials on the body; at night they'd read as

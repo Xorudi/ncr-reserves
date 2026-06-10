@@ -473,7 +473,7 @@ export default function TouchShell() {
           background: 'var(--surface-elevated)',
           border: '1px solid rgba(60,40,20,.06)',
           boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,.70), ' +
+            'var(--shadow-inset-top), ' +
             '0 2px 4px rgba(60,40,20,.04), ' +
             '0 16px 48px rgba(60,40,20,.08)',
           marginTop: 12,
@@ -996,11 +996,11 @@ export default function TouchShell() {
         // blur work on every scroll frame). Premium glass kept only on
         // real desktops where it's cheap.
         background:    IS_FAST_UI
-          ? (headerCompact ? 'rgba(253,249,242,.96)' : 'rgba(253,249,242,.92)')
-          : (headerCompact ? 'rgba(255,255,255,.78)' : 'rgba(255,255,255,.55)'),
+          ? (headerCompact ? 'var(--glass-opaque-strong)' : 'var(--glass-opaque-soft)')
+          : (headerCompact ? 'var(--glass-strong)' : 'var(--glass-soft)'),
         WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
         backdropFilter:       IS_FAST_UI ? 'none' : 'blur(12px)',
-        boxShadow:     'inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4)',
+        boxShadow:     'var(--glass-edge)',
         flexShrink:    0,
         display:       'flex',
         alignItems:    'center',
@@ -1438,10 +1438,10 @@ function TabletTopBar({
       // Glass material on top of the canvas — translucent paper with a real
       // backdrop blur. Soft inset bottom shadow as a separator instead of a
       // hard border. Reads as "the content scrolls under the header".
-      background: IS_FAST_UI ? 'rgba(253,249,242,.94)' : 'rgba(255,255,255,.55)',
+      background: IS_FAST_UI ? 'var(--glass-opaque-soft)' : 'var(--glass-soft)',
       WebkitBackdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
       backdropFilter: IS_FAST_UI ? 'none' : 'blur(12px)',
-      boxShadow: 'inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4)',
+      boxShadow: 'var(--glass-edge)',
       paddingTop: 'calc(env(safe-area-inset-top, 0px) + 14px)',
       position: 'relative', zIndex: 5,
     }}>
@@ -2448,7 +2448,7 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
           textAlign: 'left',
           padding: '14px 16px',
           background: latestNote
-            ? 'linear-gradient(180deg, #fff8e6 0%, #fbf2d3 100%)'
+            ? 'linear-gradient(180deg, var(--clay-50) 0%, var(--clay-100) 100%)'
             : 'var(--surface-elevated)',
           border: latestNote
             ? '1px solid rgba(180,140,40,.22)'

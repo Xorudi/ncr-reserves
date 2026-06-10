@@ -163,7 +163,7 @@ function ToastPill({ m, tone, stackDepth, isTop }: {
       {m.icon && (
         <span style={{
           width: 22, height: 22, borderRadius: 999,
-          background: 'rgba(255,255,255,.65)',
+          background: 'var(--glass-strong)',
           display: 'grid', placeItems: 'center',
           flexShrink: 0,
         }}>
@@ -188,7 +188,7 @@ function ToastPill({ m, tone, stackDepth, isTop }: {
             padding: '4px 10px',
             borderRadius: 999,
             border: `1px solid ${tone.ring}`,
-            background: 'rgba(255,255,255,.6)',
+            background: 'var(--glass-soft)',
             color: tone.fg,
             fontFamily: 'inherit',
             fontSize: 12.5,

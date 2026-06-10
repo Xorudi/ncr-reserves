@@ -257,6 +257,35 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
           mix-blend-mode: multiply;
         }
 
+        /* ── Mode vespre — the room after dark ─────────────────────
+           Espresso base wash instead of cream; blobs flip from
+           multiply (which goes black on dark) to screen so they read
+           as warm light sources; sun becomes a low ember; grain flips
+           to screen so the speckle stays perceptible. */
+        html[data-theme="vespre"] .dashboard-ambient {
+          background:
+            radial-gradient(ellipse 120% 100% at 50% 40%, #1e160e 0%, #170f08 60%, #0f0a05 100%);
+        }
+        html[data-theme="vespre"] .dashboard-ambient[data-night="true"] {
+          background:
+            radial-gradient(ellipse 120% 100% at 50% 40%, #1b130c 0%, #140d07 60%, #0c0703 100%);
+        }
+        html[data-theme="vespre"] .da-blob {
+          mix-blend-mode: screen;
+          opacity: .5;
+        }
+        html[data-theme="vespre"] .da-sun {
+          opacity: .45;
+        }
+        html[data-theme="vespre"] .da-sun[data-visible="false"] {
+          mix-blend-mode: screen;
+          opacity: .25;
+        }
+        html[data-theme="vespre"] .da-grain {
+          mix-blend-mode: screen;
+          opacity: .022;
+        }
+
         /* ── Paused state — any AnimatedSheet open. The orbit CSS
               keyframe still consumes GPU compositing cycles even when
               the user is focused on a sheet, so we pause it. The
