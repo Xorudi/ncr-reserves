@@ -163,12 +163,14 @@ html[data-theme="vespre"] {
   --ink-200: #41362b;
   --ink-100: #322920;
   --ink-50:  #281f17;
-  --cream:   #221a11;
-  --paper:   #2b2116;
+  --cream:   #231a12;
+  --paper:   #2d2218;
 
-  --terracotta-700: #e89a6f;
-  --terracotta-600: #de7a51;
-  --terracotta-500: #c8613a;
+  /* Terracotta dimmed for dark (v3): the day oranges saturate too hard
+     on espresso. CTAs keep presence as ember, not neon. */
+  --terracotta-700: #e69d75;
+  --terracotta-600: #c96f45;
+  --terracotta-500: #b95f3b;
   --terracotta-100: #46291a;
   --terracotta-50:  #381f14;
 
@@ -201,40 +203,43 @@ html[data-theme="vespre"] {
 
   --state-cancelled-bg: #2e251c;
 
-  --sh-1: 0 1px 2px rgba(0,0,0,.30), 0 1px 1px rgba(0,0,0,.22);
-  --sh-2: 0 2px 6px rgba(0,0,0,.34), 0 1px 2px rgba(0,0,0,.24);
-  --sh-3: 0 8px 24px rgba(0,0,0,.42), 0 2px 6px rgba(0,0,0,.28);
+  /* Shadows softened (v3) — separation now comes mostly from the surface
+     ladder, so shadows whisper instead of punching black holes. */
+  --sh-1: 0 1px 2px rgba(0,0,0,.20), 0 1px 1px rgba(0,0,0,.14);
+  --sh-2: 0 2px 6px rgba(0,0,0,.24), 0 1px 2px rgba(0,0,0,.16);
+  --sh-3: 0 8px 24px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18);
 
-  --hair:        1px solid rgba(242,234,220,.08);
-  --hair-strong: 1px solid rgba(242,234,220,.15);
+  /* Warm candle-tinted hairlines — separate layers without grey lines. */
+  --hair:        1px solid rgba(255,232,200,.09);
+  --hair-strong: 1px solid rgba(255,232,200,.15);
 
-  /* Surfaces lifted (v2): the floor never approaches black, and elevated
-     sits two visible steps above base so cards separate by surface, not
-     by text contrast alone. */
-  --surface-app:       #1b140c;
-  --surface-rail:      #161009;
-  --surface-base:      #20180f;
-  --surface-elevated:  #2b2116;
-  --surface-floating:  rgba(43,33,22,.90);
+  /* Surface ladder (v3) — four warm steps, cacao not charcoal. Each level
+     is a visible notch above the previous so hierarchy reads by material:
+       app (canvas)  →  base (panels)  →  elevated (cards)  →  floating (sheets) */
+  --surface-app:       #1c140d;
+  --surface-rail:      #171009;
+  --surface-base:      #231a11;
+  --surface-elevated:  #2d2218;
+  --surface-floating:  rgba(50,37,26,.94);
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.28);
-  --shadow-md: 0 2px 6px rgba(0,0,0,.32),
-               0 1px 2px rgba(0,0,0,.24);
-  --shadow-lg: 0 8px 22px rgba(0,0,0,.40),
-               0 2px 6px  rgba(0,0,0,.26);
-  --shadow-xl: 0 16px 40px rgba(0,0,0,.48),
-               0 6px 12px  rgba(0,0,0,.32);
-  --shadow-2xl: 0 24px 56px rgba(0,0,0,.55),
-                0 10px 20px rgba(0,0,0,.38);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.20);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.24),
+               0 1px 2px rgba(0,0,0,.16);
+  --shadow-lg: 0 8px 22px rgba(0,0,0,.30),
+               0 2px 6px  rgba(0,0,0,.18);
+  --shadow-xl: 0 16px 40px rgba(0,0,0,.36),
+               0 6px 12px  rgba(0,0,0,.22);
+  --shadow-2xl: 0 24px 56px rgba(0,0,0,.42),
+                0 10px 20px rgba(0,0,0,.28);
 
   /* On dark the top-edge highlight must whisper, not glow. */
   --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.05);
   --shadow-ring: 0 0 0 1px rgba(242,234,220,.06);
 
-  --glass-soft:          rgba(34,26,17,.60);
-  --glass-strong:        rgba(34,26,17,.82);
-  --glass-opaque-soft:   rgba(30,23,15,.94);
-  --glass-opaque-strong: rgba(30,23,15,.97);
+  --glass-soft:          rgba(38,29,20,.60);
+  --glass-strong:        rgba(38,29,20,.82);
+  --glass-opaque-soft:   rgba(33,25,17,.94);
+  --glass-opaque-strong: rgba(33,25,17,.97);
   --glass-edge: inset 0 -1px 0 rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.04);
 }
 

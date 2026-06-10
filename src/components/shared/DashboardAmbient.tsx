@@ -263,18 +263,19 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
            as warm light sources; sun becomes a low ember; grain flips
            to screen so the speckle stays perceptible. */
         html[data-theme="vespre"] .dashboard-ambient {
-          /* Floor lifted (v2): the rim stays warm espresso instead of
-             collapsing toward black — less harsh against cream text. */
+          /* Cacao wash (v3): warm all the way to the rim — the canvas
+             accompanies the surface ladder instead of dropping below it. */
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #221910 0%, #1b140c 60%, #150f08 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #241a11 0%, #1d150d 60%, #171009 100%);
         }
         html[data-theme="vespre"] .dashboard-ambient[data-night="true"] {
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #1f160e 0%, #181009 60%, #120c06 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #21170f 0%, #1a120b 60%, #140d07 100%);
         }
         html[data-theme="vespre"] .da-blob {
           mix-blend-mode: screen;
-          opacity: .5;
+          /* Almost imperceptible — the glow accompanies, never competes. */
+          opacity: .35;
         }
         html[data-theme="vespre"] .da-sun {
           opacity: .45;
