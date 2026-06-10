@@ -31,6 +31,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { verifyPin, loadPinConfig } from '@/lib/pinAuth';
+import { getPinCooldownMs, recordPinFailure, clearPinThrottle } from '@/lib/pinThrottle';
 import { usePinScope } from '@/store/usePinScope';
 import { getSession, extractBizIds } from '@/lib/auth';
 import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
@@ -142,6 +143,11 @@ export default function PinLockView() {
   const [errorPulse,    setErrorPulse]    = useState(false);
   const [busy,          setBusy]          = useState(false);
   const [mounted,       setMounted]       = useState(false);
+  /** Seconds left in the brute-force cooldown (0 = input allowed).
+   *  Source of truth is the localStorage timestamp in pinThrottle, so a
+   *  reload mid-cooldown resumes the countdown instead of resetting it. */
+  const [cooldownS,     setCooldownS]     = useState<number>(() =>
+    Math.ceil(getPinCooldownMs() / 1000));
   const [sessionBizIds, setSessionBizIds] = useState<readonly BusinessId[] | null>(null);
 
   /** When set, the book-opening sequence plays for this biz. */
@@ -206,6 +212,20 @@ export default function PinLockView() {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // Cooldown countdown — re-reads the persisted timestamp every 500 ms so
+  // the on-screen seconds stay honest even across tab switches. When it
+  // reaches zero, the throttle error message is cleared too so the status
+  // line goes back to neutral.
+  useEffect(() => {
+    if (cooldownS <= 0) return;
+    const id = window.setInterval(() => {
+      const left = Math.ceil(getPinCooldownMs() / 1000);
+      setCooldownS(left);
+      if (left <= 0) setError(null);
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [cooldownS]);
+
   // Read the Supabase session once to know which biz_ids this device can see.
   useEffect(() => {
     if (!SUPABASE_AUTH_ENABLED) return;
@@ -217,14 +237,14 @@ export default function PinLockView() {
 
   // ── Keypad input ───────────────────────────────────────────────────
   function press(d: string) {
-    if (busy || errorPulse || openingBiz) return;
+    if (busy || errorPulse || openingBiz || cooldownS > 0) return;
     setError(null);
     setPin(p => (p + d).slice(0, 4));
     // Warm the room — ambient catches the tap.
     try { window.dispatchEvent(new Event('ncr:ambient-pulse')); } catch {}
   }
   function backspace() {
-    if (busy || errorPulse || openingBiz) return;
+    if (busy || errorPulse || openingBiz || cooldownS > 0) return;
     setError(null);
     setPin(p => p.slice(0, -1));
     try { window.dispatchEvent(new Event('ncr:ambient-pulse')); } catch {}
@@ -253,7 +273,7 @@ export default function PinLockView() {
   // mobile-collapsed state.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (busy || openingBiz) return;
+      if (busy || openingBiz || cooldownS > 0) return;
       if (e.key >= '0' && e.key <= '9') {
         if (!keypadOpen) setKeypadOpen(true);
         press(e.key); return;
@@ -263,7 +283,7 @@ export default function PinLockView() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busy, errorPulse, openingBiz, keypadOpen]);
+  }, [busy, errorPulse, openingBiz, keypadOpen, cooldownS]);
 
   function flashErrorAndClear(message: string) {
     setShake(true);
@@ -307,6 +327,9 @@ export default function PinLockView() {
   // Auto-verify when 4 digits typed
   useEffect(() => {
     if (pin.length !== 4 || verifying.current) return;
+    // Belt-and-braces: input paths already block during cooldown, but if a
+    // 4-digit pin ever lands here while paused, refuse to verify it.
+    if (getPinCooldownMs() > 0) { setPin(''); return; }
     verifying.current = true;
     setBusy(true);
 
@@ -314,9 +337,20 @@ export default function PinLockView() {
       verifying.current = false;
       setBusy(false);
       if (!match) {
-        flashErrorAndClear('Aquest PIN no coincideix. Torna-ho a provar.');
+        // Brute-force damper: free for the first typos, then an
+        // escalating (but always short, ≤60 s) pause. See pinThrottle.ts.
+        const waitMs = recordPinFailure();
+        if (waitMs > 0) {
+          setCooldownS(Math.ceil(waitMs / 1000));
+          flashErrorAndClear('Massa intents seguits. Un moment…');
+        } else {
+          flashErrorAndClear('Aquest PIN no coincideix. Torna-ho a provar.');
+        }
         return;
       }
+      // Correct PIN — wipe the failure streak (scope filtering below is
+      // an authorisation concern, not a guessing signal).
+      clearPinThrottle();
       const effective = sessionBizIds
         ? match.scope.filter(id => sessionBizIds.includes(id))
         : match.scope;
@@ -457,8 +491,10 @@ export default function PinLockView() {
               <span className="pin-lock__cta-arrow" aria-hidden="true">▲</span>
             </button>
 
-            <div className="pin-lock__status" aria-live="polite" data-error={!!error}>
-              {error || (busy ? 'Verificant…' : ' ')}
+            <div className="pin-lock__status" aria-live="polite" data-error={!!error || cooldownS > 0}>
+              {cooldownS > 0
+                ? `Massa intents seguits. Espera ${cooldownS} s…`
+                : error || (busy ? 'Verificant…' : ' ')}
             </div>
 
             <div className="pin-lock__keypad">
@@ -469,7 +505,7 @@ export default function PinLockView() {
                   <button
                     key={i}
                     type="button"
-                    disabled={busy || bookOpening}
+                    disabled={busy || bookOpening || cooldownS > 0}
                     className={`pin-lock__key ${isDel ? 'pin-lock__key--del' : ''}`}
                     // Single input path: onPointerDown for ALL pointer types
                     // (mouse + touch + pen). preventDefault stops the
@@ -493,7 +529,9 @@ export default function PinLockView() {
             </div>
 
             <p className="pin-lock__reassurance">
-              Si t'equivoques no passa res — torna a teclejar.
+              {cooldownS > 0
+                ? 'Per seguretat, l’accés es pausa uns segons. De seguida hi tornes.'
+                : 'Si t’equivoques no passa res — torna a teclejar.'}
             </p>
 
           </div>
