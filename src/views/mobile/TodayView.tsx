@@ -1603,10 +1603,10 @@ const ZoneChip = memo(function ZoneChip({
   tone: 'all' | 'zone' | 'empty';
 }) {
   const palette = tone === 'all'
-    ? { bgActive: 'var(--ink-900)',         fgActive: '#fff',                 countActive: 'rgba(255,255,255,.78)' }
+    ? { bgActive: 'var(--ink-900)',         fgActive: 'var(--cream)',   countActive: 'var(--ink-100)' }
     : tone === 'empty'
-      ? { bgActive: 'var(--clay-600)',       fgActive: '#fff',                 countActive: 'rgba(255,255,255,.82)' }
-      : { bgActive: 'var(--terracotta-600)', fgActive: '#fff',                 countActive: 'rgba(255,255,255,.82)' };
+      ? { bgActive: 'var(--clay-600)',       fgActive: 'var(--cream)',   countActive: 'var(--ink-100)' }
+      : { bgActive: 'var(--terracotta-600)', fgActive: 'var(--cream)',   countActive: 'var(--ink-100)' };
   return (
     <button onClick={onClick} className="press"
       style={{

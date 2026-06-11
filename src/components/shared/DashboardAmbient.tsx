@@ -269,20 +269,23 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
             radial-gradient(ellipse 120% 100% at 50% 40%, #2a2015 0%, #231a10 60%, #1c150d 100%);
         }
         html[data-theme="vespre"] .dashboard-ambient[data-night="true"] {
+          /* Night hours no longer dip below the standard vespre floor —
+             the operator flagged that late shifts went "ugly dark". The
+             theme is already the night look; don't double-darken it. */
           background:
-            radial-gradient(ellipse 120% 100% at 50% 40%, #271d12 0%, #20170e 60%, #1a110a 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #2a2015 0%, #231a10 60%, #1c150d 100%);
         }
         html[data-theme="vespre"] .da-blob {
           mix-blend-mode: screen;
-          /* Almost imperceptible — the glow accompanies, never competes. */
-          opacity: .35;
+          /* Visible pools of warm light — they carry the room's life. */
+          opacity: .55;
         }
         html[data-theme="vespre"] .da-sun {
-          opacity: .45;
+          opacity: .65;
         }
         html[data-theme="vespre"] .da-sun[data-visible="false"] {
           mix-blend-mode: screen;
-          opacity: .25;
+          opacity: .4;
         }
         html[data-theme="vespre"] .da-grain {
           mix-blend-mode: screen;
