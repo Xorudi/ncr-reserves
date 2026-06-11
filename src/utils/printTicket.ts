@@ -79,16 +79,46 @@ function splitLabel(p: string): [string, string] | null {
   return m ? [m[1].trim(), m[2].trim()] : null;
 }
 
+/**
+ * Comanda body → kitchen list. The cook reads quantities, not prose:
+ * "2 amanides, 4 formatges, 5 entranyes" becomes one line per dish with
+ * the quantity big and bold in its own column.
+ *
+ * Split points (conservative — when unsure, keep text together):
+ *   • ", 4 …"            comma followed by a quantity
+ *   • " i 1 Stromboli"   "i" + quantity + Capitalized dish (lowercase
+ *                        after the digit stays glued: "—5 rostit i 5
+ *                        pernil—" is a parenthetical, not an item)
+ *   • ". Pizzes adults: …" an inline "Label:" after a period opens a
+ *                        sub-section with its own underlined header
+ */
+function renderBody(text: string): string {
+  const chunks = text.split(/\.\s+(?=[A-ZÀ-Ý][^.:\n]{1,28}:\s)/);
+  let html = '';
+  for (const raw of chunks) {
+    const lab = splitLabel(raw);
+    if (lab) html += `<div class="sec-h">${esc(lab[0]).toUpperCase()}</div>`;
+    const body = (lab ? lab[1] : raw).trim().replace(/\.+\s*$/, '');
+    const items = body
+      .split(/,\s+(?=\d)/)
+      .flatMap(s => s.split(/\s+i\s+(?=\d+\s+[A-ZÀ-Ý])/));
+    if (items.length > 1 || /^\d/.test(body)) {
+      html += '<div class="items">' + items.map(it => {
+        const m = /^(\d+)\s*(.*)$/s.exec(it.trim());
+        const qty  = m ? m[1] : '';
+        const rest = (m ? m[2] : it).trim();
+        return `<div class="item"><span class="qty">${esc(qty)}</span><span class="it">${esc(rest)}</span></div>`;
+      }).join('') + '</div>';
+    } else {
+      html += `<div class="sec-b">${esc(body)}</div>`;
+    }
+  }
+  return html;
+}
+
 export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan): void {
   const paras = (r.notes ?? '').trim().split(/\n+/).map(s => s.trim()).filter(Boolean);
-
-  const sections = paras.map(p => {
-    const lab = splitLabel(p);
-    if (lab) {
-      return `<div class="sec"><div class="sec-h">${esc(lab[0]).toUpperCase()}</div><div class="sec-b">${esc(lab[1])}</div></div>`;
-    }
-    return `<div class="sec"><div class="sec-b">${esc(p)}</div></div>`;
-  }).join('');
+  const sections = paras.map(p => `<div class="sec">${renderBody(p)}</div>`).join('');
 
   const printedAt = new Date().toLocaleTimeString('ca', { hour: '2-digit', minute: '2-digit' });
 
@@ -124,9 +154,13 @@ export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan):
     .allergy { margin-top: 5px; font-size: 13px; font-weight: 700;
                background: #000; color: #fff; padding: 4px 6px;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .sec   { margin: 0 0 7px; }
-    .sec-h { font-size: 13px; font-weight: 700; text-decoration: underline; }
-    .sec-b { font-size: 12.5px; line-height: 1.45; }
+    .sec   { margin: 0 0 8px; }
+    .sec-h { font-size: 14px; font-weight: 700; text-decoration: underline; margin: 6px 0 3px; }
+    .sec-b { font-size: 13.5px; line-height: 1.4; margin: 2px 0; }
+    .items { margin: 2px 0; }
+    .item  { display: flex; gap: 6px; margin: 0 0 3px; align-items: baseline; }
+    .qty   { min-width: 24px; font-size: 17px; font-weight: 700; text-align: right; flex-shrink: 0; }
+    .it    { font-size: 13.5px; line-height: 1.35; }
     .foot  { text-align: center; font-size: 9.5px; }
   `);
 }
