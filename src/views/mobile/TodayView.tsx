@@ -13,8 +13,7 @@ import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq }
 import { rankCustomers as rankCustomersFn, levelTint, type CustomerStats } from '@/utils/loyalty';
 import { suggestTablesFor, suggestionLabel } from '@/utils/tableSuggest';
 import { waReservationTemplates } from '@/utils/whatsapp';
-import { buildComandaTicket } from '@/utils/daySheet';
-import { printTicket } from '@/utils/printTicket';
+import { printComanda } from '@/utils/printTicket';
 import WhatsAppButton from '@/components/shared/WhatsAppButton';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
@@ -2226,10 +2225,7 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
             )}
             {r.notes && (
               <button
-                onClick={() => printTicket(
-                  `Comanda — ${r.name}`,
-                  buildComandaTicket(r, BUSINESSES.find(b => b.id === r.bizId)?.name ?? '', floorPlans[r.bizId]),
-                )}
+                onClick={() => printComanda(r, BUSINESSES.find(b => b.id === r.bizId)?.name ?? '', floorPlans[r.bizId])}
                 className="tac-btn"
                 style={{
                   marginBottom:12, padding:'7px 12px', borderRadius:9,
