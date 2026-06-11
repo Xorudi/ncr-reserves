@@ -12,6 +12,8 @@ import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq } from '@/types';
 import { rankCustomers as rankCustomersFn, levelTint, type CustomerStats } from '@/utils/loyalty';
 import { suggestTablesFor, suggestionLabel } from '@/utils/tableSuggest';
+import { waReservationMessage } from '@/utils/whatsapp';
+import WhatsAppButton from '@/components/shared/WhatsAppButton';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
 import { useRenderCount } from '@/hooks/usePerf';
@@ -2274,6 +2276,11 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
                   <Icon d={I.phone} size={14} /> Trucar
                 </a>
               )}
+              <WhatsAppButton
+                flex={1}
+                phone={r.phone}
+                message={waReservationMessage(r, BUSINESSES.find(b => b.id === r.bizId)?.name ?? '')}
+              />
               {r.status !== 'seated' && (
                 <button onClick={() => { updateReservationStatus(r.id, 'seated'); onClose(); }}
                   className="tac-btn tac-btn--accent"

@@ -13,6 +13,9 @@ import { Z_INDEX } from '@/lib/zIndex';
 import { Icon, I } from './Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
+import WhatsAppButton from './WhatsAppButton';
+import { waWaitlistMessage } from '@/utils/whatsapp';
+import { BUSINESSES } from '@/data/mockData';
 import type { WaitlistEntry, Reservation, FloorPlan } from '@/types';
 
 interface Props {
@@ -384,6 +387,12 @@ function QueueRow({ w, rank, isNext, plan, onNotify, onSeat, onRemove }: QueueRo
 
         {/* Action row */}
         <div style={{ display: 'flex', gap: 6 }}>
+          <WhatsAppButton
+            compact flex={1}
+            phone={w.phone}
+            label="Taula a punt"
+            message={waWaitlistMessage(w.name, BUSINESSES.find(b => b.id === w.bizId)?.name ?? '')}
+          />
           <button onClick={onNotify} disabled={isNotified} className="tac-btn"
             style={{
               flex: 1, padding: '10px 0', borderRadius: 10,

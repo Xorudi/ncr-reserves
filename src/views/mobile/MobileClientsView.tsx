@@ -5,6 +5,7 @@ import TimePickerPopover from '@/components/shared/TimePickerPopover';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Z_INDEX } from '@/lib/zIndex';
 import { Tag } from '@/components/shared/StatusChip';
+import WhatsAppButton from '@/components/shared/WhatsAppButton';
 import { initials, avIdx, isoDate } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId, ReservationStatus } from '@/types';
@@ -746,6 +747,7 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
                 <Icon d={I.phone} size={14} /> Trucar
               </a>
             )}
+            <WhatsAppButton flex={1} phone={c.phone} />
             <button onClick={onEdit}
               style={{ flex:1, padding:'11px 0', background:'var(--cream)', border:'1.5px solid var(--line-strong)', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-800)', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
               <Icon d={I.pencil} size={14} /> Editar
