@@ -13,6 +13,8 @@ import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq }
 import { rankCustomers as rankCustomersFn, levelTint, type CustomerStats } from '@/utils/loyalty';
 import { suggestTablesFor, suggestionLabel } from '@/utils/tableSuggest';
 import { waReservationTemplates } from '@/utils/whatsapp';
+import { buildComandaTicket } from '@/utils/daySheet';
+import { printTicket } from '@/utils/printTicket';
 import WhatsAppButton from '@/components/shared/WhatsAppButton';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
@@ -2216,11 +2218,28 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
                 // browser forced-dark. Tokens keep contrast predictable.
                 background:'var(--clay-50)', borderRadius:8,
                 padding:'8px 11px', fontSize:13, color:'var(--clay-700)',
-                marginBottom:12, lineHeight:1.45,
+                marginBottom:6, lineHeight:1.45, whiteSpace:'pre-line',
                 border:'1px solid rgba(176,118,54,.25)',
               }}>
                 {r.notes}
               </div>
+            )}
+            {r.notes && (
+              <button
+                onClick={() => printTicket(
+                  `Comanda — ${r.name}`,
+                  buildComandaTicket(r, BUSINESSES.find(b => b.id === r.bizId)?.name ?? '', floorPlans[r.bizId]),
+                )}
+                className="tac-btn"
+                style={{
+                  marginBottom:12, padding:'7px 12px', borderRadius:9,
+                  fontSize:12, fontWeight:650, color:'var(--ink-700)',
+                  fontFamily:'inherit',
+                  display:'inline-flex', alignItems:'center', gap:6,
+                }}>
+                <Icon d={I.note} size={13} stroke={2} />
+                Imprimir comanda
+              </button>
             )}
             {r.phone && (
               <div style={{

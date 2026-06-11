@@ -179,3 +179,34 @@ export function buildMonthSheet(
     + (bigTotal ? ` · ${bigTotal} grups grans` : ''));
   return lines.join('\n');
 }
+
+// ─── Single-reservation comanda ticket (thermal 80mm) ─────────────────────────
+
+export function buildComandaTicket(
+  r: Reservation,
+  bizName: string,
+  plan?: FloorPlan,
+): string {
+  const lines: string[] = [];
+  lines.push(bizName.toUpperCase());
+  lines.push(fmtDateCa(r.date));
+  lines.push('─'.repeat(24));
+  lines.push(`${r.time}  ·  ${r.pax} PAX`);
+  lines.push(r.name);
+  lines.push(`Taules: ${tableNames(r, plan)}`);
+  if (r.allergens && r.allergens.length > 0) {
+    lines.push(`AL·LÈRGIES: ${r.allergens.join(', ')}`);
+  }
+  if (r.notes && r.notes.trim()) {
+    lines.push('─'.repeat(24));
+    const paras = r.notes.trim().split(/\n+/).map(s => s.trim()).filter(Boolean);
+    for (const p of paras) {
+      lines.push(`» ${p}`);
+      lines.push('');
+    }
+    lines.pop();
+  }
+  lines.push('─'.repeat(24));
+  lines.push('NCR Reserves');
+  return lines.join('\n');
+}

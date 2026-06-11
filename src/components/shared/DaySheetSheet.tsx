@@ -15,6 +15,7 @@ import AnimatedSheet from './AnimatedSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES } from '@/data/mockData';
 import { buildDaySheet, buildWeekSheet, buildMonthSheet } from '@/utils/daySheet';
+import { printTicket } from '@/utils/printTicket';
 import { toast } from './Toaster';
 
 interface Props {
@@ -143,6 +144,14 @@ export default function DaySheetSheet({ open, onClose }: Props) {
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => printTicket('Full del dia', text)} className="tac-btn"
+            style={{
+              flex: 1, padding: '12px', borderRadius: 11,
+              fontSize: 13.5, fontWeight: 650, color: 'var(--ink-800)',
+              fontFamily: 'inherit',
+            }}>
+            Imprimir
+          </button>
           <button onClick={copy} className="tac-btn"
             style={{
               flex: 1, padding: '12px', borderRadius: 11,
