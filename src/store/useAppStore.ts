@@ -14,6 +14,7 @@ import {
   EMPLOYEE_SHIFTS_INIT,
 } from '@/data/mockData';
 import { cloud } from '@/lib/cloudSync';
+import { pushToTrash } from '@/lib/resTrash';
 import {
   sanitizeReservation, sanitizeCustomer, sanitizeEmployee,
   sanitizeShiftNote, sanitizeAppEvent, sanitizeWaitlistEntry,
@@ -84,6 +85,9 @@ interface AppState {
     pattern: RecurrencePattern,
   ) => string;
   deleteReservation: (id: string) => void;
+  /** Re-insert a previously deleted reservation EXACTLY as it was
+   *  (original id, date, tables, notes) and propagate to the cloud. */
+  restoreReservation: (r: Reservation) => void;
   assignTablesToReservation: (resId: string, tableIds: string[]) => void;
 
   // ── Table management ──────────────────────────────────────────────────────────
@@ -484,6 +488,9 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
   deleteReservation: (id) => {
     const toDelete = get().reservations.find(r => r.id === id);
     const bizId = toDelete?.bizId;
+    // Safety net: snapshot before it leaves the store so an accidental
+    // delete can be undone from Més → Historial (lib/resTrash.ts).
+    if (toDelete) pushToTrash(toDelete);
     set((s) => {
       const reservations = s.reservations.filter(r => r.id !== id);
       const selectedReservation = s.selectedReservation?.id === id ? null : s.selectedReservation;
@@ -506,6 +513,15 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
       const plan = get().floorPlans[bizId];
       if (plan) cloud.upsertFloorPlan(bizId, plan);
     }
+  },
+
+  restoreReservation: (r) => {
+    // Re-insert EXACTLY as it was — original id included, so the cloud
+    // upsert recreates the same row and every device converges on it.
+    // Guard against double-restore (row may already be back via sync).
+    if (get().reservations.some(x => x.id === r.id)) return;
+    set((s) => ({ reservations: [...s.reservations, r] }));
+    cloud.upsertReservation(r);
   },
 
   // ── Customer CRUD ─────────────────────────────────────────────────────────────

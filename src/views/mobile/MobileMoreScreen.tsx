@@ -23,9 +23,10 @@ import { Z_INDEX } from '@/lib/zIndex';
 import { getThemeMode, setThemeMode, onThemeChange, type ThemeMode } from '@/lib/theme';
 import { getPrintLang, setPrintLang, type PrintLang } from '@/utils/printTicket';
 import HoursScreen from './HoursScreen';
+import TrashScreen from './TrashScreen';
 import EmptyState from '@/components/shared/EmptyState';
 
-type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats' | 'hours';
+type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats' | 'hours' | 'trash';
 
 export default function MobileMoreScreen({ onSwitchTab, onOpenNotes }: {
   onSwitchTab: (tab: MobileTab) => void;
@@ -44,6 +45,7 @@ export default function MobileMoreScreen({ onSwitchTab, onOpenNotes }: {
   );
   if (sub === 'backups')  return <MobileBackupScreen onBack={() => setSub('menu')} />;
   if (sub === 'hours')    return <HoursScreen onBack={() => setSub('menu')} />;
+  if (sub === 'trash')    return <TrashScreen onBack={() => setSub('menu')} />;
   if (sub === 'stats')    return (
     <Suspense fallback={<SubScreenFallback />}>
       <StatsScreen onBack={() => setSub('menu')} />
@@ -173,6 +175,13 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes }: {
       ico:   I.shield,
       action: () => onSub('backups'),
       tone: 'olive',
+    },
+    {
+      label: 'Historial',
+      desc:  'Reserves eliminades — restaura-les si cal',
+      ico:   I.history ?? I.refresh,
+      action: () => onSub('trash'),
+      tone: 'clay',
     },
     // "Blocar" is always available — the PIN gate is always active.
     {
