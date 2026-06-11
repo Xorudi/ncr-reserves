@@ -14,6 +14,7 @@ import { createPortal } from 'react-dom';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { effectiveTable } from '@/utils/tableStatus';
+import { findTableConflicts } from '@/utils/tableConflict';
 
 interface Props {
   bizId: string;
@@ -23,14 +24,20 @@ interface Props {
    *  live table status (free/seated/blocked) for that day. Required so the
    *  picker matches what the Taules screen shows for the same date. */
   date?: string;
+  /** HH:MM of the reservation — enables time-aware double-booking
+   *  warnings (same-table seatings only clash when their estimated
+   *  windows overlap). */
+  time?: string;
+  /** Reservation being edited — excluded from conflict checks. */
+  excludeResId?: string;
   onSave: (tableIds: string[]) => void;
   onClose: () => void;
 }
 
 const OCCUPIED_STATUSES = new Set(['seated', 'confirmed', 'reserved', 'pending', 'blocked']);
 
-export default function TableSelectorModal({ bizId, pax, currentIds, date, onSave, onClose }: Props) {
-  const { floorPlans, reservations } = useAppStore();
+export default function TableSelectorModal({ bizId, pax, currentIds, date, time, excludeResId, onSave, onClose }: Props) {
+  const { floorPlans, reservations, businessHours } = useAppStore();
   const plan  = floorPlans[bizId];
   const zones = useMemo(
     () => plan ? [...plan.zones].sort((a, b) => a.order - b.order) : [],
@@ -73,6 +80,19 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
   );
 
   const capWarning = selected.length > 0 && totalCap < pax;
+
+  // Probable double-bookings for the current selection — time-aware when
+  // the caller passes the reservation's time (same table, two services,
+  // no overlap = no warning). The operator can always proceed.
+  const conflicts = useMemo(() => {
+    if (!plan || !date) return [];
+    const dayRes = reservations.filter(r => r.bizId === bizId && r.date === date);
+    return findTableConflicts(selected, plan, dayRes, {
+      time,
+      durationMin: businessHours[bizId]?.avgTableMinutes,
+      excludeResId,
+    });
+  }, [plan, reservations, bizId, date, selected, time, excludeResId, businessHours]);
 
   function toggle(id: string) {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -171,6 +191,26 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
             borderRadius:8, fontSize:12.5, color:'#b05a00', flexShrink:0,
           }}>
             ⚠️ Capacitat total ({totalCap} pax) inferior als comensals ({pax} pax). Pots confirmar igualment.
+          </div>
+        )}
+
+        {/* Double-booking warning — who you'd collide with, by table */}
+        {conflicts.length > 0 && (
+          <div style={{
+            margin:'0 14px 8px', padding:'8px 12px',
+            background:'rgba(168,74,42,.08)', border:'1px solid rgba(168,74,42,.25)',
+            borderRadius:8, fontSize:12.5, color:'var(--terracotta-700)', flexShrink:0,
+            display:'flex', flexDirection:'column', gap:3,
+          }}>
+            <span style={{
+              fontSize:10, fontWeight:700, letterSpacing:.08,
+              textTransform:'uppercase', fontFamily:'var(--font-mono)',
+            }}>Possible solapament</span>
+            {conflicts.map(c => (
+              <span key={c.tableId + c.other.id}>
+                Taula {c.tableName} · {c.other.name} a les {c.other.time} ({c.other.pax} pax)
+              </span>
+            ))}
           </div>
         )}
 

@@ -2389,6 +2389,8 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
           pax={r.pax}
           currentIds={r.tableIds ?? []}
           date={r.date}
+          time={r.time}
+          excludeResId={r.id}
           onSave={ids => assignTablesToReservation(r.id, ids)}
           onClose={() => setShowTableSel(false)}
         />
@@ -3341,6 +3343,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
           pax={form.pax}
           currentIds={selectedTableIds}
           date={form.date}
+          time={form.time}
           onSave={ids => { setSelectedTableIds(ids); setShowTableSel(false); }}
           onClose={() => setShowTableSel(false)}
         />

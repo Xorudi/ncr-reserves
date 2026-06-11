@@ -362,6 +362,8 @@ export default function BriefingActionSheet({
         pax={assigningRes.pax}
         currentIds={assigningRes.tableIds ?? []}
         date={assigningRes.date}
+        time={assigningRes.time}
+        excludeResId={assigningRes.id}
         onSave={ids => {
           assignTablesToReservation(assigningRes.id, ids);
           toast(`Taula assignada a ${assigningRes.name}`, { icon: 'check', tone: 'olive' });
