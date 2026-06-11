@@ -1,4 +1,5 @@
 import type { Customer, Reservation, BusinessId } from '../types';
+import { resolveTheme } from '../lib/theme';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 // Per-event point rewards. Tweak here without touching the rest of the system.
@@ -19,8 +20,12 @@ export interface Level {
   id:     LevelId;
   name:   string;
   min:    number;     // inclusive lower bound of points
-  color:  string;     // CSS color for the badge
-  bg:     string;     // CSS background tint
+  color:  string;     // CSS color for the badge (day theme)
+  bg:     string;     // CSS background tint (day theme)
+  /** Mode vespre equivalents — metals under low light: deep wash bg,
+   *  luminous metallic fg. Resolved via levelTint(). */
+  colorDark: string;
+  bgDark:    string;
   icon:   string;     // emoji
 }
 
@@ -28,13 +33,25 @@ export type LevelId =
   | 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'master';
 
 export const LEVELS: Level[] = [
-  { id: 'bronze',   name: 'Bronze',   min:    0, color: '#8a5a2b', bg: '#f3e5d3', icon: '🥉' },
-  { id: 'silver',   name: 'Silver',   min:  100, color: '#5e6671', bg: '#e6e9ee', icon: '🥈' },
-  { id: 'gold',     name: 'Gold',     min:  250, color: '#a37314', bg: '#faedc8', icon: '🥇' },
-  { id: 'platinum', name: 'Platinum', min:  500, color: '#1f7a8c', bg: '#d5edf2', icon: '💎' },
-  { id: 'diamond',  name: 'Diamond',  min:  900, color: '#5b2c83', bg: '#e6d8f2', icon: '💠' },
-  { id: 'master',   name: 'Master',   min: 1500, color: '#7a1f1f', bg: '#f1d4d4', icon: '👑' },
+  { id: 'bronze',   name: 'Bronze',   min:    0, color: '#8a5a2b', bg: '#f3e5d3', colorDark: '#d9a05f', bgDark: '#3f2c18', icon: '🥉' },
+  { id: 'silver',   name: 'Silver',   min:  100, color: '#5e6671', bg: '#e6e9ee', colorDark: '#c9cfd8', bgDark: '#32363d', icon: '🥈' },
+  { id: 'gold',     name: 'Gold',     min:  250, color: '#a37314', bg: '#faedc8', colorDark: '#e6c25f', bgDark: '#413514', icon: '🥇' },
+  { id: 'platinum', name: 'Platinum', min:  500, color: '#1f7a8c', bg: '#d5edf2', colorDark: '#7fd1e0', bgDark: '#173a42', icon: '💎' },
+  { id: 'diamond',  name: 'Diamond',  min:  900, color: '#5b2c83', bg: '#e6d8f2', colorDark: '#c9a3e8', bgDark: '#34244a', icon: '💠' },
+  { id: 'master',   name: 'Master',   min: 1500, color: '#7a1f1f', bg: '#f1d4d4', colorDark: '#e88a7a', bgDark: '#44201a', icon: '👑' },
 ];
+
+/**
+ * Theme-resolved badge colors for a level. Call at render time — the
+ * level data stays static, only the lens changes. (Inline styles can't
+ * read CSS variables with the `${color}33` alpha-suffix trick used by
+ * the badge borders, so this resolves to raw hexes.)
+ */
+export function levelTint(l: Level): { color: string; bg: string } {
+  return resolveTheme() === 'vespre'
+    ? { color: l.colorDark, bg: l.bgDark }
+    : { color: l.color,     bg: l.bg };
+}
 
 export function levelForPoints(points: number): Level {
   // Iterate from highest to lowest; first match wins.

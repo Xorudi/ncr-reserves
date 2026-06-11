@@ -10,7 +10,7 @@ import TimePickerPopover from '@/components/shared/TimePickerPopover';
 import { ALLERGENS, allergenById } from '@/utils/allergens';
 import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq } from '@/types';
-import { rankCustomers as rankCustomersFn, type CustomerStats } from '@/utils/loyalty';
+import { rankCustomers as rankCustomersFn, levelTint, type CustomerStats } from '@/utils/loyalty';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
 import { useRenderCount } from '@/hooks/usePerf';
@@ -1731,9 +1731,9 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
     <button onClick={() => onSel(r)} className={`press${justArrived ? ' row-arrived' : ''}`}
       style={{
         position: 'relative',
-        width: 'calc(100% - 16px)', margin: '0 8px 5px',
+        width: 'calc(100% - 16px)', margin: '0 8px 8px',
         textAlign: 'left',
-        background: selected ? 'var(--terracotta-50)' : 'var(--surface-elevated)',
+        background: selected ? 'var(--terracotta-50)' : 'var(--card-face)',
         border: 'none', borderRadius: 12,
         boxShadow: selected
           ? '0 0 0 1.5px var(--terracotta-500), var(--shadow-md), var(--shadow-inset-top)'
@@ -1931,9 +1931,9 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
           <span title={`${loyalty.stats.points} punts · rang #${loyalty.rank}`} style={{
             display:'inline-flex', alignItems:'center', gap:3,
             padding:'2px 7px', borderRadius:999,
-            background: loyalty.stats.level.bg,
-            color: loyalty.stats.level.color,
-            border: `1px solid ${loyalty.stats.level.color}33`,
+            background: levelTint(loyalty.stats.level).bg,
+            color: levelTint(loyalty.stats.level).color,
+            border: `1px solid ${levelTint(loyalty.stats.level).color}33`,
             fontSize:10, fontWeight:700, letterSpacing:.2,
             whiteSpace:'nowrap',
           }}>

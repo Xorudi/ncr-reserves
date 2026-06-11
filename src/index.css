@@ -99,6 +99,11 @@
   --line:        rgba(60,40,20,.11);
   --line-strong: rgba(60,40,20,.16);
 
+  /* Card face — list rows and tiles. Day = plain paper; vespre swaps in a
+     subtle top-lit "liquid glass" gradient (specular sheen, no backdrop
+     blur — blur on scrolling lists murders mobile framerate). */
+  --card-face: #ffffff;
+
   /* ── Layered surface system (Phase 1 of the visual overhaul) ──────────────
      Five surface roles, each with its own material:
        app       — canvas, atmospheric gradient, base of the visual stack
@@ -225,6 +230,10 @@ html[data-theme="vespre"] {
   --line-soft:   rgba(255,232,200,.10);
   --line:        rgba(255,232,200,.15);
   --line-strong: rgba(255,232,200,.22);
+
+  /* Liquid-glass card face: light pools at the top edge and drains down —
+     reads as a polished surface catching the room's light. */
+  --card-face: linear-gradient(180deg, #3e301f 0%, #352818 55%, #312415 100%);
 
   /* Surface ladder (v4) — lifted a full notch after operator feedback:
      "cacao amb llet", never charcoal. Hierarchy reads by material:

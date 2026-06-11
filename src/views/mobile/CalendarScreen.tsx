@@ -13,7 +13,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
-import { rankCustomers, type CustomerStats } from '@/utils/loyalty';
+import { rankCustomers, levelTint, type CustomerStats } from '@/utils/loyalty';
 import { resPalette } from '@/utils/statusLabels';
 import type { Reservation } from '@/types';
 
@@ -782,8 +782,8 @@ function ReservationRow({ r, loyalty, onClick }: {
             <span title={`${loyalty.stats.points} punts`} style={{
               display: 'inline-flex', alignItems: 'center', gap: 3,
               padding: '1px 6px', borderRadius: 999,
-              background: loyalty.stats.level.bg, color: loyalty.stats.level.color,
-              border: `1px solid ${loyalty.stats.level.color}33`,
+              background: levelTint(loyalty.stats.level).bg, color: levelTint(loyalty.stats.level).color,
+              border: `1px solid ${levelTint(loyalty.stats.level).color}33`,
               fontSize: 9.5, fontWeight: 700, flexShrink: 0,
             }}>
               <span>{loyalty.stats.level.icon}</span>{loyalty.stats.level.name}

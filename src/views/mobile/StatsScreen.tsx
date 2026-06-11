@@ -4,7 +4,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate, BUSINESSES } from '@/data/mockData';
 import { useVisibleBusinesses } from '@/store/usePinScope';
-import { rankCustomers, LEVELS, computeCustomerStats, type LevelId } from '@/utils/loyalty';
+import { rankCustomers, LEVELS, levelTint, computeCustomerStats, type LevelId } from '@/utils/loyalty';
 import { getDailyServiceCapacity, getEffectiveCapacity } from '@/utils/businessConfig';
 import type { Reservation } from '@/types';
 
@@ -723,8 +723,8 @@ function TopClientsBlock() {
                 <span style={{
                   fontSize: 10.5, fontWeight: 700,
                   padding: '3px 8px', borderRadius: 999,
-                  background: row.stats.level.bg, color: row.stats.level.color,
-                  border: `1px solid ${row.stats.level.color}33`,
+                  background: levelTint(row.stats.level).bg, color: levelTint(row.stats.level).color,
+                  border: `1px solid ${levelTint(row.stats.level).color}33`,
                   display: 'inline-flex', alignItems: 'center', gap: 3,
                 }}>
                   <span>{row.stats.level.icon}</span>{row.stats.level.name}
@@ -1131,13 +1131,13 @@ function LevelDistributionBlock() {
           buckets.map(b => (
             <div key={b.level.id} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, color: b.level.color }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, color: levelTint(b.level).color }}>
                   {b.level.icon} {b.level.name}
                 </span>
                 <span style={{ color: 'var(--ink-500)', fontFamily: 'var(--font-mono)' }}>{b.count} · {b.pct}%</span>
               </div>
               <div style={{ height: 7, borderRadius: 3.5, background: 'var(--ink-100)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(b.count / max) * 100}%`, background: b.level.color, transition: 'width 320ms ease' }} />
+                <div style={{ height: '100%', width: `${(b.count / max) * 100}%`, background: levelTint(b.level).color, transition: 'width 320ms ease' }} />
               </div>
             </div>
           ))

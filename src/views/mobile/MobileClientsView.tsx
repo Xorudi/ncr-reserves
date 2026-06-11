@@ -9,7 +9,7 @@ import { initials, avIdx, isoDate } from '@/data/mockData';
 import { useAppStore } from '@/store/useAppStore';
 import type { Customer, BusinessId, ReservationStatus } from '@/types';
 import {
-  rankCustomers, computeCustomerStats,
+  rankCustomers, computeCustomerStats, levelTint,
   countVisitsInPeriod, periodLabel,
   type CustomerStats, type Period,
 } from '@/utils/loyalty';
@@ -466,13 +466,18 @@ function ClientRow({ client: c, onTap, rankInfo, showRank, periodCount, periodSu
                    : showRank && rankInfo?.rank === 3 ? '🥉' : null;
   return (
     <button onClick={onTap} className="press"
+      // Individual card per client — the old flush-list look declared a
+      // borderBottom separator that the later `border:'none'` silently
+      // killed, so rows fused into one slab in both themes.
       style={{
-        display:'flex', alignItems:'center', gap:13, padding:'14px 18px',
-        borderBottom:'var(--hair)',
+        display:'flex', alignItems:'center', gap:13, padding:'13px 16px',
         background: isVip
-          ? 'linear-gradient(180deg, rgba(243,220,166,.18) 0%, var(--paper) 60%)'
-          : 'var(--paper)',
-        border:'none', width:'100%', cursor:'pointer',
+          ? 'linear-gradient(180deg, rgba(243,220,166,.14) 0%, transparent 60%), var(--card-face)'
+          : 'var(--card-face)',
+        border:'none', borderRadius:14,
+        width:'calc(100% - 20px)', margin:'0 10px 8px',
+        boxShadow:'var(--shadow-sm), var(--shadow-ring), var(--shadow-inset-top)',
+        cursor:'pointer',
         fontFamily:'inherit', textAlign:'left',
         transition:'background 200ms var(--ease-out)',
       }}>
@@ -525,9 +530,9 @@ function ClientRow({ client: c, onTap, rankInfo, showRank, periodCount, periodSu
             <span title={`${rankInfo.stats.points} punts`} style={{
               fontSize:10, fontWeight:700,
               padding:'2px 7px', borderRadius:999,
-              background: rankInfo.stats.level.bg,
-              color: rankInfo.stats.level.color,
-              border: `1px solid ${rankInfo.stats.level.color}33`,
+              background: levelTint(rankInfo.stats.level).bg,
+              color: levelTint(rankInfo.stats.level).color,
+              border: `1px solid ${levelTint(rankInfo.stats.level).color}33`,
               display:'inline-flex', alignItems:'center', gap:3,
               letterSpacing:.2,
             }}>
@@ -652,14 +657,14 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
             marginBottom:12,
             padding:'12px 14px',
             borderRadius:12,
-            background: fidelity.level.bg + '66',
-            border: `1px solid ${fidelity.level.color}22`,
+            background: levelTint(fidelity.level).bg + '66',
+            border: `1px solid ${levelTint(fidelity.level).color}22`,
           }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                 <span style={{ fontSize:24 }}>{fidelity.level.icon}</span>
                 <div>
-                  <div style={{ fontFamily:'var(--font-serif)', fontSize:16, fontWeight:600, color:fidelity.level.color, lineHeight:1.1 }}>
+                  <div style={{ fontFamily:'var(--font-serif)', fontSize:16, fontWeight:600, color:levelTint(fidelity.level).color, lineHeight:1.1 }}>
                     {fidelity.level.name}
                   </div>
                   <div style={{ fontSize:11, color:'var(--ink-500)', marginTop:2 }}>
@@ -675,7 +680,7 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
               )}
             </div>
             <div style={{ height:6, borderRadius:3, background:'var(--glass-strong)', overflow:'hidden' }}>
-              <div style={{ height:'100%', width:`${fidelity.progressPct}%`, background: fidelity.level.color, transition:'width 320ms ease' }} />
+              <div style={{ height:'100%', width:`${fidelity.progressPct}%`, background: levelTint(fidelity.level).color, transition:'width 320ms ease' }} />
             </div>
             <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:10 }}>
               {fidelity.badges.map(b => (
