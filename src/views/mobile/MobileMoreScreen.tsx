@@ -21,8 +21,9 @@ import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Z_INDEX } from '@/lib/zIndex';
 import { getThemeMode, setThemeMode, onThemeChange, type ThemeMode } from '@/lib/theme';
+import HoursScreen from './HoursScreen';
 
-type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats';
+type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats' | 'hours';
 
 export default function MobileMoreScreen({ onSwitchTab, onOpenNotes }: {
   onSwitchTab: (tab: MobileTab) => void;
@@ -40,6 +41,7 @@ export default function MobileMoreScreen({ onSwitchTab, onOpenNotes }: {
     </Suspense>
   );
   if (sub === 'backups')  return <MobileBackupScreen onBack={() => setSub('menu')} />;
+  if (sub === 'hours')    return <HoursScreen onBack={() => setSub('menu')} />;
   if (sub === 'stats')    return (
     <Suspense fallback={<SubScreenFallback />}>
       <StatsScreen onBack={() => setSub('menu')} />
@@ -140,8 +142,22 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes }: {
       action: () => onSub('stats'),
       tone: 'olive',
     },
+    {
+      label: 'Tancament del dia',
+      desc:  'Resum del servei, reserves obertes i demà',
+      ico:   I.flame ?? I.check,
+      action: () => window.dispatchEvent(new CustomEvent('app:open-dayclose')),
+      tone: 'terracotta',
+    },
   ];
   const SYSTEM: MenuItem[] = [
+    {
+      label: 'Horaris',
+      desc:  'Torns, cuina, tancar menjador i obertura setmanal',
+      ico:   I.clock,
+      action: () => onSub('hours'),
+      tone: 'sky',
+    },
     {
       label: 'Còpies de seguretat',
       desc:  'Backup local, exportar i importar dades',

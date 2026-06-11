@@ -504,12 +504,12 @@ export const BIZ_SHIFTS: Record<string, BizShift[]> = {
     { id:'N', code:'N', label:'Nit',    start:'20:30', end:'04:00', color:'#d4e5ee', active:true },
   ],
   pista:   [
-    { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true },
-    { id:'N', code:'N', label:'Nit',    start:'16:00', end:'00:00', color:'#d4e5ee', active:true },
+    { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true, kitchenClose:'15:30' },
+    { id:'N', code:'N', label:'Nit',    start:'16:00', end:'00:00', color:'#d4e5ee', active:true, kitchenClose:'23:00', diningClose:'22:30' },
   ],
   esquitx: [
-    { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true },
-    { id:'N', code:'N', label:'Nit',    start:'20:00', end:'01:00', color:'#ecdaf0', active:true },
+    { id:'M', code:'M', label:'Migdia', start:'09:00', end:'16:00', color:'#f3e3d6', active:true, kitchenClose:'15:30' },
+    { id:'N', code:'N', label:'Nit',    start:'20:00', end:'01:00', color:'#ecdaf0', active:true, kitchenClose:'23:00' },
   ],
 };
 

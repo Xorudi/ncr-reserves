@@ -31,6 +31,8 @@ import WaitlistSheet from '@/components/shared/WaitlistSheet';
 import WeatherWidget from '@/components/shared/WeatherWidget';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 import BriefingSheet from '@/components/shared/BriefingSheet';
+import DayCloseSheet from '@/components/shared/DayCloseSheet';
+import { useServiceBells } from '@/hooks/useServiceBells';
 import BriefingActionSheet, { type ResolvableAction } from '@/components/shared/BriefingActionSheet';
 import type { SuggestedAction } from '@/utils/briefing';
 import { NotesSheet } from '@/views/touch/NotesSystem';
@@ -108,6 +110,7 @@ export default function TouchShell() {
   const [showNotesSheet, setShowNotesSheet] = useState(false);
   const [showSearch,     setShowSearch]     = useState(false);
   const [showBriefing,   setShowBriefing]   = useState(false);
+  const [showDayClose,   setShowDayClose]   = useState(false);
   const [briefingAction, setBriefingAction] = useState<ResolvableAction | null>(null);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
   // Mobile header collapses when the operator scrolls into the list. The
@@ -222,6 +225,11 @@ export default function TouchShell() {
     reservations, waitlist, forecast: shellForecast,
   });
 
+  // ── Service bells — dining-room close reminder + kitchen-closed prompt
+  //    (times configured per business in Més → Horaris). ──
+  const bizShifts = useAppStore(s => s.bizShifts);
+  useServiceBells(selectedBusiness, bizShifts[selectedBusiness] ?? []);
+
   // ── Briefing trigger — listens for the global app:open-briefing event
   //    that InsightOfMoment dispatches when its "Veure briefing →" CTA is
   //    pressed. Lets the hero be tappable from any layout (mobile shell
@@ -229,7 +237,12 @@ export default function TouchShell() {
   useEffect(() => {
     const onOpen = () => setShowBriefing(true);
     window.addEventListener('app:open-briefing', onOpen);
-    return () => window.removeEventListener('app:open-briefing', onOpen);
+    const onDayClose = () => setShowDayClose(true);
+    window.addEventListener('app:open-dayclose', onDayClose);
+    return () => {
+      window.removeEventListener('app:open-briefing', onOpen);
+      window.removeEventListener('app:open-dayclose', onDayClose);
+    };
   }, []);
 
   // ── Briefing action router — receives the typed action from the
@@ -868,6 +881,9 @@ export default function TouchShell() {
             onRunAction={handleBriefingAction}
           />
         )}
+        {showDayClose && (
+          <DayCloseSheet open={showDayClose} onClose={() => setShowDayClose(false)} />
+        )}
         {briefingAction !== null && (
           <BriefingActionSheet
             open={briefingAction !== null}
@@ -1164,6 +1180,9 @@ export default function TouchShell() {
           onNavigateTab={t => setTab(t)}
           onRunAction={handleBriefingAction}
         />
+      )}
+      {showDayClose && (
+        <DayCloseSheet open={showDayClose} onClose={() => setShowDayClose(false)} />
       )}
       {briefingAction !== null && (
         <BriefingActionSheet

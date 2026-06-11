@@ -155,6 +155,12 @@ export interface BizShift {
   end: string;
   color: string;
   active: boolean;
+  /** HH:MM — kitchen stops taking orders within this shift. Drives the
+   *  end-of-day bell + "Tancament del dia" prompt. Empty/undefined = off. */
+  kitchenClose?: string;
+  /** HH:MM — start clearing the dining room: one-shot reminder to move
+   *  guests to the bar/terrace so the room can be reset. Empty = off. */
+  diningClose?: string;
 }
 
 export interface NotifConfig {
