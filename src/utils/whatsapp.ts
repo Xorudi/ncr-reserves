@@ -5,7 +5,11 @@
  * Spanish numbers stored locally ("620 863 469") get the 34 prefix;
  * anything that already looks international passes through.
  *
- * Message builders keep the operator's voice: short, warm, Catalan.
+ * Templates: each context offers a small set of ready messages the
+ * operator picks from (confirmation, reminder, ask-to-confirm…). Plain
+ * text only — emoji render unreliably across devices, so the voice is
+ * warm Catalan without decoration. The operator can still edit the text
+ * inside WhatsApp before sending.
  */
 import type { Reservation } from '@/types';
 
@@ -38,15 +42,67 @@ export function fmtDateCa(isoDate: string): string {
   return `${DAYS_CA[d.getDay()]} ${d.getDate()} de ${MONTHS_CA[d.getMonth()]}`;
 }
 
-/** Confirmation text for a reservation — the most common WhatsApp. */
-export function waReservationMessage(r: Reservation, bizName: string): string {
-  const firstName = r.name.trim().split(/\s+/)[0];
-  return `Hola ${firstName}! Et confirmem la reserva per ${r.pax} ${r.pax === 1 ? 'persona' : 'persones'} ` +
-    `${fmtDateCa(r.date)} a les ${r.time} a ${bizName}. Fins aviat! 🍽`;
+function firstName(full: string): string {
+  return full.trim().split(/\s+/)[0];
 }
 
-/** "Your table is ready" — for the waitlist queue. */
-export function waWaitlistMessage(name: string, bizName: string): string {
-  const firstName = name.trim().split(/\s+/)[0];
-  return `Hola ${firstName}! Ja tenim la taula a punt a ${bizName} — pots venir quan vulguis 👍`;
+// ─── Templates ────────────────────────────────────────────────────────────────
+
+export interface WaTemplate {
+  id:    string;
+  /** Short label shown in the picker. */
+  label: string;
+  /** Full message; empty string = open the chat with no prefill. */
+  text:  string;
+}
+
+/** Message options for a reservation context (detail sheet, briefing). */
+export function waReservationTemplates(r: Reservation, bizName: string): WaTemplate[] {
+  const nom   = firstName(r.name);
+  const quan  = `${fmtDateCa(r.date)} a les ${r.time}`;
+  const grup  = `${r.pax} ${r.pax === 1 ? 'persona' : 'persones'}`;
+  return [
+    {
+      id: 'confirm',
+      label: 'Confirmar la reserva',
+      text: `Hola ${nom}! Et confirmem la reserva per ${grup} ${quan} a ${bizName}. Fins aviat!`,
+    },
+    {
+      id: 'remind',
+      label: 'Recordatori',
+      text: `Hola ${nom}! Et recordem la reserva per ${grup} ${quan} a ${bizName}. Us esperem!`,
+    },
+    {
+      id: 'ask',
+      label: 'Demanar confirmació',
+      text: `Hola ${nom}! Tens una reserva per ${grup} ${quan} a ${bizName}. Ens pots confirmar que vindreu? Gràcies!`,
+    },
+    {
+      id: 'free',
+      label: 'Sense missatge (xat obert)',
+      text: '',
+    },
+  ];
+}
+
+/** Message options for the waitlist queue. */
+export function waWaitlistTemplates(name: string, bizName: string): WaTemplate[] {
+  const nom = firstName(name);
+  return [
+    {
+      id: 'ready',
+      label: 'Taula a punt',
+      text: `Hola ${nom}! Ja tenim la taula a punt a ${bizName} — pots venir quan vulguis.`,
+    },
+    {
+      id: 'soon',
+      label: 'Queda poc',
+      text: `Hola ${nom}! Et falta poc per tenir taula a ${bizName} — uns minuts més i t'avisem.`,
+    },
+    {
+      id: 'free',
+      label: 'Sense missatge (xat obert)',
+      text: '',
+    },
+  ];
 }

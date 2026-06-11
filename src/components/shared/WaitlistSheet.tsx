@@ -14,7 +14,7 @@ import { Icon, I } from './Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
 import WhatsAppButton from './WhatsAppButton';
-import { waWaitlistMessage } from '@/utils/whatsapp';
+import { waWaitlistTemplates } from '@/utils/whatsapp';
 import { BUSINESSES } from '@/data/mockData';
 import type { WaitlistEntry, Reservation, FloorPlan } from '@/types';
 
@@ -390,8 +390,7 @@ function QueueRow({ w, rank, isNext, plan, onNotify, onSeat, onRemove }: QueueRo
           <WhatsAppButton
             compact flex={1}
             phone={w.phone}
-            label="Taula a punt"
-            message={waWaitlistMessage(w.name, BUSINESSES.find(b => b.id === w.bizId)?.name ?? '')}
+            templates={waWaitlistTemplates(w.name, BUSINESSES.find(b => b.id === w.bizId)?.name ?? '')}
           />
           <button onClick={onNotify} disabled={isNotified} className="tac-btn"
             style={{

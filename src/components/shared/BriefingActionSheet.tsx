@@ -28,7 +28,7 @@ import TableSelectorModal from './TableSelectorModal';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
 import { suggestTablesFor, suggestionLabel } from '@/utils/tableSuggest';
-import { waReservationMessage } from '@/utils/whatsapp';
+import { waReservationTemplates } from '@/utils/whatsapp';
 import WhatsAppButton from './WhatsAppButton';
 import { BUSINESSES } from '@/data/mockData';
 import type { Reservation } from '@/types';
@@ -263,7 +263,7 @@ export default function BriefingActionSheet({
                       <WhatsAppButton
                         compact
                         phone={r.phone}
-                        message={waReservationMessage(r, BUSINESSES.find(b => b.id === r.bizId)?.name ?? '')}
+                        templates={waReservationTemplates(r, BUSINESSES.find(b => b.id === r.bizId)?.name ?? '')}
                       />
                       <button
                         onClick={() => handleOpenDetail(r)}
