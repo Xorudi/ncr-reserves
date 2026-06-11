@@ -35,7 +35,16 @@ function activeOn(reservations: Reservation[], iso: string): Reservation[] {
     .sort((a, b) => a.time.localeCompare(b.time));
 }
 
-/** Detail lines for one day's bookings (no header). */
+/** Detail lines for one day's bookings (no header).
+ *
+ *  Formatting choices learned from real comandes (walls of menu text):
+ *   • The booking line is *bold* — WhatsApp renders asterisks as bold,
+ *     so the kitchen group scans names/times at a glance. In plain-text
+ *     contexts the asterisks degrade gracefully.
+ *   • The client's own line breaks in the comanda are PRESERVED: each
+ *     paragraph becomes its own indented » bullet (flattening them into
+ *     one giant line was unreadable).
+ *   • A blank line after every booking with a comanda — blocks breathe. */
 function detailLines(day: Reservation[], plan?: FloorPlan, withNotes = true): string[] {
   const lines: string[] = [];
   const migdia = day.filter(r => parseInt(r.time.slice(0, 2), 10) < 17);
@@ -45,18 +54,22 @@ function detailLines(day: Reservation[], plan?: FloorPlan, withNotes = true): st
     if (list.length === 0) continue;
     const pax = list.reduce((s, r) => s + r.pax, 0);
     lines.push('');
-    lines.push(`${label} · ${list.length} reserv${list.length === 1 ? 'a' : 'es'} · ${pax} pax`);
+    lines.push(`*${label} · ${list.length} reserv${list.length === 1 ? 'a' : 'es'} · ${pax} pax*`);
+    lines.push('');
     for (const r of list) {
       const flags: string[] = [];
       if (r.status === 'pending') flags.push('PENDENT');
       if (r.allergens && r.allergens.length > 0) flags.push(`AL·LÈRGIES: ${r.allergens.join(', ')}`);
-      lines.push(`${r.time} · ${r.name} · ${r.pax}p · ${tableNames(r, plan)}${flags.length ? ' · ' + flags.join(' · ') : ''}`);
+      lines.push(`*${r.time} · ${r.name} · ${r.pax}p* · ${tableNames(r, plan)}${flags.length ? ' · ' + flags.join(' · ') : ''}`);
       if (withNotes && r.notes && r.notes.trim()) {
-        const note = r.notes.trim().replace(/\s*\n\s*/g, ' / ');
-        lines.push(`   » ${note}`);
+        const paras = r.notes.trim().split(/\n+/).map(s => s.trim()).filter(Boolean);
+        for (const p of paras) lines.push(`   » ${p}`);
+        lines.push('');
       }
     }
   }
+  // No trailing blank — the caller adds its own separators.
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
   return lines;
 }
 
@@ -113,7 +126,7 @@ export function buildWeekSheet(
     if (day.length === 0) continue;
     all.push(...day);
     lines.push('');
-    lines.push(fmtDateCa(iso).toUpperCase());
+    lines.push(`*${fmtDateCa(iso).toUpperCase()}*`);
     lines.push(...detailLines(day, plan, true));
   }
 
