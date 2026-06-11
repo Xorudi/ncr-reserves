@@ -170,8 +170,8 @@ const InsightChip = memo(function InsightChip({ ins, onAction, onDismiss }: {
       borderRadius: 10,
       // Almost-flat paper card — single hairline ring instead of a stack
       // of shadows so the strip doesn't compete with the hero card above.
-      background: 'var(--surface-elevated)',
-      boxShadow: '0 0 0 1px rgba(60,40,20,.06) inset, 0 1px 0 rgba(255,255,255,.5) inset',
+      background: 'var(--card-face)',
+      boxShadow: 'var(--shadow-ring), var(--shadow-inset-top)',
       display: 'flex', alignItems: 'stretch', gap: 4,
       overflow: 'hidden',
     }}>

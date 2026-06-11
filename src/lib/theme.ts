@@ -45,7 +45,7 @@ export function getThemeMode(): ThemeMode {
 
 export function setThemeMode(mode: ThemeMode): void {
   try { localStorage.setItem(STORAGE_KEY, mode); } catch { /* ignore */ }
-  applyTheme();
+  applyTheme(true);
   try { window.dispatchEvent(new CustomEvent(EVENT)); } catch { /* ignore */ }
 }
 
@@ -61,12 +61,27 @@ function syncThemeColorMeta(theme: 'llum' | 'vespre'): void {
   if (meta) meta.content = theme === 'vespre' ? THEME_COLOR_VESPRE : THEME_COLOR_DAY;
 }
 
-export function applyTheme(): void {
-  const theme = resolveTheme();
-  const root = document.documentElement;
-  if (theme === 'vespre') root.setAttribute('data-theme', 'vespre');
-  else root.removeAttribute('data-theme');
-  syncThemeColorMeta(theme);
+export function applyTheme(animate = false): void {
+  const run = () => {
+    const theme = resolveTheme();
+    const root = document.documentElement;
+    if (theme === 'vespre') root.setAttribute('data-theme', 'vespre');
+    else root.removeAttribute('data-theme');
+    syncThemeColorMeta(theme);
+  };
+
+  // "Atardecer" — cross-fade the whole canvas through the View Transitions
+  // API (Chrome 111+/Safari 18+; the duration lives in index.css). The
+  // room dims like dusk instead of flicking a switch. Falls back to an
+  // instant swap on older browsers or when the user prefers reduced motion.
+  const dvt = (document as Document & {
+    startViewTransition?: (cb: () => void) => void;
+  }).startViewTransition?.bind(document);
+  const reduceMotion = typeof matchMedia !== 'undefined'
+    && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (animate && dvt && !reduceMotion) dvt(run);
+  else run();
 }
 
 /** Subscribe to mode changes (manual toggle or auto crossover). */
@@ -97,7 +112,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const now = resolveTheme();
     if (now !== last) {
       last = now;
-      applyTheme();
+      applyTheme(true); // the 19:00 crossover dusks in, never snaps
       try { window.dispatchEvent(new CustomEvent(EVENT)); } catch { /* ignore */ }
     }
   }, 60_000);

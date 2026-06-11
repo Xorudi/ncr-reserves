@@ -151,6 +151,22 @@
   --glass-edge: inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4);
 }
 
+/* ─── Theme crossfade ("atardecer") ─────────────────────────────────────────
+   When lib/theme.ts flips day↔vespre it wraps the swap in a View
+   Transition — the whole canvas cross-fades like dusk settling over the
+   room instead of a hard switch. Old/new root snapshots fade over 1.1s. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 1100ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0ms;
+  }
+}
+
 /* ─── Mode vespre — evening service theme ──────────────────────────────────
    Same warm Mediterranean identity, after dark: espresso canvas, cream
    text, terracotta as ember. Activated by lib/theme.ts setting

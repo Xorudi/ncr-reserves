@@ -1818,7 +1818,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
       {/* ── Tile 1: Live clock ─────────────────────────────────────────── */}
       <div style={{
         padding: '14px 16px 16px',
-        background: 'var(--surface-elevated)',
+        background: 'var(--card-face)',
         border: '1px solid var(--line-soft)',
         borderRadius: 16,
         boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
@@ -1887,7 +1887,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
       {totalTables > 0 && (
         <div style={{
           padding: '12px 14px',
-          background: 'var(--surface-elevated)',
+          background: 'var(--card-face)',
           border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
@@ -1945,7 +1945,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
       {trend && (
         <div style={{
           padding: '12px 14px',
-          background: 'var(--surface-elevated)',
+          background: 'var(--card-face)',
           border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
@@ -1988,7 +1988,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
       {nextHours.length > 0 && (
         <div style={{
           padding: '12px 14px',
-          background: 'var(--surface-elevated)',
+          background: 'var(--card-face)',
           border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
@@ -2030,7 +2030,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
       {/* ── Tile 4: Mini KPI strip ─────────────────────────────────────── */}
       <div style={{
         padding: '12px 14px',
-        background: 'var(--surface-elevated)',
+        background: 'var(--card-face)',
         border: '1px solid var(--line-soft)',
         borderRadius: 14,
         boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
@@ -2181,7 +2181,7 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
           padding: '14px 16px',
           background: latestNote
             ? 'linear-gradient(180deg, var(--clay-50) 0%, var(--clay-100) 100%)'
-            : 'var(--surface-elevated)',
+            : 'var(--card-face)',
           border: latestNote
             ? '1px solid rgba(180,140,40,.22)'
             : '1px dashed rgba(180,140,40,.30)',
@@ -2391,7 +2391,7 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
           padding: '14px 16px',
           background: waitlistCount > 0
             ? 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 60%), var(--clay-50)'
-            : 'var(--surface-elevated)',
+            : 'var(--card-face)',
           border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
