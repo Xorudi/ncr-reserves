@@ -944,22 +944,33 @@ body[data-fast-ui="0"] .sheet-backdrop {
    inner content is clipped to a fully-rounded card with a soft shadow.
    The bottom-sheet variant is untouched. */
 .sheet-panel[data-mode="modal"] {
-  /* Override the default bottom anchor. */
-  left: 50%;
-  right: auto;
-  bottom: auto;
-  top: 50%;
-  /* Initial state: slightly above + scaled down + transparent.
-     transform-origin is center because modals carry no trigger. */
-  transform: translate(-50%, calc(-50% - 12px)) scale(0.96);
+  /* Grid-centered, NOT transform-centered: translate(-50%,-50%) parks
+     the panel on half-pixels whenever its size is odd, and the retained
+     transform layer rasterizes all the text blurry (very visible on
+     Windows). The panel is now a static full-screen grid; the CONTENT
+     animates and settles at identity transform = pixel-sharp. */
+  inset: 0;
+  left: 0; right: 0; top: 0; bottom: 0;
+  transform: none;
+  opacity: 1;
+  transition: none;
+  will-change: auto;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  pointer-events: none; /* backdrop handles outside-clicks */
+}
+.sheet-panel[data-mode="modal"] .sheet-content {
+  pointer-events: auto;
+  transform: translateY(-12px) scale(0.96);
   transform-origin: center center;
   opacity: 0;
   transition:
     transform 160ms var(--ease-out),
     opacity   120ms linear;
 }
-.sheet-panel[data-mode="modal"].vis {
-  transform: translate(-50%, -50%) scale(1);
+.sheet-panel[data-mode="modal"].vis .sheet-content {
+  transform: none;
   opacity: 1;
   transition:
     transform 220ms var(--ease-out),
