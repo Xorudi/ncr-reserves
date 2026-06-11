@@ -78,6 +78,11 @@ export function waReservationTemplates(r: Reservation, bizName: string): WaTempl
       text: `Hola ${nom}! Tens una reserva per ${grup} ${quan} a ${bizName}. Ens pots confirmar que vindreu? Gràcies!`,
     },
     {
+      id: 'dishes',
+      label: 'Demanar els plats',
+      text: `Hola ${nom}! De cara a la reserva de ${quan} a ${bizName}, ens podríeu enviar per aquí els plats que escollireu? Així cuina ho deixa tot avançat i el dia del servei anirà rodat. Gràcies!`,
+    },
+    {
       id: 'free',
       label: 'Sense missatge (xat obert)',
       text: '',
