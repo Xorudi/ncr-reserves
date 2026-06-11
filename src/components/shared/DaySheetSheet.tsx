@@ -14,7 +14,7 @@ import { useMemo, useState } from 'react';
 import AnimatedSheet from './AnimatedSheet';
 import { useAppStore } from '@/store/useAppStore';
 import { BUSINESSES } from '@/data/mockData';
-import { buildDaySheet } from '@/utils/daySheet';
+import { buildDaySheet, buildWeekSheet, buildMonthSheet } from '@/utils/daySheet';
 import { toast } from './Toaster';
 
 interface Props {
@@ -28,20 +28,23 @@ function isoFromOffset(days: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+type Range = 'today' | 'tomorrow' | 'week' | 'month';
+
 export default function DaySheetSheet({ open, onClose }: Props) {
   const { selectedBusiness, reservations, floorPlans } = useAppStore();
-  const [day, setDay] = useState<'today' | 'tomorrow'>('today');
+  const [range, setRange] = useState<Range>('today');
 
   const text = useMemo(() => {
-    const biz = BUSINESSES.find(b => b.id === selectedBusiness);
-    const iso = isoFromOffset(day === 'today' ? 0 : 1);
-    return buildDaySheet(
-      biz?.name ?? '',
-      iso,
-      reservations.filter(r => r.bizId === selectedBusiness),
-      floorPlans[selectedBusiness],
-    );
-  }, [selectedBusiness, reservations, floorPlans, day, open]);
+    const bizName = BUSINESSES.find(b => b.id === selectedBusiness)?.name ?? '';
+    const mine    = reservations.filter(r => r.bizId === selectedBusiness);
+    const plan    = floorPlans[selectedBusiness];
+    switch (range) {
+      case 'today':    return buildDaySheet(bizName, isoFromOffset(0), mine, plan);
+      case 'tomorrow': return buildDaySheet(bizName, isoFromOffset(1), mine, plan);
+      case 'week':     return buildWeekSheet(bizName, isoFromOffset(0), mine, plan);
+      case 'month':    return buildMonthSheet(bizName, isoFromOffset(0), mine);
+    }
+  }, [selectedBusiness, reservations, floorPlans, range, open]);
 
   async function copy() {
     try {
@@ -102,13 +105,16 @@ export default function DaySheetSheet({ open, onClose }: Props) {
           display: 'flex', gap: 4, padding: 3, borderRadius: 11,
           background: 'var(--ink-100)', alignSelf: 'flex-start',
         }}>
-          {([['today', 'Avui'], ['tomorrow', 'Demà']] as const).map(([id, label]) => {
-            const active = day === id;
+          {([
+            ['today', 'Avui'], ['tomorrow', 'Demà'],
+            ['week', 'Setmana'], ['month', 'Mes'],
+          ] as const).map(([id, label]) => {
+            const active = range === id;
             return (
-              <button key={id} onClick={() => setDay(id)} className="press"
+              <button key={id} onClick={() => setRange(id)} className="press"
                 aria-pressed={active}
                 style={{
-                  padding: '8px 18px', borderRadius: 9, border: 'none',
+                  padding: '8px 14px', borderRadius: 9, border: 'none',
                   cursor: 'pointer', fontFamily: 'inherit',
                   fontSize: 13, fontWeight: active ? 700 : 600,
                   background: active ? 'var(--paper)' : 'transparent',
