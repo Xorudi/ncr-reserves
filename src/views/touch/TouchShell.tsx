@@ -32,6 +32,7 @@ import WeatherWidget from '@/components/shared/WeatherWidget';
 import InsightOfMoment from '@/components/shared/InsightOfMoment';
 import BriefingSheet from '@/components/shared/BriefingSheet';
 import DayCloseSheet from '@/components/shared/DayCloseSheet';
+import DaySheetSheet from '@/components/shared/DaySheetSheet';
 import { useServiceBells } from '@/hooks/useServiceBells';
 import BriefingActionSheet, { type ResolvableAction } from '@/components/shared/BriefingActionSheet';
 import type { SuggestedAction } from '@/utils/briefing';
@@ -111,6 +112,7 @@ export default function TouchShell() {
   const [showSearch,     setShowSearch]     = useState(false);
   const [showBriefing,   setShowBriefing]   = useState(false);
   const [showDayClose,   setShowDayClose]   = useState(false);
+  const [showDaySheet,   setShowDaySheet]   = useState(false);
   const [briefingAction, setBriefingAction] = useState<ResolvableAction | null>(null);
   const [newResTrigger,  setNewResTrigger]  = useState(0);
   // Mobile header collapses when the operator scrolls into the list. The
@@ -239,9 +241,12 @@ export default function TouchShell() {
     window.addEventListener('app:open-briefing', onOpen);
     const onDayClose = () => setShowDayClose(true);
     window.addEventListener('app:open-dayclose', onDayClose);
+    const onDaySheet = () => setShowDaySheet(true);
+    window.addEventListener('app:open-daysheet', onDaySheet);
     return () => {
       window.removeEventListener('app:open-briefing', onOpen);
       window.removeEventListener('app:open-dayclose', onDayClose);
+      window.removeEventListener('app:open-daysheet', onDaySheet);
     };
   }, []);
 
@@ -884,6 +889,9 @@ export default function TouchShell() {
         {showDayClose && (
           <DayCloseSheet open={showDayClose} onClose={() => setShowDayClose(false)} />
         )}
+        {showDaySheet && (
+          <DaySheetSheet open={showDaySheet} onClose={() => setShowDaySheet(false)} />
+        )}
         {briefingAction !== null && (
           <BriefingActionSheet
             open={briefingAction !== null}
@@ -1183,6 +1191,9 @@ export default function TouchShell() {
       )}
       {showDayClose && (
         <DayCloseSheet open={showDayClose} onClose={() => setShowDayClose(false)} />
+      )}
+      {showDaySheet && (
+        <DaySheetSheet open={showDaySheet} onClose={() => setShowDaySheet(false)} />
       )}
       {briefingAction !== null && (
         <BriefingActionSheet

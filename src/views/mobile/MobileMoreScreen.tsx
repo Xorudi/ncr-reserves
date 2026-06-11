@@ -150,6 +150,13 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes }: {
       action: () => window.dispatchEvent(new CustomEvent('app:open-dayclose')),
       tone: 'terracotta',
     },
+    {
+      label: 'Full del dia',
+      desc:  "Reserves d'avui o demà per compartir amb cuina",
+      ico:   I.upload ?? I.note,
+      action: () => window.dispatchEvent(new CustomEvent('app:open-daysheet')),
+      tone: 'clay',
+    },
   ];
   const SYSTEM: MenuItem[] = [
     {
