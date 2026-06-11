@@ -21,6 +21,7 @@ import { SUPABASE_AUTH_ENABLED } from '@/lib/featureFlags';
 import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Z_INDEX } from '@/lib/zIndex';
 import { getThemeMode, setThemeMode, onThemeChange, type ThemeMode } from '@/lib/theme';
+import { getPrintLang, setPrintLang, type PrintLang } from '@/utils/printTicket';
 import HoursScreen from './HoursScreen';
 import EmptyState from '@/components/shared/EmptyState';
 
@@ -291,6 +292,9 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes }: {
       <div style={{ marginTop: 18 }}>
         <SectionLabel>Aparença</SectionLabel>
         <ThemeSelector />
+        <div style={{ marginTop: 8 }}>
+          <PrintLangSelector />
+        </div>
       </div>
 
       {/* App version */}
@@ -476,6 +480,56 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       padding: '0 4px 8px',
     }}>
       {children}
+    </div>
+  );
+}
+
+// ─── Print language selector (Aparença) ──────────────────────────────────────
+// Kitchen tickets print in this language — labels switch and the comanda
+// body runs through the ca→es gastronomy dictionary. Device setting.
+function PrintLangSelector() {
+  const [lang, setLang] = useState<PrintLang>(getPrintLang);
+  function pick(l: PrintLang) { setPrintLang(l); setLang(l); }
+  return (
+    <div style={{
+      padding: '14px', borderRadius: 16,
+      background: 'var(--paper)', border: 'var(--hair)',
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{
+        fontSize: 12.5, fontWeight: 650, color: 'var(--ink-800)',
+      }}>
+        Tiquets de cuina
+      </div>
+      <div style={{
+        display: 'flex', gap: 4, padding: 3, borderRadius: 11,
+        background: 'var(--ink-100)',
+      }}>
+        {([['ca', 'Català'], ['es', 'Castellà']] as const).map(([id, label]) => {
+          const active = lang === id;
+          return (
+            <button key={id} onClick={() => pick(id)} className="press"
+              aria-pressed={active}
+              style={{
+                flex: 1, padding: '9px 0', borderRadius: 9, border: 'none',
+                cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 13, fontWeight: active ? 700 : 600,
+                minHeight: 38,
+                background: active ? 'var(--paper)' : 'transparent',
+                color: active ? 'var(--ink-900)' : 'var(--ink-500)',
+                boxShadow: active ? 'var(--sh-1), var(--shadow-ring)' : 'none',
+                transition: 'background 160ms var(--ease-out), color 160ms var(--ease-out)',
+              }}>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-500)', lineHeight: 1.4, padding: '0 2px' }}>
+        {lang === 'es'
+          ? "Les comandes s'imprimiran traduïdes al castellà per a cuina."
+          : "Les comandes s'imprimiran en català, tal com s'han escrit."}
+      </div>
     </div>
   );
 }

@@ -21,6 +21,19 @@
  */
 import type { FloorPlan, Reservation } from '@/types';
 import { fmtDateCa } from './whatsapp';
+import { translateCaEs, fmtDateEs } from './caEs';
+
+// ── Print language (persisted device setting) ────────────────────────────────
+
+export type PrintLang = 'ca' | 'es';
+
+export function getPrintLang(): PrintLang {
+  try { return localStorage.getItem('ncr-print-lang') === 'es' ? 'es' : 'ca'; } catch { return 'ca'; }
+}
+
+export function setPrintLang(l: PrintLang): void {
+  try { localStorage.setItem('ncr-print-lang', l); } catch { /* ignore */ }
+}
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -101,7 +114,7 @@ function renderBody(text: string): string {
     const body = (lab ? lab[1] : raw).trim().replace(/\.+\s*$/, '');
     const items = body
       .split(/,\s+(?=\d)/)
-      .flatMap(s => s.split(/\s+i\s+(?=\d+\s+[A-ZÀ-Ý])/));
+      .flatMap(s => s.split(/\s+[iy]\s+(?=\d+\s+[A-ZÀ-Ý])/));
     if (items.length > 1 || /^\d/.test(body)) {
       html += '<div class="items">' + items.map(it => {
         const m = /^(\d+)\s*(.*)$/s.exec(it.trim());
@@ -117,27 +130,40 @@ function renderBody(text: string): string {
 }
 
 export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan): void {
-  const paras = (r.notes ?? '').trim().split(/\n+/).map(s => s.trim()).filter(Boolean);
+  // Device-level print language: cooks read Spanish, the floor books in
+  // Catalan. Chrome labels switch and the comanda body runs through the
+  // gastronomy dictionary (utils/caEs.ts); unknown words pass through.
+  const lang = getPrintLang();
+  const L = lang === 'es'
+    ? { taules: 'Mesas', pendent: 'PENDIENTE DE CONFIRMAR', allerg: 'ALERGIAS', impres: 'impreso' }
+    : { taules: 'Taules', pendent: 'PENDENT DE CONFIRMAR', allerg: 'AL·LÈRGIES', impres: 'imprès' };
+  const dateStr  = lang === 'es' ? fmtDateEs(r.date) : fmtDateCa(r.date);
+  const notesSrc = lang === 'es' ? translateCaEs(r.notes ?? '') : (r.notes ?? '');
+  const allergTx = lang === 'es'
+    ? translateCaEs((r.allergens ?? []).join(', '))
+    : (r.allergens ?? []).join(', ');
+
+  const paras = notesSrc.trim().split(/\n+/).map(s => s.trim()).filter(Boolean);
   const sections = paras.map(p => `<div class="sec">${renderBody(p)}</div>`).join('');
 
-  const printedAt = new Date().toLocaleTimeString('ca', { hour: '2-digit', minute: '2-digit' });
+  const printedAt = new Date().toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
 
   const html = `
     <div class="biz">${esc(bizName.toUpperCase())}</div>
-    <div class="date">${esc(fmtDateCa(r.date))}</div>
+    <div class="date">${esc(dateStr)}</div>
     <div class="rule"></div>
     <div class="hero">
       <span class="time">${esc(r.time)}</span>
       <span class="pax">${r.pax} PAX</span>
     </div>
     <div class="name">${esc(r.name)}</div>
-    <div class="meta">Taules: ${esc(tableNames(r, plan))}</div>
-    ${r.status === 'pending' ? '<div class="flag">PENDENT DE CONFIRMAR</div>' : ''}
+    <div class="meta">${L.taules}: ${esc(tableNames(r, plan))}</div>
+    ${r.status === 'pending' ? `<div class="flag">${L.pendent}</div>` : ''}
     ${r.allergens && r.allergens.length > 0
-      ? `<div class="allergy">⚠ AL·LÈRGIES: ${esc(r.allergens.join(', ').toUpperCase())}</div>` : ''}
+      ? `<div class="allergy">⚠ ${L.allerg}: ${esc(allergTx.toUpperCase())}</div>` : ''}
     ${sections ? `<div class="rule"></div>${sections}` : ''}
     <div class="rule"></div>
-    <div class="foot">NCR Reserves · imprès ${printedAt}</div>
+    <div class="foot">NCR Reserves · ${L.impres} ${printedAt}</div>
   `;
 
   openAndPrint(`Comanda — ${r.name}`, html, `
