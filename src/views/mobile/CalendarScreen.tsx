@@ -14,6 +14,7 @@ import { Icon, I } from '@/components/shared/Icons';
 import { useAppStore } from '@/store/useAppStore';
 import { isoDate } from '@/data/mockData';
 import { rankCustomers, levelTint, type CustomerStats } from '@/utils/loyalty';
+import EmptyState from '@/components/shared/EmptyState';
 import { resPalette } from '@/utils/statusLabels';
 import type { Reservation } from '@/types';
 
@@ -504,12 +505,7 @@ function MonthView({ anchor, onReservation, onNewOn, lookupLoyalty }: {
           )}
 
           {dayRes.length === 0 ? (
-            <div style={{
-              textAlign: 'center', padding: '28px 0', color: 'var(--ink-400)', fontSize: 13,
-              fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-            }}>
-              Cap reserva aquest dia
-            </div>
+            <EmptyState pad={20} title="Cap reserva aquest dia" sub="Toca un altre dia del mes per comparar" glow="rgba(90,163,192,.18)" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {dayRes.map(r => (
@@ -677,12 +673,12 @@ function AgendaView({ anchor, onReservation, lookupLoyalty }: {
 
   if (grouped.length === 0) {
     return (
-      <div style={{
-        textAlign: 'center', padding: '60px 24px', color: 'var(--ink-400)',
-        fontSize: 14, fontFamily: 'var(--font-serif)', fontStyle: 'italic',
-      }}>
-        Cap reserva en els pròxims 30 dies des de {fmtDayLong(anchor)}.
-      </div>
+      <EmptyState
+        pad={52}
+        title="Trenta dies en blanc"
+        sub={`Cap reserva des de ${fmtDayLong(anchor)} — l'agenda està per escriure`}
+        glow="rgba(90,163,192,.18)"
+      />
     );
   }
 

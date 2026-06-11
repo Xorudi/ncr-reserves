@@ -5,6 +5,7 @@ import { isoDate } from '@/data/mockData';
 import type { TouchTab as MobileTab } from '@/views/touch/TouchShell';
 import type { FloorTable } from '@/types';
 import { resLabel } from '@/utils/statusLabels';
+import EmptyState from '@/components/shared/EmptyState';
 
 const PAX_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -591,13 +592,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
           </div>
 
           {pending.length === 0 ? (
-            <div style={{
-              textAlign:'center', padding:'28px 18px',
-              color:'var(--ink-400)', fontSize:13.5, fontFamily:'var(--font-serif)',
-              fontStyle:'italic',
-            }}>
-              Cap reserva pendent avui
-            </div>
+            <EmptyState pad={22} title="Cap reserva pendent avui" sub="Tot el servei ja és a taula o ha acabat" glow="rgba(116,133,74,.20)" />
           ) : (
             pending.map((r, i) => {
               const tint =

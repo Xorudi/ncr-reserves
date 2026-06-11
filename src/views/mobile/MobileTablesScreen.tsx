@@ -5,6 +5,7 @@ import { isoDate, getZoneIcon } from '@/data/mockData';
 import { effectiveTable } from '@/utils/tableStatus';
 import type { FloorTable, TableStatus, Reservation } from '@/types';
 import { IS_FAST_UI } from '@/lib/uiMode';
+import EmptyState from '@/components/shared/EmptyState';
 
 const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: string }> = {
   free:      { bg:'var(--olive-50)',       color:'var(--olive-700)',      label:'Lliure'    },
@@ -152,9 +153,8 @@ export default function MobileTablesScreen() {
   }, [liveTables]);
 
   if (!plan) return (
-    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-500)', flexDirection:'column', gap:10 }}>
-      <div style={{ fontSize:28 }}>🗺️</div>
-      <div style={{ fontFamily:'var(--font-serif)', fontSize:16 }}>Sense plànol configurat</div>
+    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <EmptyState icon="🗺️" title="Sense plànol configurat" sub="Aquest negoci encara no té zones ni taules definides" glow="rgba(204,144,73,.22)" />
     </div>
   );
 

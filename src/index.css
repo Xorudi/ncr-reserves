@@ -99,10 +99,12 @@
   --line:        rgba(60,40,20,.11);
   --line-strong: rgba(60,40,20,.16);
 
-  /* Card face — list rows and tiles. Day = plain paper; vespre swaps in a
-     subtle top-lit "liquid glass" gradient (specular sheen, no backdrop
-     blur — blur on scrolling lists murders mobile framerate). */
-  --card-face: #ffffff;
+  /* Card face — list rows and tiles. Day = paper with a whisper of warmth
+     pooling at the bottom edge (flat #fff read sterile next to the cream
+     canvas); vespre swaps in the top-lit "liquid glass" gradient. No
+     backdrop blur in either — blur on scrolling lists murders mobile
+     framerate. */
+  --card-face: linear-gradient(180deg, #ffffff 0%, #fffdf8 70%, #fdf8ee 100%);
 
   /* ── Layered surface system (Phase 1 of the visual overhaul) ──────────────
      Five surface roles, each with its own material:

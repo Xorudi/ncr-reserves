@@ -22,6 +22,7 @@ import AnimatedSheet from '@/components/shared/AnimatedSheet';
 import { Z_INDEX } from '@/lib/zIndex';
 import { getThemeMode, setThemeMode, onThemeChange, type ThemeMode } from '@/lib/theme';
 import HoursScreen from './HoursScreen';
+import EmptyState from '@/components/shared/EmptyState';
 
 type SubScreen = 'menu' | 'alerts' | 'calendar' | 'backups' | 'stats' | 'hours';
 
@@ -600,10 +601,7 @@ function AlertsScreen({ onBack }: { onBack: () => void }) {
         )}
 
         {totalAlerts === 0 && (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink-400)', fontSize: 14 }}>
-            <div style={{ fontSize: 26, marginBottom: 8 }}>✅</div>
-            Tot en ordre · Cap alerta avui
-          </div>
+          <EmptyState icon="✓" title="Tot en ordre" sub="Cap reserva pendent ni esdeveniment per avui" glow="rgba(116,133,74,.24)" />
         )}
       </div>
     </div>
