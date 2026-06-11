@@ -61,6 +61,11 @@ export function waReservationTemplates(r: Reservation, bizName: string): WaTempl
   const nom   = firstName(r.name);
   const quan  = `${fmtDateCa(r.date)} a les ${r.time}`;
   const grup  = `${r.pax} ${r.pax === 1 ? 'persona' : 'persones'}`;
+  // Lunch vs dinner decides the dining-room limit quoted in the
+  // big-group reminder (migdia room until 16:30, sopars until 23:00).
+  const isLunch   = parseInt(r.time.slice(0, 2), 10) < 17;
+  const roomLimit = isLunch ? '16:30' : '23:00';
+  const apat      = isLunch ? 'dinars' : 'sopars';
   return [
     {
       id: 'confirm',
@@ -82,6 +87,18 @@ export function waReservationTemplates(r: Reservation, bizName: string): WaTempl
       label: 'Demanar els plats',
       text: `Hola ${nom}! De cara a la reserva de ${quan} a ${bizName}, ens podríeu enviar per aquí els plats que escollireu? Així cuina ho deixa tot avançat i el dia del servei anirà rodat. Gràcies!`,
     },
+    // Big-group reminder — only offered for 8+ pax: shared service at the
+    // centre of the table (and what that means for the bill) + the
+    // dining-room time limit for their meal.
+    ...(r.pax >= 8 ? [{
+      id: 'group-rules',
+      label: 'Recordatori grups grans',
+      text: `Hola ${nom}! Un parell d'apunts per a la reserva de ${quan} a ${bizName}:\n\n` +
+        `- Els plats se serveixen al centre per compartir, així el servei va més àgil i tothom tasta de tot. ` +
+        `Tingueu-ho present a l'hora d'escollir, sobretot de cara a dividir el compte entre tots.\n\n` +
+        `- Per als ${apat}, el menjador és disponible fins a les ${roomLimit}.\n\n` +
+        `Gràcies! Ens veiem aviat.`,
+    }] : []),
     {
       id: 'free',
       label: 'Sense missatge (xat obert)',
