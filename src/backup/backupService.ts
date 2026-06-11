@@ -6,6 +6,7 @@
 import { useAppStore } from '@/store/useAppStore';
 import type { AppBackup, BackupData } from './types';
 import { idbSave, idbGet, idbPrune, idbClearAll, idbDelete } from './indexedDB';
+import { pushAllLocalToCloud, clearOfflineQueue } from '@/lib/cloudSync';
 
 // ─── Hash ─────────────────────────────────────────────────────────────────────
 /** FNV-32 hash — fast, non-cryptographic, good for change detection */
@@ -102,6 +103,13 @@ export function validateBackup(obj: unknown): obj is AppBackup {
 export async function restoreFromBackup(backup: AppBackup): Promise<void> {
   if (!validateBackup(backup)) throw new Error('Backup invàlid o corrupte');
 
+  // Poison-pill guard: any change still queued from before the restore
+  // (e.g. an accidental DELETE waiting for connectivity) would replay
+  // against the cloud after restoring and silently undo it. The operator
+  // just declared "this backup is the truth" — the old queue is no
+  // longer valid history.
+  clearOfflineQueue();
+
   const { data } = backup;
   useAppStore.setState({
     reservations:    data.reservations,
@@ -120,6 +128,18 @@ export async function restoreFromBackup(backup: AppBackup): Promise<void> {
   });
   // Update hash so next auto-backup isn't skipped
   _lastSavedHash = backup.hash;
+
+  // Make the restore STICK: sync is cloud-wins (bootstrapFromCloud
+  // replaces local state with Supabase rows on every reconnect/poll), so
+  // a local-only restore survives exactly until the next sync — that was
+  // the "something keeps deleting it, even with backups" report. Pushing
+  // the restored state up makes the backup the cloud's truth too.
+  // Best-effort: offline restores still succeed locally.
+  try {
+    await pushAllLocalToCloud();
+  } catch (err) {
+    console.warn('[backup] restore push to cloud failed (offline?):', err);
+  }
 }
 
 export async function restoreFromId(id: string): Promise<void> {

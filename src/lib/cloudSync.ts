@@ -819,6 +819,13 @@ export function getOfflineQueueLength(): number {
   } catch { return 0; }
 }
 
+/** Drop every queued offline change. Used by backup restore: a stale
+ *  queued DELETE would re-kill freshly restored records on the next
+ *  flush, undoing the restore from inside the device itself. */
+export function clearOfflineQueue(): void {
+  try { localStorage.removeItem(QUEUE_KEY); } catch { /* ignore */ }
+}
+
 export async function flushOfflineQueue(): Promise<void> {
   if (!isCloudAvailable()) return;
   try {
