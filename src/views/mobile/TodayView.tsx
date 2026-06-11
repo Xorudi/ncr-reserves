@@ -11,6 +11,7 @@ import { ALLERGENS, allergenById } from '@/utils/allergens';
 import { toast } from '@/components/shared/Toaster';
 import type { Reservation, BusinessId, ReservationStatus, FloorPlan, RecurFreq } from '@/types';
 import { rankCustomers as rankCustomersFn, levelTint, type CustomerStats } from '@/utils/loyalty';
+import { suggestTablesFor, suggestionLabel } from '@/utils/tableSuggest';
 import { getDailyServiceCapacity } from '@/utils/businessConfig';
 import SmartInsightsStrip from '@/components/shared/SmartInsightsStrip';
 import { useRenderCount } from '@/hooks/usePerf';
@@ -2113,6 +2114,7 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
   const {
     updateReservationStatus, deleteReservation,
     assignTablesToReservation, floorPlans, customers, addCustomer,
+    reservations: allReservations,
   } = useAppStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showTableSel, setShowTableSel] = useState(false);
@@ -2308,6 +2310,43 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
                 {r.tableIds && r.tableIds.length > 0 ? 'Canviar' : 'Assignar taula'}
               </button>
             </div>
+
+            {/* ── Table suggestion — when the reservation has no tables,
+                  propose the best free single-zone combination for the
+                  party on its date (same engine as the briefing action). */}
+            {(!r.tableIds || r.tableIds.length === 0) && (() => {
+              const dayRes = allReservations.filter(x =>
+                x.bizId === r.bizId && x.date === r.date);
+              const sug = suggestTablesFor(r.pax, floorPlans[r.bizId], dayRes);
+              if (!sug) return null;
+              return (
+                <div style={{
+                  display:'flex', alignItems:'center', gap:10,
+                  padding:'9px 12px', borderRadius:10, marginBottom:10,
+                  background:'rgba(116,133,74,.08)',
+                  border:'1px solid rgba(116,133,74,.24)',
+                }}>
+                  <div style={{ flex:1, minWidth:0, fontSize:12.5, lineHeight:1.35, color:'var(--ink-800)' }}>
+                    <span style={{
+                      fontSize:9, fontWeight:700, letterSpacing:.1,
+                      color:'var(--olive-700)', textTransform:'uppercase',
+                      fontFamily:'var(--font-mono)', display:'block',
+                    }}>Suggeriment</span>
+                    <b>{suggestionLabel(sug)}</b>
+                    <span style={{ color:'var(--ink-500)' }}> · {sug.zoneLabel} · {sug.totalCap} pax</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      assignTablesToReservation(r.id, sug.tables.map(t => t.id));
+                      toast(`${suggestionLabel(sug)} assignades a ${r.name}`, { icon:'check', tone:'olive' });
+                    }}
+                    className="tac-btn tac-btn--accent"
+                    style={{ flexShrink:0, padding:'7px 14px', fontSize:12.5, fontWeight:700, borderRadius:8 }}>
+                    Aplicar
+                  </button>
+                </div>
+              );
+            })()}
 
             <HoldToDelete onConfirm={handleDelete} />
         </>
