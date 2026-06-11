@@ -55,7 +55,7 @@ function SubScreenFallback() {
     <div style={{ flex: 1, display: 'grid', placeItems: 'center', minHeight: 240 }}>
       <div style={{
         width: 28, height: 28, borderRadius: '50%',
-        border: '3px solid rgba(60,40,20,.12)',
+        border: '3px solid var(--line)',
         borderTopColor: 'var(--terracotta-500, #de7a51)',
         animation: 'spin 0.8s linear infinite',
       }} />
@@ -185,7 +185,7 @@ function MoreMenu({ onSub, onSwitchTab, onOpenNotes }: {
         style={{
           display: 'flex', alignItems: 'center', gap: 14,
           padding: '14px 16px', borderRadius: 14,
-          border: '1px solid rgba(60,40,20,.08)',
+          border: '1px solid var(--line-soft)',
           background: 'var(--paper)',
           cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
           width: '100%',
@@ -609,7 +609,7 @@ function Section({ title, color, children }: { title: string; color: string; chi
 
 function AlertCard({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+    <div style={{ padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
       {children}
     </div>
   );
@@ -681,7 +681,7 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 14px 10px', borderBottom:'1px solid rgba(60,40,20,.09)', flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 14px 10px', borderBottom:'1px solid var(--line-soft)', flexShrink:0 }}>
         <button onClick={onBack} className="tac-btn" aria-label="Tornar"
           style={{ width:34, height:34, borderRadius:9, display:'grid', placeItems:'center', color:'var(--ink-700)' }}>
           <Icon d={I.chevL} size={18} />
@@ -690,7 +690,7 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="scroll" style={{ flex:1, overflowY:'auto', padding:'16px 14px 32px' }}>
-        <div style={{ background:'var(--paper)', borderRadius:14, padding:'16px', marginBottom:16, border:'1px solid rgba(60,40,20,.09)' }}>
+        <div style={{ background:'var(--paper)', borderRadius:14, padding:'16px', marginBottom:16, border:'1px solid var(--line-soft)' }}>
           <div style={{ fontSize:11, fontWeight:700, color:'var(--ink-500)', textTransform:'uppercase', letterSpacing:.06, marginBottom:4 }}>Últim backup</div>
           <div style={{ fontSize:15, fontWeight:700, color:'var(--ink-900)', marginBottom:2 }}>
             {lastBackupAt ? fmtDate(lastBackupAt) : 'Cap backup desat'}
@@ -735,7 +735,7 @@ function MobileBackupScreen({ onBack }: { onBack: () => void }) {
 
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           {history.map(meta => (
-            <div key={meta.id} style={{ background:'var(--paper)', borderRadius:12, padding:'12px 14px', border:'1px solid rgba(60,40,20,.09)' }}>
+            <div key={meta.id} style={{ background:'var(--paper)', borderRadius:12, padding:'12px 14px', border:'1px solid var(--line-soft)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
                 <div style={{ width:30, height:30, borderRadius:7, background:meta.type==='manual'?'var(--terracotta-50)':'var(--ink-50)', color:meta.type==='manual'?'var(--terracotta-600)':'var(--ink-400)', display:'grid', placeItems:'center', flexShrink:0 }}>
                   <Icon d={meta.type==='manual'?I.shield:I.history} size={13} />

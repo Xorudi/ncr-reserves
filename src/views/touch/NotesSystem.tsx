@@ -222,7 +222,7 @@ export function NotesSheet({ open, bizId, date, authorName, onClose }: {
         {/* New-note composer */}
         <div style={{
           background: 'var(--paper)',
-          border: '1px solid rgba(60,40,20,.08)',
+          border: '1px solid var(--line-soft)',
           borderRadius: 14, padding: 12,
           display: 'flex', flexDirection: 'column', gap: 10,
           marginBottom: 14,

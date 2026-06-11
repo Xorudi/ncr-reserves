@@ -228,7 +228,7 @@ export default function MobileClientsView() {
             // Taller field → comfortable ≥44 px touch target on the counter.
             minHeight:44, padding:'10px 12px 10px 38px', borderRadius:12,
             background:'var(--cream)',
-            border:'1px solid rgba(60,40,20,.08)',
+            border:'1px solid var(--line-soft)',
           }}>
             <div style={{
               position:'absolute', left:14, pointerEvents:'none',
@@ -269,7 +269,7 @@ export default function MobileClientsView() {
                 style={{
                   flexShrink:0, padding:'7px 13px', borderRadius:999,
                   whiteSpace:'nowrap', fontFamily:'inherit',
-                  border: active ? 'none' : '1px solid rgba(60,40,20,.10)',
+                  border: active ? 'none' : '1px solid var(--line)',
                   background: active ? 'var(--ink-900)' : 'var(--paper)',
                   color: active ? 'var(--cream)' : 'var(--ink-600)',
                   fontSize:12.5, fontWeight: active ? 700 : 600, cursor:'pointer',
@@ -308,7 +308,7 @@ export default function MobileClientsView() {
                   style={{
                     flexShrink:0, padding:'5px 11px', borderRadius:999,
                     whiteSpace:'nowrap', fontFamily:'inherit',
-                    border: active ? 'none' : '1px solid rgba(60,40,20,.10)',
+                    border: active ? 'none' : '1px solid var(--line)',
                     background: active ? 'var(--terracotta-600)' : 'var(--paper)',
                     color: active ? 'var(--cream)' : 'var(--ink-600)',
                     fontSize:11.5, fontWeight: active ? 700 : 600, cursor:'pointer',
@@ -685,7 +685,7 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
                     padding:'3px 8px', borderRadius:999,
                     background: b.earned ? 'var(--paper)' : 'transparent',
                     color: b.earned ? 'var(--ink-800)' : 'var(--ink-400)',
-                    border:'1px solid rgba(60,40,20,.12)',
+                    border:'1px solid var(--line)',
                     fontSize:10.5, fontWeight:600,
                     opacity: b.earned ? 1 : .5,
                     filter: b.earned ? 'none' : 'grayscale(1)',
@@ -742,7 +742,7 @@ function ClientDetailSheet({ client: c, bizId, onClose, onEdit, onDeleted }: {
               </a>
             )}
             <button onClick={onEdit}
-              style={{ flex:1, padding:'11px 0', background:'var(--cream)', border:'1.5px solid rgba(60,40,20,.15)', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-800)', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+              style={{ flex:1, padding:'11px 0', background:'var(--cream)', border:'1.5px solid var(--line-strong)', borderRadius:11, cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600, color:'var(--ink-800)', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
               <Icon d={I.pencil} size={14} /> Editar
             </button>
           </div>
@@ -824,7 +824,7 @@ function QuickResRow({ client: c, bizId, addReservation }: {
               <label
                 ref={dateTileRef}
                 onClick={() => setDateOpen(o => !o)}
-                style={{ display:'flex', alignItems:'center', justifyContent:'center', height:38, padding:'0 10px', borderRadius:8, border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)', cursor:'pointer', boxShadow:'var(--sh-1)' }}>
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', height:38, padding:'0 10px', borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', boxShadow:'var(--sh-1)' }}>
                 <span style={{ fontFamily:'var(--font-serif)', fontSize:14, fontWeight:500, color:'var(--ink-900)', whiteSpace:'nowrap' }}>
                   {(() => { const [y,m,dd] = date.split('-').map(Number); const dt = new Date(y, (m||1)-1, dd||1); const M=['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des']; return `${dt.getDate()} ${M[dt.getMonth()]}`; })()}
                 </span>
@@ -843,7 +843,7 @@ function QuickResRow({ client: c, bizId, addReservation }: {
               <label
                 ref={timeTileRef}
                 onClick={() => setTimeOpen(o => !o)}
-                style={{ display:'flex', alignItems:'center', justifyContent:'center', height:38, padding:'0 10px', borderRadius:8, border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)', cursor:'pointer', boxShadow:'var(--sh-1)' }}>
+                style={{ display:'flex', alignItems:'center', justifyContent:'center', height:38, padding:'0 10px', borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', cursor:'pointer', boxShadow:'var(--sh-1)' }}>
                 <span style={{ fontFamily:'var(--font-serif)', fontSize:14, fontWeight:500, color:'var(--ink-900)' }}>
                   {time}
                 </span>
@@ -859,7 +859,7 @@ function QuickResRow({ client: c, bizId, addReservation }: {
             {/* PAX — −/+ stepper instead of native number spinner */}
             <div>
               <div style={{ fontSize:10, fontWeight:700, color:'var(--ink-500)', letterSpacing:.06, marginBottom:4 }}>PAX</div>
-              <div style={{ display:'flex', alignItems:'center', height:38, borderRadius:8, border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)', boxShadow:'var(--sh-1)', overflow:'hidden' }}>
+              <div style={{ display:'flex', alignItems:'center', height:38, borderRadius:8, border:'1px solid var(--line)', background:'var(--paper)', boxShadow:'var(--sh-1)', overflow:'hidden' }}>
                 <button className="press" aria-label="Restar comensal"
                   onClick={() => setPax(p => Math.max(1, p - 1))}
                   style={{ width:34, height:'100%', border:'none', background:'transparent', cursor:'pointer', fontSize:18, color:'var(--ink-700)', display:'grid', placeItems:'center' }}>−</button>
@@ -950,7 +950,7 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
   }
 
   const inp: React.CSSProperties = {
-    width:'100%', padding:'11px 12px', border:'1.5px solid rgba(60,40,20,.15)',
+    width:'100%', padding:'11px 12px', border:'1.5px solid var(--line-strong)',
     borderRadius:10, fontFamily:'inherit', fontSize:15, color:'var(--ink-900)',
     background:'var(--cream)', outline:'none',
   };
@@ -1029,7 +1029,7 @@ function ClientFormSheet({ client, bizId, onClose, onSaved }: {
                   <button key={t} onClick={() => toggleTag(t)}
                     style={{
                       padding:'6px 12px', borderRadius:8,
-                      border: active ? '2px solid var(--terracotta-600)' : '1.5px solid rgba(60,40,20,.15)',
+                      border: active ? '2px solid var(--terracotta-600)' : '1.5px solid var(--line-strong)',
                       background: active ? 'var(--terracotta-50)' : 'var(--cream)',
                       color: active ? 'var(--terracotta-700)' : 'var(--ink-600)',
                       fontWeight: active ? 700 : 500, fontSize:12.5,

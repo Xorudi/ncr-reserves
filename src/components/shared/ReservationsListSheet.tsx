@@ -107,7 +107,7 @@ export default function ReservationsListSheet({ open, filter, title, onClose }: 
               <div aria-hidden style={{
                 width: 56, height: 56, borderRadius: 999,
                 background: 'var(--surface-base)',
-                border: '1px dashed rgba(60,40,20,.16)',
+                border: '1px dashed var(--line-strong)',
                 display: 'grid', placeItems: 'center',
                 color: 'var(--ink-500)',
                 marginBottom: 4,
@@ -150,7 +150,7 @@ function ResRow({ m, onPick }: { m: { reservation: Reservation; isVip: boolean }
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '12px 14px', borderRadius: 12,
         background: 'var(--paper)',
-        border: '1px solid rgba(60,40,20,.08)',
+        border: '1px solid var(--line-soft)',
         boxShadow: '0 1px 2px rgba(60,40,20,.04)',
         cursor: 'pointer', fontFamily: 'inherit',
       }}>

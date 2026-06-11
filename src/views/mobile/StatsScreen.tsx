@@ -401,7 +401,7 @@ function ComparativeBlock() {
         </div>
       </div>
 
-      <div style={{ padding: '14px 14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <div style={{ padding: '14px 14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
         <ComparativeCell label="Reserves" curr={p.res.curr} prev={p.res.prev} delta={p.res.delta} inverseColor={false} />
         <ComparativeCell label="Pax"      curr={p.pax.curr} prev={p.pax.prev} delta={p.pax.delta} inverseColor={false} />
         <ComparativeCell label="No-shows" curr={p.noshows.curr} prev={p.noshows.prev} delta={p.noshows.delta} inverseColor />
@@ -495,7 +495,7 @@ function TrendBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="var(--olive-700)">📊 Últims 30 dies</SectionLabel>
-      <div style={{ padding: '14px 14px 10px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+      <div style={{ padding: '14px 14px 10px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
         {/* Y-axis hint — shows the scale max so the bar heights are readable. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10, color: 'var(--ink-500)', marginBottom: 4 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>màx {maxCount}</span>
@@ -588,7 +588,7 @@ function NewVsRecurringBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="var(--olive-700)">🔁 Nous vs recurrents · 30d</SectionLabel>
-      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
         {data.total === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center' }}>Sense dades suficients.</div>
         ) : (
@@ -661,7 +661,7 @@ function SourcesBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="var(--sky-700)">📡 Origen de les reserves · 30d</SectionLabel>
-      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
         {data.length === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center' }}>Encara sense reserves al període.</div>
         ) : (
@@ -695,7 +695,7 @@ function TopClientsBlock() {
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="#a37314">🏆 Top 5 clients</SectionLabel>
       {top.length === 0 ? (
-        <div style={{ padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)', fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center' }}>
+        <div style={{ padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid var(--line-soft)', fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center' }}>
           Encara no hi ha prou dades.
         </div>
       ) : (
@@ -706,7 +706,7 @@ function TopClientsBlock() {
               <div key={row.customer.id} style={{
                 display: 'flex', alignItems: 'center', gap: 11,
                 padding: '10px 13px', borderRadius: 11,
-                background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)',
+                background: 'var(--paper)', border: '1px solid var(--line-soft)',
               }}>
                 <span style={{
                   width: 30, textAlign: 'center',
@@ -762,7 +762,7 @@ function BirthdaysBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="#a37314">🎂 Aniversaris aquesta setmana</SectionLabel>
-      <div style={{ padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+      <div style={{ padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
         {upcoming.slice(0, 6).map(r => (
           <div key={r.id} style={{ fontSize: 12.5, color: 'var(--ink-800)', padding: '4px 0' }}>
             <span style={{ fontWeight: 600 }}>{r.name}</span>
@@ -856,7 +856,7 @@ function LiveStateBlock() {
       )}
 
       {data.pendingArrivals.length > 0 && (
-        <div style={{ marginTop: 10, padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+        <div style={{ marginTop: 10, padding: '11px 14px', borderRadius: 11, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-700)', letterSpacing: .06, textTransform: 'uppercase', marginBottom: 6 }}>
             🚶 Pendents arribar (90 min)
           </div>
@@ -901,7 +901,7 @@ function HeatmapBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="var(--clay-700)">🔥 Heatmap d'ocupació · 30d</SectionLabel>
-      <div style={{ padding: '14px 12px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)', overflowX: 'auto' }}>
+      <div style={{ padding: '14px 12px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)', overflowX: 'auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: `28px repeat(${hours.length}, 1fr)`, gap: 2, minWidth: 320 }}>
           {/* Header row */}
           <div />
@@ -970,7 +970,7 @@ function ZonesBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="var(--ink-700)">🏠 Distribució per zona · avui</SectionLabel>
-      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
         {rows.map(z => (
           <div key={z.label} style={{ marginBottom: 9 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
@@ -1023,7 +1023,7 @@ function PredictionBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="var(--sky-700)">🔮 Predicció pròximes hores</SectionLabel>
-      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
         <div style={{ fontSize: 10.5, color: 'var(--ink-500)', marginBottom: 8 }}>
           Mitjana de pax per hora (basat en els últims 4 mateixos dies de la setmana)
         </div>
@@ -1124,7 +1124,7 @@ function LevelDistributionBlock() {
   return (
     <div style={{ marginBottom: 22 }}>
       <SectionLabel color="#a37314">📊 Distribució per nivell</SectionLabel>
-      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid rgba(60,40,20,.09)' }}>
+      <div style={{ padding: '14px', borderRadius: 13, background: 'var(--paper)', border: '1px solid var(--line-soft)' }}>
         {total === 0 ? (
           <div style={{ fontSize: 12.5, color: 'var(--ink-500)', textAlign: 'center' }}>Encara no hi ha clients actius.</div>
         ) : (
@@ -1174,7 +1174,7 @@ function BadgesPopularityBlock() {
           <div key={b.label} style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '7px 11px', borderRadius: 999,
-            background: 'var(--paper)', border: '1px solid rgba(60,40,20,.12)',
+            background: 'var(--paper)', border: '1px solid var(--line)',
             fontSize: 12, fontWeight: 600, color: 'var(--ink-800)',
           }}>
             <span style={{ fontSize: 14 }}>{b.icon}</span>
@@ -1322,7 +1322,7 @@ function BizColumn({ m, leaderRes, leaderPax, leaderOcc, leaderNoshow }: {
   return (
     <div style={{
       borderRadius: 14,
-      border: '1px solid rgba(60,40,20,.08)',
+      border: '1px solid var(--line-soft)',
       background: 'var(--paper)',
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
@@ -1332,7 +1332,7 @@ function BizColumn({ m, leaderRes, leaderPax, leaderOcc, leaderNoshow }: {
       <div style={{
         padding: '12px 12px 10px',
         background: `linear-gradient(180deg, ${m.hueSoft} 0%, var(--paper) 100%)`,
-        borderBottom: '1px solid rgba(60,40,20,.06)',
+        borderBottom: '1px solid var(--line-soft)',
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
         <span style={{
@@ -1403,7 +1403,7 @@ function BizColumn({ m, leaderRes, leaderPax, leaderOcc, leaderNoshow }: {
         {/* Top client (mes) */}
         <div style={{
           marginTop: 2, padding: '8px 10px', borderRadius: 10,
-          background: 'var(--ink-50)', border: '1px solid rgba(60,40,20,.06)',
+          background: 'var(--ink-50)', border: '1px solid var(--line-soft)',
         }}>
           <div style={{
             fontSize: 9.5, fontWeight: 700, color: 'var(--ink-500)',

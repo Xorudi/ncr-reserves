@@ -388,5 +388,5 @@ const rowBtn: React.CSSProperties = {
   background: 'transparent', border: 'none', cursor: 'pointer',
   padding: '11px 18px',
   fontFamily: 'inherit',
-  borderTop: '1px solid rgba(60,40,20,.06)',
+  borderTop: '1px solid var(--line-soft)',
 };

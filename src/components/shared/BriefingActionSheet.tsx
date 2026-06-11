@@ -113,7 +113,7 @@ export default function BriefingActionSheet({
         <header style={{
           display: 'flex', alignItems: 'flex-start', gap: 12,
           paddingBottom: 6,
-          borderBottom: '1px solid rgba(60,40,20,.06)',
+          borderBottom: '1px solid var(--line-soft)',
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{

@@ -903,7 +903,7 @@ export default function PinLockView() {
           aspect-ratio: 1 / 1.2;
           border-radius: 13px;
           background: linear-gradient(180deg, var(--cream), #f7ecd6);
-          border: 1px solid rgba(60,40,20,.10);
+          border: 1px solid var(--line);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,.7),
             inset 0 -1px 0 rgba(60,40,20,.05),
@@ -972,7 +972,7 @@ export default function PinLockView() {
         .pin-lock__key {
           padding: clamp(11px, 2.4vw, 13px) 0;
           background: linear-gradient(180deg, var(--cream), #f4e9d2);
-          border: 1px solid rgba(60,40,20,.08);
+          border: 1px solid var(--line-soft);
           border-radius: 13px;
           font-family: var(--font-serif);
           font-size: clamp(20px, 4.6vw, 22px);
@@ -1754,7 +1754,7 @@ export default function PinLockView() {
             align-self: center;
             margin: 4px auto 12px;
             padding: 6px 14px 7px;
-            border: 1px solid rgba(60,40,20,.10);
+            border: 1px solid var(--line);
             background: linear-gradient(180deg,
                           rgba(255,255,255,.55) 0%,
                           rgba(255,255,255,.30) 100%);

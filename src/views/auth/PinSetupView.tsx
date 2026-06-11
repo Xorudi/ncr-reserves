@@ -183,7 +183,7 @@ export default function PinSetupView({ onComplete }: Props) {
               background: 'var(--cream, #fdf9f2)',
               border: activePin.length === i
                 ? '2px solid var(--terracotta-500, #c8613a)'
-                : '1.5px solid rgba(60,40,20,.12)',
+                : '1.5px solid var(--line)',
               display: 'grid', placeItems: 'center',
               fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 600,
               color: 'var(--ink-900, #1d1612)',
@@ -218,7 +218,7 @@ export default function PinSetupView({ onComplete }: Props) {
                 style={{
                   padding: '14px 0',
                   background: 'var(--cream, #fdf9f2)',
-                  border: '1.5px solid rgba(60,40,20,.1)',
+                  border: '1.5px solid var(--line)',
                   borderRadius: 11,
                   fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500,
                   color: 'var(--ink-900, #1d1612)',

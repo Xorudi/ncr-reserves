@@ -140,7 +140,7 @@ function CalendarHeader({ view, onView, anchor, onAnchor, onBack }: {
         <button onClick={onBack} className="press"
           style={{
             width: 34, height: 34, borderRadius: 999,
-            background: 'var(--cream)', border: '1px solid rgba(60,40,20,.08)',
+            background: 'var(--cream)', border: '1px solid var(--line-soft)',
             cursor: 'pointer', color: 'var(--ink-700)',
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
@@ -202,7 +202,7 @@ function CalendarHeader({ view, onView, anchor, onAnchor, onBack }: {
 
 const navBtn: React.CSSProperties = {
   width: 34, height: 30, borderRadius: 9,
-  border: '1px solid rgba(60,40,20,.10)',
+  border: '1px solid var(--line)',
   background: 'var(--paper)', cursor: 'pointer',
   color: 'var(--ink-700)',
   display: 'grid', placeItems: 'center',
@@ -379,7 +379,7 @@ function MonthView({ anchor, onReservation, onNewOn, lookupLoyalty }: {
                 borderRadius: 10,
                 border: isSel
                   ? '2px solid var(--terracotta-600)'
-                  : isToday ? '1.5px solid var(--terracotta-500)' : '1px solid rgba(60,40,20,.06)',
+                  : isToday ? '1.5px solid var(--terracotta-500)' : '1px solid var(--line-soft)',
                 background: intensity > 0
                   ? `rgba(168,74,42,${intensity})`
                   : isWknd ? 'var(--cream)' : 'var(--paper)',
@@ -436,7 +436,7 @@ function MonthView({ anchor, onReservation, onNewOn, lookupLoyalty }: {
       }}>
         <span style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Menys</span>
         {[0.12, 0.30, 0.50, 0.70, 0.90].map(v => (
-          <span key={v} style={{ width: 14, height: 14, borderRadius: 4, background: `rgba(168,74,42,${v})`, border: '1px solid rgba(60,40,20,.05)' }} />
+          <span key={v} style={{ width: 14, height: 14, borderRadius: 4, background: `rgba(168,74,42,${v})`, border: '1px solid var(--line-soft)' }} />
         ))}
         <span style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>Més</span>
         <span style={{ flex: 1 }} />
@@ -576,7 +576,7 @@ function WeekView({ anchor, onReservation, lookupLoyalty }: {
             borderRadius: 12, padding: 6, minHeight: 220,
             display: 'flex', flexDirection: 'column', gap: 4,
           }}>
-            <div style={{ textAlign: 'center', paddingBottom: 4, borderBottom: '1px solid rgba(60,40,20,.06)' }}>
+            <div style={{ textAlign: 'center', paddingBottom: 4, borderBottom: '1px solid var(--line-soft)' }}>
               <div style={{
                 fontSize: 9.5, fontWeight: 700, color: isWknd ? 'var(--terracotta-700)' : 'var(--ink-500)',
                 fontFamily: 'var(--font-mono)', letterSpacing: .1, textTransform: 'uppercase',
@@ -698,7 +698,7 @@ function AgendaView({ anchor, onReservation, lookupLoyalty }: {
           <div key={iso}>
             <div style={{
               display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8,
-              paddingBottom: 6, borderBottom: '1px solid rgba(60,40,20,.08)',
+              paddingBottom: 6, borderBottom: '1px solid var(--line-soft)',
             }}>
               <span style={{
                 fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 500,

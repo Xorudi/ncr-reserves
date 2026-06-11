@@ -477,7 +477,7 @@ export default function TouchShell() {
           // Inset-top highlight + hairline border keep the edge crisp.
           borderTopLeftRadius: 22, borderTopRightRadius: 22,
           background: 'var(--surface-elevated)',
-          border: '1px solid rgba(60,40,20,.06)',
+          border: '1px solid var(--line-soft)',
           boxShadow:
             'var(--shadow-inset-top), ' +
             '0 2px 4px rgba(60,40,20,.04), ' +
@@ -988,7 +988,7 @@ export default function TouchShell() {
           style={{
             width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '1px solid rgba(60,40,20,.14)',
+            border: '1px solid var(--line-strong)',
             background: 'var(--paper)', color: 'var(--ink-500)',
             cursor: 'pointer',
           }}>
@@ -998,7 +998,7 @@ export default function TouchShell() {
           style={{
             width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '1px solid rgba(60,40,20,.14)',
+            border: '1px solid var(--line-strong)',
             background: tab === 'more' ? 'var(--terracotta-50)' : 'var(--paper)',
             color: tab === 'more' ? 'var(--terracotta-600)' : 'var(--ink-500)',
             cursor: 'pointer',
@@ -1191,7 +1191,7 @@ function TabLoadingFallback() {
     <div style={{ flex: 1, display: 'grid', placeItems: 'center', minHeight: 200 }}>
       <div style={{
         width: 28, height: 28, borderRadius: '50%',
-        border: '3px solid rgba(60,40,20,.12)',
+        border: '3px solid var(--line)',
         borderTopColor: 'var(--terracotta-500, #de7a51)',
         animation: 'spin 0.8s linear infinite',
       }} />
@@ -1583,7 +1583,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
                     width: '100%', padding: '14px 14px 12px',
                     border: isCur
                       ? `1.5px solid ${resolvedTheme === 'vespre' ? BIZ_TILE_DARK[b.id].fg : b.hue}`
-                      : '1px solid rgba(60,40,20,.08)',
+                      : '1px solid var(--line-soft)',
                     borderRadius: 14,
                     background: isCur
                       ? `linear-gradient(180deg, ${resolvedTheme === 'vespre' ? BIZ_TILE_DARK[b.id].bg : b.hueSoft} 0%, var(--paper) 100%)`
@@ -1640,7 +1640,7 @@ function BizPickerSheet({ open, current, onSelect, onClose }: {
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     paddingTop: 10,
-                    borderTop: '1px dashed rgba(60,40,20,.10)',
+                    borderTop: '1px dashed var(--line)',
                   }}>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -1800,7 +1800,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
       <div style={{
         padding: '14px 16px 16px',
         background: 'var(--surface-elevated)',
-        border: '1px solid rgba(60,40,20,.08)',
+        border: '1px solid var(--line-soft)',
         borderRadius: 16,
         boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
         display: 'flex', flexDirection: 'column', gap: 6,
@@ -1827,7 +1827,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
         position: 'relative',
         padding: '12px 14px 12px 16px',
         background: activeShift ? `linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 65%), ${activeShift.tint}` : 'var(--surface-base)',
-        border: '1px solid rgba(60,40,20,.08)',
+        border: '1px solid var(--line-soft)',
         borderRadius: 14,
         boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
         display: 'flex', flexDirection: 'column', gap: 4,
@@ -1869,7 +1869,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
         <div style={{
           padding: '12px 14px',
           background: 'var(--surface-elevated)',
-          border: '1px solid rgba(60,40,20,.08)',
+          border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
           display: 'flex', flexDirection: 'column', gap: 6,
@@ -1927,7 +1927,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
         <div style={{
           padding: '12px 14px',
           background: 'var(--surface-elevated)',
-          border: '1px solid rgba(60,40,20,.08)',
+          border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
           display: 'flex', flexDirection: 'column', gap: 6,
@@ -1970,7 +1970,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
         <div style={{
           padding: '12px 14px',
           background: 'var(--surface-elevated)',
-          border: '1px solid rgba(60,40,20,.08)',
+          border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
           display: 'flex', flexDirection: 'column', gap: 8,
@@ -2012,7 +2012,7 @@ const LiveSidePanel = memo(function LiveSidePanel({
       <div style={{
         padding: '12px 14px',
         background: 'var(--surface-elevated)',
-        border: '1px solid rgba(60,40,20,.08)',
+        border: '1px solid var(--line-soft)',
         borderRadius: 14,
         boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
         display: 'flex', flexDirection: 'column', gap: 8,
@@ -2246,7 +2246,7 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
             textAlign: 'left',
             padding: '14px 16px',
             background: 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 60%), var(--clay-50)',
-            border: '1px solid rgba(60,40,20,.08)',
+            border: '1px solid var(--line-soft)',
             borderRadius: 14,
             boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
             display: 'flex', flexDirection: 'column', gap: 4,
@@ -2302,7 +2302,7 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
           background: next
             ? 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 60%), var(--terracotta-50)'
             : 'var(--surface-base)',
-          border: '1px solid rgba(60,40,20,.08)',
+          border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
           display: 'flex', flexDirection: 'column', gap: 4,
@@ -2373,7 +2373,7 @@ const OpsLeftPanel = memo(function OpsLeftPanel({
           background: waitlistCount > 0
             ? 'linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 60%), var(--clay-50)'
             : 'var(--surface-elevated)',
-          border: '1px solid rgba(60,40,20,.08)',
+          border: '1px solid var(--line-soft)',
           borderRadius: 14,
           boxShadow: 'var(--shadow-sm), var(--shadow-inset-top)',
           display: 'flex', flexDirection: 'column', gap: 4,

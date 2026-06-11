@@ -75,7 +75,7 @@ export default function WeatherWidget({ compact = false }: { compact?: boolean }
           display: 'inline-flex', alignItems: 'center', gap: 5,
           padding: compact ? '4px 9px 4px 6px' : '5px 11px 5px 7px',
           borderRadius: 999,
-          border: '1px solid rgba(60,40,20,.10)',
+          border: '1px solid var(--line)',
           background: 'var(--paper)',
           cursor: forecast ? 'pointer' : 'default',
           fontFamily: 'inherit',
@@ -180,7 +180,7 @@ function WeatherDetailSheet({ open, onClose, forecast, date }: {
             position:'relative', display:'grid', placeItems:'center',
             width: 84, height: 84, borderRadius: 22,
             background: 'linear-gradient(180deg, var(--paper) 0%, var(--cream) 100%)',
-            border:'1px solid rgba(60,40,20,.10)',
+            border:'1px solid var(--line)',
             boxShadow: '0 4px 16px rgba(60,40,20,.08), inset 0 1px 0 rgba(255,255,255,.6)',
             fontSize: 44,
           }}>
@@ -208,7 +208,7 @@ function WeatherDetailSheet({ open, onClose, forecast, date }: {
             </div>
           </div>
           <button onClick={onClose} style={{
-            background:'var(--paper)', border:'1px solid rgba(60,40,20,.10)',
+            background:'var(--paper)', border:'1px solid var(--line)',
             cursor:'pointer', color:'var(--ink-700)', fontFamily:'inherit',
             fontSize:13, fontWeight:650, padding:'7px 14px',
             borderRadius: 999, flexShrink: 0,
@@ -300,7 +300,7 @@ function HourlyStrip({ slots, dateIso }: { slots: HourlySlot[]; dateIso: string 
               background: isCurrent
                 ? 'linear-gradient(180deg, var(--terracotta-50) 0%, var(--paper) 100%)'
                 : 'var(--paper)',
-              border: isCurrent ? '1.5px solid var(--terracotta-500)' : '1px solid rgba(60,40,20,.08)',
+              border: isCurrent ? '1.5px solid var(--terracotta-500)' : '1px solid var(--line-soft)',
               boxShadow: isCurrent
                 ? '0 2px 8px rgba(168,74,42,.14)'
                 : '0 1px 2px rgba(60,40,20,.04)',
@@ -388,7 +388,7 @@ function HourlyCurve({ slots, tMin, tMax, dateIso }: {
       <div style={{
         padding: '12px 8px', borderRadius: 16,
         background: 'linear-gradient(180deg, var(--paper) 0%, var(--cream) 100%)',
-        border: '1px solid rgba(60,40,20,.08)',
+        border: '1px solid var(--line-soft)',
         boxShadow: '0 2px 10px rgba(60,40,20,.04)',
       }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="auto"

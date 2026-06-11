@@ -159,7 +159,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
   }
 
   const inp: React.CSSProperties = {
-    width:'100%', padding:'10px 12px', border:'1.5px solid rgba(60,40,20,.15)',
+    width:'100%', padding:'10px 12px', border:'1.5px solid var(--line-strong)',
     borderRadius:9, fontFamily:'inherit', fontSize:14, color:'var(--ink-900)',
     background:'var(--cream)', outline:'none',
   };
@@ -211,7 +211,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
             </div>
             <div style={{
               background:'var(--cream)', borderRadius:12, padding:10,
-              border:'1px solid rgba(60,40,20,.06)',
+              border:'1px solid var(--line-soft)',
             }}>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(8, 1fr)', gap:5 }}>
                 {PAX_OPTIONS.map(n => {
@@ -221,7 +221,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                       onClick={() => { setPax(n); setNoTableWarn(false); }}
                       style={{
                         aspectRatio:'1/1', minHeight:0, borderRadius:9,
-                        border: active ? '1.5px solid var(--terracotta-600)' : '1px solid rgba(60,40,20,.10)',
+                        border: active ? '1.5px solid var(--terracotta-600)' : '1px solid var(--line)',
                         background: active ? 'var(--terracotta-600)' : 'var(--paper)',
                         color: active ? '#fff' : 'var(--ink-800)',
                         fontFamily:'var(--font-serif)', fontWeight:500,
@@ -235,7 +235,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                 })}
               </div>
               <div style={{
-                marginTop:9, paddingTop:8, borderTop:'1px dashed rgba(60,40,20,.10)',
+                marginTop:9, paddingTop:8, borderTop:'1px dashed var(--line)',
                 display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
               }}>
                 <span style={{ fontSize:11.5, color:'var(--ink-500)', fontWeight:550 }}>Més de 8</span>
@@ -244,7 +244,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                     onClick={() => { setPax(Math.max(1, pax - 1)); setNoTableWarn(false); }}
                     style={{
                       width:40, height:40, borderRadius:999,
-                      border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)',
+                      border:'1px solid var(--line)', background:'var(--paper)',
                       cursor:'pointer', fontSize:18, color:'var(--ink-700)',
                       display:'grid', placeItems:'center',
                       boxShadow:'var(--sh-1)',
@@ -259,7 +259,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                     onClick={() => { setPax(p => p + 1); setNoTableWarn(false); }}
                     style={{
                       width:40, height:40, borderRadius:999,
-                      border:'1px solid rgba(60,40,20,.12)', background:'var(--paper)',
+                      border:'1px solid var(--line)', background:'var(--paper)',
                       cursor:'pointer', fontSize:18, color:'var(--ink-700)',
                       display:'grid', placeItems:'center',
                       boxShadow:'var(--sh-1)',
@@ -278,7 +278,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                   <button key={z.id} onClick={() => handleZoneChange(z.id)}
                     style={{
                       flexShrink:0, padding:'7px 14px', borderRadius:999, whiteSpace:'nowrap',
-                      border: zoneId === z.id ? 'none' : '1px solid rgba(60,40,20,.14)',
+                      border: zoneId === z.id ? 'none' : '1px solid var(--line-strong)',
                       background: zoneId === z.id ? 'var(--ink-900)' : 'var(--paper)',
                       color: zoneId === z.id ? 'var(--cream)' : 'var(--ink-500)',
                       fontWeight: zoneId === z.id ? 600 : 500, fontSize:13,
@@ -446,7 +446,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                             border: selected
                               ? '1.5px solid var(--terracotta-600)'
                               : disabled
-                                ? '1px solid rgba(60,40,20,.08)'
+                                ? '1px solid var(--line-soft)'
                                 : fits
                                   ? '1px solid rgba(116,133,74,.20)'
                                   : '1px solid rgba(204,144,73,.25)',
@@ -562,7 +562,7 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
 
           {noTableWarn && (
             <button onClick={() => { setNoTableWarn(false); handleSeat(); }}
-              style={{ marginTop:10, width:'100%', padding:'13px', borderRadius:14, border:'1px solid rgba(60,40,20,.14)', background:'transparent', color:'var(--ink-700)', fontFamily:'inherit', fontSize:14, fontWeight:600, cursor:'pointer' }}>
+              style={{ marginTop:10, width:'100%', padding:'13px', borderRadius:14, border:'1px solid var(--line-strong)', background:'transparent', color:'var(--ink-700)', fontFamily:'inherit', fontSize:14, fontWeight:600, cursor:'pointer' }}>
               Continuar igualment sense taula
             </button>
           )}

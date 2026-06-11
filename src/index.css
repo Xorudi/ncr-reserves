@@ -91,6 +91,14 @@
   --hair:        1px solid rgba(60,40,20,.08);
   --hair-strong: 1px solid rgba(60,40,20,.14);
 
+  /* Separator/border colors for inline styles (the bare color, no width —
+     for shorthand `1px solid var(--line)` usage). Day = warm dark ink;
+     vespre overrides flip them to candle-light so edges stay VISIBLE on
+     espresso. Three tiers matching the old rgba(60,40,20,…) alphas. */
+  --line-soft:   rgba(60,40,20,.08);
+  --line:        rgba(60,40,20,.11);
+  --line-strong: rgba(60,40,20,.16);
+
   /* ── Layered surface system (Phase 1 of the visual overhaul) ──────────────
      Five surface roles, each with its own material:
        app       — canvas, atmospheric gradient, base of the visual stack
@@ -203,15 +211,20 @@ html[data-theme="vespre"] {
 
   --state-cancelled-bg: #352b21;
 
-  /* Shadows softened (v3) — separation now comes mostly from the surface
-     ladder, so shadows whisper instead of punching black holes. */
-  --sh-1: 0 1px 2px rgba(0,0,0,.20), 0 1px 1px rgba(0,0,0,.14);
-  --sh-2: 0 2px 6px rgba(0,0,0,.24), 0 1px 2px rgba(0,0,0,.16);
-  --sh-3: 0 8px 24px rgba(0,0,0,.30), 0 2px 6px rgba(0,0,0,.18);
+  /* Shadows (v5): cards sit LIGHTER than the canvas now, so a real dark
+     shadow under them reads as lift again — the "everything is flat"
+     complaint came from v3 whisper shadows + invisible borders. */
+  --sh-1: 0 1px 2px rgba(0,0,0,.28), 0 1px 1px rgba(0,0,0,.18);
+  --sh-2: 0 2px 8px rgba(0,0,0,.32), 0 1px 2px rgba(0,0,0,.20);
+  --sh-3: 0 8px 24px rgba(0,0,0,.40), 0 2px 6px rgba(0,0,0,.24);
 
   /* Warm candle-tinted hairlines — separate layers without grey lines. */
   --hair:        1px solid rgba(255,232,200,.09);
   --hair-strong: 1px solid rgba(255,232,200,.15);
+
+  --line-soft:   rgba(255,232,200,.10);
+  --line:        rgba(255,232,200,.15);
+  --line-strong: rgba(255,232,200,.22);
 
   /* Surface ladder (v4) — lifted a full notch after operator feedback:
      "cacao amb llet", never charcoal. Hierarchy reads by material:
@@ -222,19 +235,21 @@ html[data-theme="vespre"] {
   --surface-elevated:  #332719;
   --surface-floating:  rgba(58,44,31,.94);
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.20);
-  --shadow-md: 0 2px 6px rgba(0,0,0,.24),
-               0 1px 2px rgba(0,0,0,.16);
-  --shadow-lg: 0 8px 22px rgba(0,0,0,.30),
-               0 2px 6px  rgba(0,0,0,.18);
-  --shadow-xl: 0 16px 40px rgba(0,0,0,.36),
-               0 6px 12px  rgba(0,0,0,.22);
-  --shadow-2xl: 0 24px 56px rgba(0,0,0,.42),
-                0 10px 20px rgba(0,0,0,.28);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.30);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.34),
+               0 1px 2px rgba(0,0,0,.22);
+  --shadow-lg: 0 8px 22px rgba(0,0,0,.42),
+               0 2px 6px  rgba(0,0,0,.26);
+  --shadow-xl: 0 16px 40px rgba(0,0,0,.48),
+               0 6px 12px  rgba(0,0,0,.30);
+  --shadow-2xl: 0 24px 56px rgba(0,0,0,.55),
+                0 10px 20px rgba(0,0,0,.36);
 
-  /* On dark the top-edge highlight must whisper, not glow. */
-  --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.05);
-  --shadow-ring: 0 0 0 1px rgba(242,234,220,.06);
+  /* Depth grammar for dark mode: light comes from above. A VISIBLE top
+     bevel + a candle ring is what makes a card read as a physical object
+     instead of a painted rectangle. */
+  --shadow-inset-top: inset 0 1px 0 rgba(255,255,255,.10);
+  --shadow-ring: 0 0 0 1px rgba(255,232,200,.10);
 
   --glass-soft:          rgba(45,35,24,.60);
   --glass-strong:        rgba(45,35,24,.82);
@@ -252,18 +267,21 @@ html[data-theme="vespre"] {
    hardcoded cream gradient stops; on espresso those stops turn into the
    muddy grey pills the operator flagged. Re-skin the whole family. */
 html[data-theme="vespre"] .tac-btn {
-  border-color: rgba(255,232,200,.10);
-  background: linear-gradient(180deg, #3b2e1f, #332719);
-  color: var(--ink-700);
+  border-color: rgba(255,232,200,.14);
+  /* Keycap physics: the face sits LIGHTER than the surfaces around it and
+     carries a clear lit top edge + shaded bottom edge — that asymmetry is
+     what the eye reads as "raised, pressable". */
+  background: linear-gradient(180deg, #463622, #392b1a);
+  color: var(--ink-800);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.06),
-    inset 0 -1px 0 rgba(0,0,0,.25),
-    0 1px 2px rgba(0,0,0,.22);
+    inset 0 1px 0 rgba(255,255,255,.13),
+    inset 0 -1px 0 rgba(0,0,0,.38),
+    0 2px 4px rgba(0,0,0,.30);
 }
 @media (hover: hover) and (pointer: fine) {
   html[data-theme="vespre"] .tac-btn:hover:not(:disabled) {
-    background: linear-gradient(180deg, #423420, #3a2c1b);
-    border-color: rgba(255,232,200,.15);
+    background: linear-gradient(180deg, #4e3c26, #40301d);
+    border-color: rgba(255,232,200,.18);
   }
   html[data-theme="vespre"] .tac-btn--ghost:hover:not(:disabled) {
     background: linear-gradient(180deg, #3b2e1f, #332719);
@@ -335,12 +353,12 @@ html[data-theme="vespre"] .tac-fab {
 /* Segmented pills (Migdia/Nit, period toggles…) — selected = raised dark
    pill, not a glowing cream one. */
 html[data-theme="vespre"] .tac-seg-btn[data-active="true"] {
-  background: linear-gradient(180deg, #41331f 0%, #3a2c1b 100%);
+  background: linear-gradient(180deg, #4a3923 0%, #3d2e1c 100%);
   color: var(--ink-900);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.07),
-    inset 0 -1px 0 rgba(0,0,0,.28),
-    0 1px 3px rgba(0,0,0,.28);
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -1px 0 rgba(0,0,0,.32),
+    0 2px 5px rgba(0,0,0,.32);
 }
 html[data-theme="vespre"] .tac-seg-btn[data-active="true"]:active {
   background: linear-gradient(180deg, #352818 0%, #2f2315 100%);
@@ -356,13 +374,13 @@ html[data-theme="vespre"] .tac-seg-btn[data-active="true"]:active {
 /* Left-rail nav tiles — active = deep terracotta wash with ember label
    (the day version mixes a hardcoded light peach that washed out). */
 html[data-theme="vespre"] .rail-nav-btn[data-active="true"] {
-  background: linear-gradient(180deg, #4d2c1a 0%, #422413 100%);
-  border-color: rgba(230,157,117,.28);
+  background: linear-gradient(180deg, #553120 0%, #442513 100%);
+  border-color: rgba(230,157,117,.32);
   color: var(--terracotta-700);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.06),
-    inset 0 -1px 0 rgba(0,0,0,.28),
-    0 2px 6px rgba(0,0,0,.25);
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -1px 0 rgba(0,0,0,.32),
+    0 2px 6px rgba(0,0,0,.30);
 }
 html[data-theme="vespre"] .rail-nav-btn:not([data-active="true"]):active {
   background: rgba(255,255,255,.06);

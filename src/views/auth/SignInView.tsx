@@ -242,7 +242,7 @@ export default function SignInView({ onSignedIn }: Props) {
           box-sizing: border-box;
           padding: 11px 12px;
           border-radius: 10px;
-          border: 1.5px solid rgba(60,40,20,.15);
+          border: 1.5px solid var(--line-strong);
           background: var(--cream);
           font-size: 16px;             /* iOS won't auto-zoom on focus when ≥16 px */
           font-family: inherit;

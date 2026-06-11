@@ -188,7 +188,7 @@ export default function MobileTablesScreen() {
         <button onClick={() => editMode ? exitEdit() : setEditMode(true)} className="press"
           style={{
             padding:'5px 11px', borderRadius:8,
-            border: editMode ? 'none' : '1px solid rgba(60,40,20,.12)',
+            border: editMode ? 'none' : '1px solid var(--line)',
             background: editMode ? 'var(--ink-900)' : 'transparent',
             color: editMode ? 'var(--cream)' : 'var(--ink-700)',
             fontFamily:'inherit', fontSize:12, fontWeight:650,
@@ -330,7 +330,7 @@ export default function MobileTablesScreen() {
                         ? '2px solid var(--ink-900)'
                         : isSeated
                           ? '1px solid var(--terracotta-500)'
-                          : '1px solid rgba(60,40,20,.08)',
+                          : '1px solid var(--line-soft)',
                       textAlign:'left', cursor:'pointer',
                       fontFamily:'inherit', display:'flex', flexDirection:'column',
                       justifyContent:'space-between', gap:2,
@@ -724,13 +724,13 @@ function TableActionSheet({
             </div>
             <div style={{
               background:'var(--cream)', borderRadius:12,
-              border:'1px solid rgba(60,40,20,.08)',
+              border:'1px solid var(--line-soft)',
               padding:'12px 14px',
               display:'flex', alignItems:'center', gap:12,
             }}>
               <div style={{
                 width:42, height:42, borderRadius:10, background:'var(--paper)',
-                border:'1px solid rgba(60,40,20,.08)',
+                border:'1px solid var(--line-soft)',
                 display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                 flexShrink:0,
               }}>
@@ -800,7 +800,7 @@ function TableActionSheet({
                   background:'var(--cream)',
                   border: a.danger
                     ? '1px solid rgba(192,57,43,.25)'
-                    : '1px solid rgba(60,40,20,.08)',
+                    : '1px solid var(--line-soft)',
                   cursor:'pointer', fontFamily:'inherit',
                   fontSize:14, fontWeight:600, textAlign:'left',
                   color: a.danger ? '#c0392b' : 'var(--ink-800)',
@@ -863,7 +863,7 @@ function EditBar({
         background:'var(--paper)',
         borderRadius:18,
         boxShadow:'0 -2px 24px rgba(60,40,20,.12), 0 4px 12px rgba(60,40,20,.06)',
-        border:'1px solid rgba(60,40,20,.08)',
+        border:'1px solid var(--line-soft)',
         padding:'12px 14px 10px',
         display:'flex', flexDirection:'column', gap:10,
       }}>
@@ -934,7 +934,7 @@ function EditBar({
 
           <button onClick={onToggleBlock} disabled={count === 0} className="press"
             style={{
-              padding:'7px 12px', borderRadius:9, border:'1px solid rgba(60,40,20,.10)',
+              padding:'7px 12px', borderRadius:9, border:'1px solid var(--line)',
               background: allBlocked ? 'var(--olive-50)' : 'var(--ink-100)',
               color: allBlocked ? 'var(--olive-700)' : 'var(--ink-800)',
               fontFamily:'inherit', fontSize:12, fontWeight:650, cursor: count === 0 ? 'not-allowed' : 'pointer',
@@ -958,7 +958,7 @@ function EditBar({
               style={{
                 width:24, height:24, borderRadius:999,
                 border: a.id === undefined
-                  ? '1.5px dashed rgba(60,40,20,.30)'
+                  ? '1.5px dashed var(--line-strong)'
                   : `1.5px solid ${a.color}`,
                 background: a.id === undefined ? 'transparent' : a.color,
                 cursor: count === 0 ? 'not-allowed' : 'pointer',
@@ -973,12 +973,12 @@ function EditBar({
 }
 
 const stepBtn: React.CSSProperties = {
-  width:30, height:30, borderRadius:999, border:'1px solid rgba(60,40,20,.12)',
+  width:30, height:30, borderRadius:999, border:'1px solid var(--line)',
   background:'var(--paper)', cursor:'pointer', fontSize:15, color:'var(--ink-700)',
   display:'grid', placeItems:'center', fontFamily:'inherit', fontWeight:500,
 };
 const shapeBtn: React.CSSProperties = {
-  width:30, height:30, borderRadius:8, border:'1px solid rgba(60,40,20,.12)',
+  width:30, height:30, borderRadius:8, border:'1px solid var(--line)',
   background:'var(--paper)', cursor:'pointer', color:'var(--ink-700)',
   display:'grid', placeItems:'center', padding:0,
 };

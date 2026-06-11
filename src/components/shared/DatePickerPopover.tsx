@@ -207,7 +207,7 @@ export default function DatePickerPopover({
           zIndex,
           width: 340,
           background: 'var(--surface-elevated)',
-          border: '1px solid rgba(60,40,20,.10)',
+          border: '1px solid var(--line)',
           borderRadius: 20,
           boxShadow: 'var(--shadow-2xl), var(--shadow-inset-top)',
           padding: '16px 16px 14px',
@@ -301,7 +301,7 @@ export default function DatePickerPopover({
         {/* ── Footer actions: Avui + Tancar ─────────────────────────────── */}
         <div style={{
           display: 'flex', gap: 8, marginTop: 12,
-          paddingTop: 12, borderTop: '1px solid rgba(60,40,20,.08)',
+          paddingTop: 12, borderTop: '1px solid var(--line-soft)',
         }}>
           <button onClick={handleToday} className="tac-btn"
             style={{
@@ -332,7 +332,7 @@ export default function DatePickerPopover({
 
 const pickerNavBtn: React.CSSProperties = {
   width: 36, height: 36, borderRadius: 10,
-  border: '1px solid rgba(60,40,20,.10)',
+  border: '1px solid var(--line)',
   background: 'var(--surface-base)',
   color: 'var(--ink-700)',
   cursor: 'pointer',

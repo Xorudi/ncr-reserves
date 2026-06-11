@@ -218,7 +218,7 @@ export default function TimePickerPopover({
           zIndex,
           width: 260,
           background: 'var(--surface-elevated)',
-          border: '1px solid rgba(60,40,20,.10)',
+          border: '1px solid var(--line)',
           borderRadius: 20,
           boxShadow: 'var(--shadow-2xl), var(--shadow-inset-top)',
           padding: '16px 16px 14px',
@@ -283,7 +283,7 @@ export default function TimePickerPopover({
         {/* ── Footer: Ara (now) + Check (confirm) ─────────────────────── */}
         <div style={{
           display: 'flex', gap: 8, marginTop: 12,
-          paddingTop: 12, borderTop: '1px solid rgba(60,40,20,.08)',
+          paddingTop: 12, borderTop: '1px solid var(--line-soft)',
         }}>
           <button onClick={handleNow} className="tac-btn"
             style={{

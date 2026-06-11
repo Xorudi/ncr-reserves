@@ -357,7 +357,7 @@ function SplashFrame() {
     }}>
       <div style={{
         width: 32, height: 32, borderRadius: '50%',
-        border: '3px solid rgba(60,40,20,.12)',
+        border: '3px solid var(--line)',
         borderTopColor: 'var(--terracotta-500,#c8613a)',
         animation: 'spin 0.8s linear infinite',
       }} />

@@ -105,7 +105,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
                 padding: '12px', borderRadius: 12, cursor: 'pointer',
                 fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
                 color: '#766251', background: 'transparent',
-                border: '1px solid rgba(60,40,20,.18)',
+                border: '1px solid var(--line-strong)',
               }}
             >
               Reinicia l'app

@@ -208,7 +208,7 @@ export default function WaitlistSheet({ open, onClose, onSeated }: Props) {
                 type="tel"
                 style={{
                   flex: 1, padding: '9px 12px', borderRadius: 10,
-                  border: '1.5px solid rgba(60,40,20,.14)',
+                  border: '1.5px solid var(--line-strong)',
                   background: 'var(--paper)', outline: 'none',
                   fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--ink-900)',
                 }}
@@ -374,7 +374,7 @@ function QueueRow({ w, rank, isNext, plan, onNotify, onSeat, onRemove }: QueueRo
             display: 'inline-flex', alignSelf: 'flex-start',
             alignItems: 'center', gap: 6,
             padding: '4px 9px', borderRadius: 999,
-            background: 'var(--paper)', border: '1px solid rgba(60,40,20,.10)',
+            background: 'var(--paper)', border: '1px solid var(--line)',
             fontSize: 11, color: 'var(--ink-700)', fontWeight: 600,
           }}>
             <span style={{ fontSize: 12 }}>🪑</span>

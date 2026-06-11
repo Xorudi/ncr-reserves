@@ -244,7 +244,7 @@ function AllergenChip({ label, emoji, active, onToggle }: {
       className={`press ${pop ? 'chip-tick' : ''}`}
       style={{
         padding:'6px 11px', borderRadius:999,
-        border: active ? '1.5px solid var(--rose-600)' : '1px solid rgba(60,40,20,.12)',
+        border: active ? '1.5px solid var(--rose-600)' : '1px solid var(--line)',
         background: active ? 'var(--rose-50)' : 'var(--paper)',
         color: active ? 'var(--rose-700)' : 'var(--ink-600)',
         fontFamily:'inherit', fontSize:12, fontWeight: active ? 700 : 550,
@@ -846,7 +846,7 @@ export default function MobileTodayView({
             style={{
               flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:10,
               background:'var(--paper)',
-              border:'1px solid rgba(60,40,20,.10)',
+              border:'1px solid var(--line)',
               borderRadius: 10,
               cursor:'pointer', fontFamily:'inherit',
               padding:'8px 12px',
@@ -1285,7 +1285,7 @@ export default function MobileTodayView({
               {upcoming && (
                 <div style={{
                   marginTop:2, paddingTop:10,
-                  borderTop:'1px dashed rgba(60,40,20,.10)',
+                  borderTop:'1px dashed var(--line)',
                   display:'flex', alignItems:'center', gap:10,
                 }}>
                   <span style={{
@@ -1613,7 +1613,7 @@ const ZoneChip = memo(function ZoneChip({
         flexShrink: 0,
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '7px 12px', borderRadius: 999,
-        border: active ? 'none' : '1px solid rgba(60,40,20,.12)',
+        border: active ? 'none' : '1px solid var(--line)',
         background: active ? palette.bgActive : 'var(--paper)',
         color: active ? palette.fgActive : 'var(--ink-700)',
         fontFamily: 'inherit', fontSize: 12.5, fontWeight: 650,
@@ -2020,7 +2020,7 @@ function DatePickerSheet({ open, selected, onSelect, onClose, reservations, bizI
               <button key={i} onClick={() => onSelect(new Date(year, month, day))}
                 style={{
                   height:38, borderRadius:8, padding:'0 2px',
-                  border: isSel ? '2px solid var(--terracotta-600)' : isToday ? '1.5px solid rgba(60,40,20,.2)' : '1.5px solid transparent',
+                  border: isSel ? '2px solid var(--terracotta-600)' : isToday ? '1.5px solid var(--line-strong)' : '1.5px solid transparent',
                   background: isSel ? 'var(--terracotta-50)' : 'transparent',
                   cursor:'pointer', fontFamily:'inherit',
                   display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2,
@@ -2158,7 +2158,7 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
             <button onClick={() => onEditFull(r)} aria-label="Editar" className="press"
               style={{
                 width:34, height:34, borderRadius:999,
-                background:'var(--cream)', border:'1px solid rgba(60,40,20,.10)',
+                background:'var(--cream)', border:'1px solid var(--line)',
                 cursor:'pointer', color:'var(--ink-700)',
                 display:'grid', placeItems:'center', flexShrink:0,
               }}>
@@ -2549,7 +2549,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   }
 
   const inp: React.CSSProperties = {
-    width:'100%', padding:'12px 14px', border:'1px solid rgba(60,40,20,.12)',
+    width:'100%', padding:'12px 14px', border:'1px solid var(--line)',
     borderRadius:12, fontFamily:'inherit', fontSize:15, color:'var(--ink-900)',
     background:'var(--paper)', boxSizing:'border-box', outline:'none',
     transition:'border-color 160ms var(--ease-ios), background 160ms var(--ease-ios)',
@@ -2568,7 +2568,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
   };
   const card: React.CSSProperties = {
     background:'var(--cream)', borderRadius:14, padding:14,
-    border:'1px solid rgba(60,40,20,.06)',
+    border:'1px solid var(--line-soft)',
   };
 
   return (
@@ -2590,7 +2590,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
 
         {/* ── Sticky header ─────────────────────────────────────────── */}
         <div style={{ flexShrink:0, padding:'10px 18px 14px',
-                      borderBottom:'1px solid rgba(60,40,20,.06)',
+                      borderBottom:'1px solid var(--line-soft)',
                       background:'var(--paper)' }}>
           <div style={{ width:38, height:4, borderRadius:2, background:'var(--ink-200)',
                         margin:'0 auto 14px' }} />
@@ -2640,7 +2640,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 style={{
                   position:'relative', display:'flex', flexDirection:'column', gap:2,
                   background:'var(--paper)', borderRadius:10,
-                  border:'1px solid rgba(60,40,20,.10)',
+                  border:'1px solid var(--line)',
                   padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
                 }}
                 onClick={() => setDateOpen(o => !o)}>
@@ -2677,7 +2677,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 style={{
                   position:'relative', display:'flex', flexDirection:'column', gap:2,
                   background:'var(--paper)', borderRadius:10,
-                  border:'1px solid rgba(60,40,20,.10)',
+                  border:'1px solid var(--line)',
                   padding:'10px 12px', cursor:'pointer', minWidth:0, overflow:'hidden',
                 }}
                 onClick={() => setTimeOpen(o => !o)}>
@@ -2717,7 +2717,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 <div style={{
                   display:'flex', alignItems:'center', justifyContent:'space-between',
                   paddingBottom: recurring ? 10 : 0,
-                  borderBottom: recurring ? '1px dashed rgba(60,40,20,.10)' : 'none',
+                  borderBottom: recurring ? '1px dashed var(--line)' : 'none',
                 }}>
                   <div>
                     <div style={{ fontSize:14, fontWeight:600, color:'var(--ink-900)' }}>Reserva recurrent</div>
@@ -2761,7 +2761,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                             <button key={id} onClick={() => setRecurFreq(id)} className="press"
                               style={{
                                 padding:'9px 6px', borderRadius:10,
-                                border: active ? '1.5px solid var(--terracotta-600)' : '1px solid rgba(60,40,20,.10)',
+                                border: active ? '1.5px solid var(--terracotta-600)' : '1px solid var(--line)',
                                 background: active ? 'var(--terracotta-50)' : 'var(--paper)',
                                 color: active ? 'var(--terracotta-700)' : 'var(--ink-700)',
                                 fontFamily:'inherit', cursor:'pointer',
@@ -2785,7 +2785,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                         <button onClick={() => setRecurOccurrences(n => Math.max(2, n - 1))} className="press"
                           style={{
                             width:36, height:36, borderRadius:10,
-                            border:'1px solid rgba(60,40,20,.10)', background:'var(--paper)',
+                            border:'1px solid var(--line)', background:'var(--paper)',
                             color:'var(--ink-700)', cursor:'pointer',
                             display:'grid', placeItems:'center',
                           }}>
@@ -2802,7 +2802,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                         <button onClick={() => setRecurOccurrences(n => Math.min(52, n + 1))} className="press"
                           style={{
                             width:36, height:36, borderRadius:10,
-                            border:'1px solid rgba(60,40,20,.10)', background:'var(--paper)',
+                            border:'1px solid var(--line)', background:'var(--paper)',
                             color:'var(--ink-700)', cursor:'pointer',
                             display:'grid', placeItems:'center',
                           }}>
@@ -2845,7 +2845,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   <button key={n} onClick={() => { upd('pax', n); setEditingPax(false); }} className="press"
                     style={{
                       aspectRatio:'1/1', minHeight:0, borderRadius:10,
-                      border: form.pax === n ? '1.5px solid var(--terracotta-600)' : '1px solid rgba(60,40,20,.10)',
+                      border: form.pax === n ? '1.5px solid var(--terracotta-600)' : '1px solid var(--line)',
                       background: form.pax === n ? 'var(--terracotta-600)' : 'var(--paper)',
                       color: form.pax === n ? '#fff' : 'var(--ink-800)',
                       fontFamily:'var(--font-serif)', fontWeight:500,
@@ -2860,13 +2860,13 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
               {/* Stepper inline per 9+ */}
               <div style={{
                 marginTop:10, display:'flex', alignItems:'center', justifyContent:'space-between',
-                gap:10, paddingTop:10, borderTop:'1px dashed rgba(60,40,20,.10)',
+                gap:10, paddingTop:10, borderTop:'1px dashed var(--line)',
               }}>
                 <span style={{ fontSize:11.5, color:'var(--ink-500)', fontWeight:550 }}>Més de 8</span>
                 <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                   <button onClick={() => upd('pax', Math.max(1, form.pax - 1))} className="press"
                     style={{
-                      width:34, height:34, borderRadius:999, border:'1px solid rgba(60,40,20,.12)',
+                      width:34, height:34, borderRadius:999, border:'1px solid var(--line)',
                       background:'var(--paper)', cursor:'pointer', fontSize:17, fontWeight:500,
                       color:'var(--ink-700)', display:'grid', placeItems:'center',
                     }}>−</button>
@@ -2913,7 +2913,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                         minWidth:54, height:34, padding:'0 10px',
                         fontFamily:'var(--font-serif)', fontSize:16, fontWeight:500,
                         color:'var(--ink-900)', background:'var(--paper)',
-                        border:'1px solid rgba(60,40,20,.12)', borderRadius:8,
+                        border:'1px solid var(--line)', borderRadius:8,
                         cursor:'text', display:'grid', placeItems:'center',
                       }}>
                       {form.pax}
@@ -2921,7 +2921,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   )}
                   <button onClick={() => upd('pax', Math.min(MAX_PAX, form.pax + 1))} className="press"
                     style={{
-                      width:34, height:34, borderRadius:999, border:'1px solid rgba(60,40,20,.12)',
+                      width:34, height:34, borderRadius:999, border:'1px solid var(--line)',
                       background:'var(--paper)', cursor:'pointer', fontSize:17, fontWeight:500,
                       color:'var(--ink-700)', display:'grid', placeItems:'center',
                     }}>+</button>
@@ -2963,7 +2963,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 {showDropdown && clientMatches.length > 0 && (
                   <div style={{
                     marginTop:6, background:'var(--paper)', borderRadius:10,
-                    border:'1px solid rgba(60,40,20,.10)',
+                    border:'1px solid var(--line)',
                     boxShadow:'0 2px 8px rgba(60,40,20,.06)',
                     maxHeight:200, overflowY:'auto', overflowX:'hidden',
                   }}>
@@ -2973,7 +2973,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                         style={{
                           width:'100%', padding:'10px 12px', border:'none', background:'transparent',
                           cursor:'pointer', display:'flex', alignItems:'center', gap:10,
-                          borderBottom: i < clientMatches.length - 1 ? '1px solid rgba(60,40,20,.05)' : 'none',
+                          borderBottom: i < clientMatches.length - 1 ? '1px solid var(--line-soft)' : 'none',
                           fontFamily:'inherit', textAlign:'left',
                         }}>
                         <span className={`avatar av-${avIdx(c.name)}`} style={{ flexShrink:0 }}>{initials(c.name)}</span>
@@ -3033,7 +3033,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                   style={{
                     display:'flex', alignItems:'center', gap:11,
                     padding:'10px 12px', borderRadius:11,
-                    border:'1px solid rgba(60,40,20,.08)',
+                    border:'1px solid var(--line-soft)',
                     background: saveToCartera ? 'var(--olive-50)' : 'var(--paper)',
                     cursor:'pointer', fontFamily:'inherit', textAlign:'left',
                     transition:'background 200ms var(--ease-in-out), border-color 200ms var(--ease-in-out)',
@@ -3043,7 +3043,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                     width:22, height:22, borderRadius:6,
                     border: saveToCartera
                       ? '1.5px solid var(--olive-600)'
-                      : '1.5px solid rgba(60,40,20,.18)',
+                      : '1.5px solid var(--line-strong)',
                     background: saveToCartera ? 'var(--olive-600)' : 'var(--paper)',
                     color:'#fff', flexShrink:0,
                     display:'grid', placeItems:'center',
@@ -3103,7 +3103,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                       <button key={o.v} onClick={() => upd('status', o.v as ReservationStatus)} className="press"
                         style={{
                           padding:'9px 6px', borderRadius:9,
-                          border: active ? `1.5px solid ${o.dot}` : '1px solid rgba(60,40,20,.10)',
+                          border: active ? `1.5px solid ${o.dot}` : '1px solid var(--line)',
                           background: active ? o.bg : 'var(--paper)',
                           color: active ? o.fg : 'var(--ink-600)',
                           fontFamily:'inherit', fontSize:12.5, fontWeight: active ? 700 : 550,
@@ -3128,7 +3128,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                       <button key={o} onClick={() => upd('source', o)} className="press"
                         style={{
                           padding:'8px 4px', borderRadius:9,
-                          border: active ? '1.5px solid var(--ink-700)' : '1px solid rgba(60,40,20,.10)',
+                          border: active ? '1.5px solid var(--ink-700)' : '1px solid var(--line)',
                           background: active ? 'var(--ink-900)' : 'var(--paper)',
                           color: active ? 'var(--cream)' : 'var(--ink-600)',
                           fontFamily:'inherit', fontSize:11.5, fontWeight: active ? 700 : 550,
@@ -3216,7 +3216,7 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
           flexShrink:0,
           padding:'12px 16px',
           paddingBottom:'max(env(safe-area-inset-bottom, 0px), 14px)',
-          borderTop:'1px solid rgba(60,40,20,.08)',
+          borderTop:'1px solid var(--line-soft)',
           background:'var(--paper)',
         }}>
           <button onClick={handleSave} disabled={saved}

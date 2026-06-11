@@ -127,7 +127,7 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
         <div style={{ padding:'10px 14px 6px', flexShrink:0 }}>
           <div style={{
             display:'flex', alignItems:'center', gap:8, padding:'8px 12px',
-            background:'var(--cream)', border:'1px solid rgba(60,40,20,.12)', borderRadius:10,
+            background:'var(--cream)', border:'1px solid var(--line)', borderRadius:10,
           }}>
             <Icon d={I.search} size={15} />
             <input
@@ -191,8 +191,8 @@ export default function TableSelectorModal({ bizId, pax, currentIds, date, onSav
                     border: isSel
                       ? '2px solid var(--terracotta-500)'
                       : isOccupied || isBlocked
-                        ? '1.5px solid rgba(60,40,20,.08)'
-                        : '1.5px solid rgba(60,40,20,.14)',
+                        ? '1.5px solid var(--line-soft)'
+                        : '1.5px solid var(--line-strong)',
                     background: isSel
                       ? 'var(--terracotta-50)'
                       : isOccupied || isBlocked ? 'rgba(60,40,20,.03)' : 'var(--cream)',
