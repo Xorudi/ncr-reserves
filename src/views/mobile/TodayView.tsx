@@ -1709,6 +1709,8 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
   // Render-count instrumentation. Logs throttled to 1/sec so a 30-row
   // list at full speed only reports the latest aggregate count.
   useRenderCount('ResRow');
+  // In-place expander for long notes / comandes (see notes block below).
+  const [notesOpen, setNotesOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const effectiveStatus: ReservationStatus =
     r.status === 'noshow' && r.date < today ? 'completed' : r.status;
@@ -1902,26 +1904,57 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
           </div>
         )}
 
-        {/* Notes preview — for big-group menu briefs this is real
-            operational info, so it gets a note glyph, higher contrast and
-            up to 2 lines (was a single cramped grey line). Full text lives
-            in the detail sheet. */}
-        {r.notes && (
-          <div style={{
-            display:'flex', alignItems:'flex-start', gap:5, marginTop:3,
-          }}>
-            <span style={{ flexShrink:0, marginTop:1.5, color:'var(--ink-400)' }}>
-              <Icon d={I.note} size={12} stroke={2} />
-            </span>
-            <span style={{
-              fontSize:12.5, lineHeight:1.35, color:'var(--ink-600)',
-              overflow:'hidden', textOverflow:'ellipsis',
-              display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' as const,
+        {/* Notes preview — structured presentation:
+              · Long menu briefs (≥120 chars) are flagged COMANDA — they're
+                a kitchen order, not a remark — and can be expanded IN
+                PLACE so the operator reads the full brief mid-service
+                without opening the detail sheet.
+              · Short notes stay as a quiet two-line remark. */}
+        {r.notes && (() => {
+          const isComanda  = r.notes.length >= 120;
+          const expandable = r.notes.length > 90;
+          return (
+            <div style={{
+              display:'flex', alignItems:'flex-start', gap:5, marginTop:3,
             }}>
-              {r.notes}
-            </span>
-          </div>
-        )}
+              <span style={{ flexShrink:0, marginTop:1.5, color: isComanda ? 'var(--clay-600)' : 'var(--ink-400)' }}>
+                <Icon d={I.note} size={12} stroke={2} />
+              </span>
+              <span style={{ flex:1, minWidth:0 }}>
+                {isComanda && (
+                  <span style={{
+                    fontSize:9, fontWeight:700, letterSpacing:.1,
+                    color:'var(--clay-700)', textTransform:'uppercase',
+                    fontFamily:'var(--font-mono)',
+                    display:'block', marginBottom:1,
+                  }}>Comanda</span>
+                )}
+                <span style={{
+                  fontSize:12.5, lineHeight:1.4, color:'var(--ink-600)',
+                  overflow:'hidden', textOverflow:'ellipsis',
+                  display:'-webkit-box',
+                  WebkitLineClamp: notesOpen ? 99 : 2,
+                  WebkitBoxOrient:'vertical' as const,
+                  whiteSpace:'pre-line',
+                }}>
+                  {r.notes}
+                </span>
+                {expandable && (
+                  <span
+                    role="button"
+                    onClick={e => { e.stopPropagation(); setNotesOpen(o => !o); }}
+                    style={{
+                      display:'inline-block', marginTop:2, padding:'2px 0',
+                      fontSize:11, fontWeight:700, color:'var(--clay-700)',
+                      cursor:'pointer', letterSpacing:.02,
+                    }}>
+                    {notesOpen ? 'Veure menys ↑' : 'Veure tot ↓'}
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Right side — status pill + loyalty level (visible reference for the customer) */}

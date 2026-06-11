@@ -27,6 +27,7 @@ import { Z_INDEX } from '@/lib/zIndex';
 import TableSelectorModal from './TableSelectorModal';
 import { useAppStore } from '@/store/useAppStore';
 import { toast } from './Toaster';
+import { suggestTablesFor, suggestionLabel } from '@/utils/tableSuggest';
 import type { Reservation } from '@/types';
 
 type AssignTableAction = {
@@ -55,7 +56,7 @@ export default function BriefingActionSheet({
   open, onClose, action,
   onOpenReservationDetail,
 }: Props) {
-  const { reservations, updateReservationStatus, assignTablesToReservation } = useAppStore();
+  const { reservations, updateReservationStatus, assignTablesToReservation, floorPlans } = useAppStore();
 
   // Track which reservation the operator is assigning a table to right
   // now. While set, the TableSelectorModal renders on top of this sheet
@@ -76,7 +77,8 @@ export default function BriefingActionSheet({
   // out of "pending" — they shouldn't reappear in the same sheet session.
   const visibleRows = action?.kind === 'confirm-reservations'
     ? rows.filter(r => r.status === 'pending')
-    : rows;
+    // assign-table: a row leaves the queue the moment it has tables.
+    : rows.filter(r => !r.tableIds || r.tableIds.length === 0);
 
   if (!action) return null;
 
@@ -268,14 +270,54 @@ export default function BriefingActionSheet({
                     </>
                   )}
 
-                  {action.kind === 'assign-table' && (
+                  {action.kind === 'assign-table' && (() => {
+                    // Concrete proposal: best free-table combination in a
+                    // single zone for this party, from the live floor
+                    // state of the reservation's date.
+                    const dayRes = reservations.filter(x =>
+                      x.bizId === r.bizId && x.date === r.date);
+                    const sug = suggestTablesFor(r.pax, floorPlans[r.bizId], dayRes);
+                    return (
                     <>
+                      {sug && (
+                        <div style={{
+                          width: '100%',
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '8px 10px', borderRadius: 9,
+                          background: 'rgba(116,133,74,.08)',
+                          border: '1px solid rgba(116,133,74,.24)',
+                          marginBottom: 2,
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 1.35, color: 'var(--ink-800)' }}>
+                            <span style={{
+                              fontSize: 9, fontWeight: 700, letterSpacing: .1,
+                              color: 'var(--olive-700)', textTransform: 'uppercase',
+                              fontFamily: 'var(--font-mono)', display: 'block',
+                            }}>Suggeriment</span>
+                            <b>{suggestionLabel(sug)}</b>
+                            <span style={{ color: 'var(--ink-500)' }}> · {sug.zoneLabel} · {sug.totalCap} pax</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              assignTablesToReservation(r.id, sug.tables.map(t => t.id));
+                              toast(`${suggestionLabel(sug)} assignades a ${r.name}`, { icon: 'check', tone: 'olive' });
+                            }}
+                            className="tac-btn tac-btn--accent"
+                            style={{
+                              flexShrink: 0, padding: '7px 13px', fontSize: 12, fontWeight: 700,
+                              borderRadius: 8,
+                            }}
+                          >
+                            Aplicar
+                          </button>
+                        </div>
+                      )}
                       <button
                         onClick={() => handleAssign(r)}
-                        className="tac-btn tac-btn--accent"
+                        className="tac-btn"
                         style={{
                           padding: '7px 14px', fontSize: 12.5, fontWeight: 700,
-                          borderRadius: 8,
+                          borderRadius: 8, color: 'var(--ink-800)',
                         }}
                       >
                         Triar taula
@@ -291,7 +333,8 @@ export default function BriefingActionSheet({
                         Detall
                       </button>
                     </>
-                  )}
+                    );
+                  })()}
                 </div>
               </li>
             ))}
