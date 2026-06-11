@@ -236,10 +236,25 @@ export const useAppStore = create<AppState>()(persist((set, get) => ({
       status === 'pending'    ? 'reserved' as const :
       'free' as const; // completed / cancelled / noshow → free
 
+    // Provenance tag for the loyalty system: only an OPERATOR-marked
+    // no-show (this mutator is only reachable from UI actions) carries the
+    // points penalty. Leaving 'noshow' — including the toast "Desfer" and
+    // the detail sheet's "A taula" — strips the tag, so an undone no-show
+    // never penalizes the client even if closeOutPastDays later re-marks
+    // the stale reservation as noshow (auto path sets status directly and
+    // never tags). Tags ride the existing synced `tags` column.
+    const retag = (tags: string[] | undefined): string[] => {
+      const t = (tags ?? []).filter(x => x !== 'noshow-manual');
+      if (status === 'noshow') t.push('noshow-manual');
+      return t;
+    };
+
     set((s) => {
-      const reservations = s.reservations.map((r) => r.id === id ? { ...r, status } : r);
+      const reservations = s.reservations.map((r) =>
+        r.id === id ? { ...r, status, tags: retag(r.tags) } : r);
       const selectedReservation = s.selectedReservation?.id === id
-        ? { ...s.selectedReservation, status } : s.selectedReservation;
+        ? { ...s.selectedReservation, status, tags: retag(s.selectedReservation.tags) }
+        : s.selectedReservation;
 
       let floorPlans = s.floorPlans;
       if (bizId && tableIds.length > 0 && s.floorPlans[bizId]) {

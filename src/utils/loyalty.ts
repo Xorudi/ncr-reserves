@@ -104,7 +104,12 @@ export function computePointsForReservation(r: Reservation): number {
     if (isNight(r.time))     pts += POINTS.nightBonus;
     if ((r.pax ?? 0) >= 6)   pts += POINTS.largeGroupBonus;
   } else if (r.status === 'noshow') {
-    pts += POINTS.noshow;
+    // Penalty only for operator-confirmed no-shows (swipe during service,
+    // which tags the reservation 'noshow-manual'). Auto-marked end-of-day
+    // no-shows (closeOutPastDays) are bookkeeping, not judgement — and a
+    // manually-undone no-show that the closeout later re-marks must never
+    // penalize the client (operator feedback 11/06/2026).
+    if (r.tags?.includes('noshow-manual')) pts += POINTS.noshow;
   } else if (r.status === 'cancelled') {
     pts += POINTS.cancelledLate;
   }
