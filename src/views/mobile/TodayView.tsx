@@ -3263,14 +3263,35 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                 </div>
               </div>
 
-              {/* Notes */}
+              {/* Notes / comanda — line-based format understood by the
+                  kitchen-ticket printer (see utils/printTicket.ts):
+                    SECCIÓ:        capçalera
+                    3 Plat         quantitat + plat
+                    IMPORTANT:     barra negra al tiquet */}
               <div>
-                <label style={lbl}>Notes</label>
-                <textarea rows={2} placeholder="Ocasió especial, preferències…" value={form.notes}
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <label style={{ ...lbl, flex:1 }}>Notes / Comanda</label>
+                  <button type="button" className="press"
+                    onClick={() => {
+                      const tpl = 'TAPES: \n\nINFANTS:\n1 \n\nADULTS:\n1 \n\nPOSTRES:\n\nIMPORTANT:\n';
+                      upd('notes', form.notes.trim() ? `${form.notes.replace(/\s+$/, '')}\n\n${tpl}` : tpl);
+                    }}
+                    style={{
+                      border:'1px solid rgba(60,40,20,.15)', background:'var(--cream)',
+                      color:'var(--ink-700)', borderRadius:999, padding:'4px 10px',
+                      fontSize:11.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                      marginBottom:5,
+                    }}>
+                    📋 Plantilla comanda
+                  </button>
+                </div>
+                <textarea rows={4}
+                  placeholder={'Ocasió especial, preferències…\nComanda: una línia per element —\nPIZZES: · 3 Bacon · IMPORTANT: avisos'}
+                  value={form.notes}
                   onChange={e => upd('notes', e.target.value)}
                   onFocus={() => setShowDropdown(false)}
-                  maxLength={1000}
-                  style={{ ...inp, padding:'10px 12px', resize:'none', lineHeight:1.5, fontSize:14 }} />
+                  maxLength={2000}
+                  style={{ ...inp, padding:'10px 12px', resize:'vertical', minHeight:72, lineHeight:1.5, fontSize:14 }} />
               </div>
 
               {/* Taula */}

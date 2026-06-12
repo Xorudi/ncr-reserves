@@ -29,8 +29,10 @@ export const LIMITS = {
   TAG:            30,
   /** Total number of tags on a record */
   TAGS_COUNT:     20,
-  /** Free-text notes inside a reservation */
-  RES_NOTES:      1_000,
+  /** Free-text notes inside a reservation. Raised 1000 → 2000: notes now
+   *  carry full structured comandes (sections + per-dish lines for 77-pax
+   *  group menus) and the big ones brushed against the old cap. */
+  RES_NOTES:      2_000,
   /** Free-text notes inside a customer record */
   CUST_NOTES:     2_000,
   /** Single shift note body */

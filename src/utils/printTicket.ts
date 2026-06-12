@@ -135,6 +135,83 @@ function renderBody(text: string): string {
   return html;
 }
 
+/** True for section labels that must print as an inverse black bar. */
+function isAlertLabel(label: string): boolean {
+  return /^IMPORTANT(E)?$|^ATENCIÓN?$|^ATENCIO$|^AL·?LERG|^ALERG/i.test(label.trim());
+}
+
+/** Inline content after a "Label: …" — quantity list or prose. */
+function renderInline(content: string): string {
+  const body = content.trim().replace(/\.+\s*$/, '');
+  if (!body) return '';
+  if (/^\d/.test(body)) {
+    const items = body
+      .split(/,\s+(?=\d)/)
+      .flatMap(s => s.split(/\s+[iy]\s+(?=\d+\s+[A-ZÀ-Ý])/));
+    return '<div class="items">' + items.map(it => {
+      const m = /^(\d+)\s*(.*)$/s.exec(it.trim());
+      return `<div class="item"><span class="qty">${esc(m ? m[1] : '')}</span><span class="it">${esc((m ? m[2] : it).trim())}</span></div>`;
+    }).join('') + '</div>';
+  }
+  return `<div class="sec-b">${esc(body)}</div>`;
+}
+
+/**
+ * LINE-BASED comanda format — the recommended way to write comandes in
+ * the reservation notes. One element per line:
+ *
+ *   TAPES:                     ← section header (alone on its line)
+ *   PIZZES ADULTS: 3 Bacon     ← header + content on the same line
+ *   13 Quatre Formatges        ← quantity item (qty in its own column)
+ *   3x Barbacoa                ← "x" after the number also accepted
+ *   - sense ceba               ← bullet → indented note line
+ *   free text                  ← prose (secondary weight)
+ *   IMPORTANT:                 ← alert section → inverse black bar
+ *
+ * Blank lines just separate. Used whenever the note has ≥1 line break;
+ * single-paragraph prose falls back to the legacy heuristics above.
+ */
+function renderStructured(lines: string[]): string {
+  let html = '';
+  let itemsOpen = false;
+  const closeItems = () => { if (itemsOpen) { html += '</div>'; itemsOpen = false; } };
+  const openItems  = () => { if (!itemsOpen) { html += '<div class="items">'; itemsOpen = true; } };
+  const pushItem = (qty: string, rest: string) => {
+    openItems();
+    html += `<div class="item"><span class="qty">${esc(qty)}</span><span class="it">${esc(rest)}</span></div>`;
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { closeItems(); continue; }
+
+    // Section header: "LABEL:" or "LABEL: content" (label must not start
+    // with a digit so "20:00 arriba el grup" stays prose).
+    const header = /^([^:\n]{2,28}):\s*(.*)$/.exec(line);
+    if (header && !/^\d/.test(header[1])) {
+      closeItems();
+      const alert = isAlertLabel(header[1]);
+      html += `<div class="sec-h${alert ? ' sec-h--alert' : ''}">${esc(header[1].trim().toUpperCase())}</div>`;
+      if (header[2].trim()) html += renderInline(header[2]);
+      continue;
+    }
+
+    // Quantity item: "13 Quatre Formatges" / "3x Barbacoa" / "3 x Barbacoa"
+    const qtyItem = /^(\d{1,3})\s*(?:[x×]\s*)?\s*(.+)$/.exec(line);
+    if (qtyItem) { pushItem(qtyItem[1], qtyItem[2].trim()); continue; }
+
+    // Bullet: "- sense ceba" → item row without a quantity
+    const bullet = /^[-•*]\s+(.+)$/.exec(line);
+    if (bullet) { pushItem('', bullet[1].trim()); continue; }
+
+    // Prose
+    closeItems();
+    html += `<div class="sec-b">${esc(line)}</div>`;
+  }
+  closeItems();
+  return html;
+}
+
 export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan): void {
   // Device-level print language: cooks read Spanish, the floor books in
   // Catalan. Chrome labels switch and the comanda body runs through the
@@ -149,8 +226,15 @@ export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan):
     ? translateCaEs((r.allergens ?? []).join(', '))
     : (r.allergens ?? []).join(', ');
 
-  const paras = notesSrc.trim().split(/\n+/).map(s => s.trim()).filter(Boolean);
-  const sections = paras.map(p => `<div class="sec">${renderBody(p)}</div>`).join('');
+  // Multi-line notes use the line-based comanda format (reliable, one
+  // element per line). Legacy single-paragraph prose keeps the original
+  // sentence-splitting heuristics so old reservations still print well.
+  const trimmed = notesSrc.trim();
+  const sections = !trimmed
+    ? ''
+    : trimmed.includes('\n')
+      ? `<div class="sec">${renderStructured(trimmed.split('\n'))}</div>`
+      : `<div class="sec">${renderBody(trimmed)}</div>`;
 
   const printedAt = new Date().toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
 
