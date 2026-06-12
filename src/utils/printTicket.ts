@@ -174,7 +174,7 @@ export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan):
     .time  { font-size: 26px; font-weight: 700; }
     .pax   { font-size: 26px; font-weight: 700; }
     .name  { font-size: 15px; font-weight: 700; margin-top: 3px; }
-    .meta  { font-size: 12px; margin-top: 2px; }
+    .meta  { font-size: 12.5px; font-weight: 700; margin-top: 2px; }
     .flag  { margin-top: 5px; font-size: 12px; font-weight: 700;
              border: 2px solid #000; padding: 3px 6px; text-align: center; }
     .allergy { margin-top: 5px; font-size: 13px; font-weight: 700;
@@ -182,11 +182,15 @@ export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan):
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .sec   { margin: 0 0 8px; }
     .sec-h { font-size: 14px; font-weight: 700; text-decoration: underline; margin: 6px 0 3px; }
-    .sec-b { font-size: 13.5px; line-height: 1.4; margin: 2px 0; }
+    /* Kitchen legibility: regular-weight Courier prints thin and grey-ish
+       on the thermal head — every line a cook must read is BOLD, which the
+       Epson graphics driver renders with double-thick strokes (much darker
+       on paper). Sizes bumped ~1px for arm's-length reading mid-service. */
+    .sec-b { font-size: 14px; font-weight: 700; line-height: 1.4; margin: 2px 0; }
     .items { margin: 2px 0; }
-    .item  { display: flex; gap: 6px; margin: 0 0 3px; align-items: baseline; }
-    .qty   { min-width: 24px; font-size: 17px; font-weight: 700; text-align: right; flex-shrink: 0; }
-    .it    { font-size: 13.5px; line-height: 1.35; }
+    .item  { display: flex; gap: 6px; margin: 0 0 4px; align-items: baseline; }
+    .qty   { min-width: 26px; font-size: 18px; font-weight: 700; text-align: right; flex-shrink: 0; }
+    .it    { font-size: 14.5px; font-weight: 700; line-height: 1.35; }
     .foot  { text-align: center; font-size: 9.5px; }
   `);
 }
