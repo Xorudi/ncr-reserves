@@ -3269,29 +3269,38 @@ function NewResSheet({ open, bizId, defaultDate, addReservation, onClose, editRe
                     3 Plat         quantitat + plat
                     IMPORTANT:     barra negra al tiquet */}
               <div>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <label style={{ ...lbl, flex:1 }}>Notes / Comanda</label>
-                  <button type="button" className="press"
-                    onClick={() => {
-                      const tpl = 'TAPES: \n\nINFANTS:\n1 \n\nADULTS:\n1 \n\nPOSTRES:\n\nIMPORTANT:\n';
-                      upd('notes', form.notes.trim() ? `${form.notes.replace(/\s+$/, '')}\n\n${tpl}` : tpl);
-                    }}
-                    style={{
-                      border:'1px solid rgba(60,40,20,.15)', background:'var(--cream)',
-                      color:'var(--ink-700)', borderRadius:999, padding:'4px 10px',
-                      fontSize:11.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-                      marginBottom:5,
-                    }}>
-                    📋 Plantilla comanda
-                  </button>
+                <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                  <label style={{ ...lbl, flex:1, minWidth:120 }}>Notes / Comanda</label>
+                  {([
+                    ['📋 Comanda',
+                     'TAPES: \n\nINFANTS:\n1 \n\nADULTS:\n1 \n\nPOSTRES:\n\nIMPORTANT:\n'],
+                    ['🍽 Menú cap de setmana',
+                     'MENÚ CAP DE SETMANA 25€:\n1 menús\n\nPRIMERS:\n1 \n\nSEGONS:\n1 \n\nPOSTRES:\n1 \n\nIMPORTANT:\n'],
+                  ] as const).map(([label, tpl]) => (
+                    <button key={label} type="button" className="press"
+                      onClick={() => {
+                        upd('notes', form.notes.trim() ? `${form.notes.replace(/\s+$/, '')}\n\n${tpl}` : tpl);
+                      }}
+                      style={{
+                        border:'1px solid rgba(60,40,20,.15)', background:'var(--cream)',
+                        color:'var(--ink-700)', borderRadius:999, padding:'4px 10px',
+                        fontSize:11.5, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                        marginBottom:5,
+                      }}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
-                <textarea rows={4}
+                {/* Tall, comfortable editor: writing a 77-pax comanda in a
+                    2-line slot was miserable. Grows with the content via
+                    resize:vertical; starts at ~9 visible lines. */}
+                <textarea rows={9}
                   placeholder={'Ocasió especial, preferències…\nComanda: una línia per element —\nPIZZES: · 3 Bacon · IMPORTANT: avisos'}
                   value={form.notes}
                   onChange={e => upd('notes', e.target.value)}
                   onFocus={() => setShowDropdown(false)}
                   maxLength={2000}
-                  style={{ ...inp, padding:'10px 12px', resize:'vertical', minHeight:72, lineHeight:1.5, fontSize:14 }} />
+                  style={{ ...inp, padding:'12px 14px', resize:'vertical', minHeight:180, lineHeight:1.55, fontSize:14.5 }} />
               </div>
 
               {/* Taula */}
