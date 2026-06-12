@@ -277,11 +277,13 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
         }
         html[data-theme="vespre"] .da-blob {
           mix-blend-mode: screen;
-          /* Visible pools of warm light — they carry the room's life. */
-          opacity: .55;
+          /* Visible pools of warm light — they carry the room's life.
+             Lifted .55 → .8 after the operator flagged the PC dashboard
+             reading as flat dark brown with no illumination. */
+          opacity: .8;
         }
         html[data-theme="vespre"] .da-sun {
-          opacity: .65;
+          opacity: .9;
         }
         html[data-theme="vespre"] .da-sun[data-visible="false"] {
           mix-blend-mode: screen;
@@ -328,6 +330,35 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
            soften it a touch to cut the one-time raster cost without
            changing the look. */
         body[data-fast-ui="1"] .da-blob { filter: blur(40px); }
+
+        /* ── FAST-UI × VESPRE — candle-light breathing ─────────────
+           The full freeze left the evening dashboard reading as static
+           dark brown ("no illumination"). Restore LIFE cheaply: two of
+           the five pools breathe via OPACITY only — a composite-only
+           animation on already-cached blurred layers (no per-frame blur
+           re-raster, unlike the orbit's transform+blur). Slow offsets so
+           they never pulse in sync. Day mode on fast-UI stays fully
+           static (nobody missed motion there). */
+        @keyframes da-breathe {
+          0%, 100% { opacity: .55; }
+          50%      { opacity: .9;  }
+        }
+        html[data-theme="vespre"] body[data-fast-ui="1"] .da-blob--terra {
+          animation: da-breathe 11s ease-in-out infinite !important;
+        }
+        html[data-theme="vespre"] body[data-fast-ui="1"] .da-blob--ochre {
+          animation: da-breathe 15s ease-in-out -7s infinite !important;
+        }
+        /* Sheets open → pause the breath too (same rule as the orbit). */
+        .dashboard-ambient[data-paused="true"] .da-blob {
+          animation-play-state: paused !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          html[data-theme="vespre"] body[data-fast-ui="1"] .da-blob--terra,
+          html[data-theme="vespre"] body[data-fast-ui="1"] .da-blob--ochre {
+            animation: none !important;
+          }
+        }
       `}</style>
     </div>
   );
