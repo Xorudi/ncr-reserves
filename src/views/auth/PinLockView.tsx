@@ -611,6 +611,11 @@ export default function PinLockView() {
         </div>
       </div>
 
+      {/* Build stamp — settles "which version is this device running?"
+          at a glance. PWA caches on the restaurant tablets made every
+          deploy a guessing game; now the lock screen answers it. */}
+      <div className="pin-build" aria-hidden="true">build {__BUILD_STAMP__}</div>
+
       {/* ── BUSINESS ENTRY SPLASH ──────────────────────────────────
           Single premium composition shown while we wait for the app to
           mount behind it. Replaces the old "door flying to center +
@@ -1304,6 +1309,20 @@ export default function PinLockView() {
           font-size: 10.5px;
           color: var(--ink-500);
           font-style: italic;
+        }
+
+        /* Build stamp — micro, corner, never in the way. */
+        .pin-build {
+          position: absolute;
+          right: max(10px, env(safe-area-inset-right));
+          bottom: max(8px, env(safe-area-inset-bottom));
+          z-index: 1;
+          font-size: 9px;
+          letter-spacing: .08em;
+          font-variant-numeric: tabular-nums;
+          color: var(--ink-400);
+          opacity: .6;
+          pointer-events: none;
         }
 
         /* ── BOOK-OPENING (legacy door flip) ──────────────────────
