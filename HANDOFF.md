@@ -110,8 +110,8 @@ TableSelectorModal ....... 300 / 301  (portaled a document.body)
 
 ## Estat / Pendent
 - **Sense tasques pendents.** Tot commitejat, pusheat i desplegat a Railway (verificat 12/06).
-- **Següent pas suggerit per la sessió anterior:** prova real del Historial — esborrar una reserva de prova, `Més → Historial`, restaurar-la.
-- Pendent antic (no iniciat): aplicar `high-end-visual-design` a `src/views/auth/PinLockView.tsx` mantenint tota la lògica del PIN.
+- **Següent pas suggerit:** prova real del Historial — esborrar una reserva de prova, `Més → Historial`, restaurar-la.
+- ~~Pendent antic: aplicar `high-end-visual-design` a PinLockView~~ — **fet el 12/06** (commit `85175f9`): rellotge en viu a la capçalera, entrada escalonada de les targetes, CTA amb xip circular, física de tecles reparada (el fill `forwards` de l'animació d'entrada anul·lava el `:active`), i el dim de targetes en obrir el teclat ara funciona (el bucle breathe el tapava). Lògica del PIN intacta.
 
 ## Comandes útils
 ```bash
