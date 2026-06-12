@@ -34,6 +34,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { IS_FAST_UI } from '@/lib/uiMode';
 
 interface Props {
   /** z-index of the ambient layer. Content above must use higher. Default 0. */
@@ -99,6 +100,10 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
   const blobRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
+    // FAST_UI (touch tablets, counter PC): the animated layer isn't
+    // mounted at all — no sun lerp, no cursor gravity, nothing to drive.
+    if (IS_FAST_UI) return;
+
     const root = ref.current;
     if (!root) return;
 
@@ -205,8 +210,14 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
 
   return (
     <div ref={ref} className="ambient-hd" aria-hidden="true" style={{ zIndex }}>
-      {/* Base blobs */}
-      {BLOBS.map(b => (
+      {/* FAST_UI: only the static cream gradient (the wrapper's own
+          background) is rendered. The blurred multiply/screen blob and
+          sun layers are the exact recipe that corrupts the compositor
+          on Android tablet GPUs — content above them paints washed-out
+          or partially blank (seen live on the restaurant's tablet,
+          midday sun at full screen-blend intensity). Desktop keeps the
+          full ambient untouched. */}
+      {!IS_FAST_UI && BLOBS.map(b => (
         <div
           key={b.id}
           ref={el => { blobRefs.current[b.id] = el; }}
@@ -225,10 +236,10 @@ export default function PremiumRestaurantAmbient({ zIndex = 0 }: Props) {
       ))}
 
       {/* Sun — moving, brighter, time-of-day driven */}
-      <div ref={sunRef} className="hd-sun" />
+      {!IS_FAST_UI && <div ref={sunRef} className="hd-sun" />}
 
-      {/* Grain — fine paper texture */}
-      <div className="hd-grain" />
+      {/* Grain — fine paper texture (mix-blend multiply: desktop only) */}
+      {!IS_FAST_UI && <div className="hd-grain" />}
 
       <style>{`
         .ambient-hd {

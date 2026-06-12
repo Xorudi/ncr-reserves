@@ -71,6 +71,10 @@ function timeLabel(): string {
 /** Per-business visual identity. Distinct worlds for the three locals. */
 const BIZ_THEME: Record<BusinessId, {
   bg: string;
+  /** Solid mid-tone of `bg` — painted underneath as background-color so
+   *  the card stays dark/readable even if a gradient layer fails to
+   *  rasterize (seen on Android tablet GPUs). */
+  bgSolid: string;
   accent: string;
   accent2: string;
   fg: string;
@@ -83,6 +87,7 @@ const BIZ_THEME: Record<BusinessId, {
 }> = {
   ganxo: {
     bg:         'linear-gradient(180deg, #1a110a 0%, #0e0a08 100%)',
+    bgSolid:    '#140e09',
     accent:     '#d4843d',
     accent2:    '#f3c581',
     fg:         '#f5ede0',
@@ -95,6 +100,7 @@ const BIZ_THEME: Record<BusinessId, {
   },
   pista: {
     bg:         'linear-gradient(180deg, #2a4d38 0%, #1f3a2a 100%)',
+    bgSolid:    '#254331',
     accent:     '#79b46a',
     accent2:    '#c8a04a',
     fg:         '#f7f4ea',
@@ -106,6 +112,7 @@ const BIZ_THEME: Record<BusinessId, {
   },
   esquitx: {
     bg:         'linear-gradient(180deg, #3a7282 0%, #2d5e6b 100%)',
+    bgSolid:    '#346877',
     accent:     '#6ec3d4',
     accent2:    '#e8b54a',
     fg:         '#f7f4ea',
@@ -578,7 +585,13 @@ export default function PinLockView() {
                   style={isOpening ? flipVars : undefined}
                   aria-label={biz?.name ?? id}
                 >
-                  <div className="pin-door__inner" style={{ background: doorBackground(id), color: theme.fg }}>
+                  <div
+                    className="pin-door__inner"
+                    // backgroundColor AFTER the shorthand: the solid
+                    // mid-tone underpaints the gradient stack, so the
+                    // card stays dark even if a layer fails to raster.
+                    style={{ background: doorBackground(id), backgroundColor: theme.bgSolid, color: theme.fg }}
+                  >
                     <div className={`pin-door__mono pin-door__mono--${theme.monoStyle}`}>
                       {biz?.monogram?.[0] ?? id[0].toUpperCase()}
                     </div>
