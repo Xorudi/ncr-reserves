@@ -937,6 +937,17 @@ body[data-fast-ui="0"] .sheet-backdrop {
    primary pointer despite the screen being touch-capable. */
 .sheet-content { width: 100%; }
 
+/* Defensive viewport cap for bottom sheets: a sheet whose child forgets
+   its own maxHeight (e.g. a reservation detail holding a long structured
+   comanda) used to grow PAST the top of the screen — header and close
+   button unreachable, sheet effectively stuck. Cap the wrapper and let it
+   scroll. Sheets that already manage internal scroll (≤92vh roots) never
+   hit this rule. Modal mode has its own cap below. */
+.sheet-panel[data-mode="sheet"] .sheet-content {
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+}
+
 /* ── Modal mode (non-touch desktop) ────────────────────────────────────
    On a mouse-driven PC ≥1100 px wide the sheet becomes a centered
    floating modal instead of a bottom drawer. The container changes

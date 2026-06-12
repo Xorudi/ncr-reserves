@@ -2179,6 +2179,10 @@ function ResDetailSheet({ open, res, onClose, onEditFull }: {
         boxShadow:'0 -4px 24px rgba(0,0,0,.15)',
         padding:'14px 18px',
         paddingBottom:'max(env(safe-area-inset-bottom, 0px), 16px)',
+        // Long structured comandes made this sheet grow taller than the
+        // viewport (header + close button pushed off-screen, sheet stuck).
+        // Cap it and scroll internally instead.
+        maxHeight:'calc(100dvh - 24px)', overflowY:'auto',
       }}>
         <div style={{ width:36, height:4, borderRadius:2, background:'var(--ink-200)', margin:'0 auto 14px' }} />
 
