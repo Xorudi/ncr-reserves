@@ -171,26 +171,32 @@ export function printComanda(r: Reservation, bizName: string, plan?: FloorPlan):
     .date  { text-align: center; font-size: 11px; margin-top: 1px; }
     .rule  { border-top: 1px dashed #000; margin: 7px 0; }
     .hero  { display: flex; justify-content: space-between; align-items: baseline; }
-    .time  { font-size: 26px; font-weight: 700; }
-    .pax   { font-size: 26px; font-weight: 700; }
-    .name  { font-size: 15px; font-weight: 700; margin-top: 3px; }
-    .meta  { font-size: 12.5px; font-weight: 700; margin-top: 2px; }
-    .flag  { margin-top: 5px; font-size: 12px; font-weight: 700;
+    .time  { font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: 800; }
+    .pax   { font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: 800; }
+    .name  { font-family: Arial, Helvetica, sans-serif; font-size: 17px; font-weight: 800; margin-top: 3px; }
+    .meta  { font-family: Arial, Helvetica, sans-serif; font-size: 13.5px; font-weight: 700; margin-top: 2px; }
+    .flag  { margin-top: 5px; font-size: 13px; font-weight: 800;
+             font-family: Arial, Helvetica, sans-serif;
              border: 2px solid #000; padding: 3px 6px; text-align: center; }
-    .allergy { margin-top: 5px; font-size: 13px; font-weight: 700;
+    .allergy { margin-top: 5px; font-size: 14px; font-weight: 800;
+               font-family: Arial, Helvetica, sans-serif;
                background: #000; color: #fff; padding: 4px 6px;
                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .sec   { margin: 0 0 8px; }
-    .sec-h { font-size: 14px; font-weight: 700; text-decoration: underline; margin: 6px 0 3px; }
-    /* Kitchen legibility: regular-weight Courier prints thin and grey-ish
-       on the thermal head — every line a cook must read is BOLD, which the
-       Epson graphics driver renders with double-thick strokes (much darker
-       on paper). Sizes bumped ~1px for arm's-length reading mid-service. */
-    .sec-b { font-size: 14px; font-weight: 700; line-height: 1.4; margin: 2px 0; }
-    .items { margin: 2px 0; }
-    .item  { display: flex; gap: 6px; margin: 0 0 4px; align-items: baseline; }
-    .qty   { min-width: 26px; font-size: 18px; font-weight: 700; text-align: right; flex-shrink: 0; }
-    .it    { font-size: 14.5px; font-weight: 700; line-height: 1.35; }
+    .sec   { margin: 0 0 9px; }
+    .sec-h { font-family: Arial, Helvetica, sans-serif; font-size: 15px;
+             font-weight: 800; text-decoration: underline; margin: 7px 0 3px; }
+    /* Kitchen legibility: Courier (a thin typewriter face, even at 700)
+       prints weak on the thermal head. Everything a cook must read uses a
+       heavy SANS face instead — thick uniform strokes render near-solid
+       black on paper — at sizes readable from arm's length mid-service. */
+    .sec-b { font-family: Arial, Helvetica, sans-serif; font-weight: 800;
+             font-size: 16px; line-height: 1.35; margin: 2px 0; }
+    .items { margin: 3px 0; }
+    .item  { display: flex; gap: 7px; margin: 0 0 5px; align-items: baseline; }
+    .qty   { min-width: 28px; font-family: Arial, Helvetica, sans-serif;
+             font-size: 20px; font-weight: 800; text-align: right; flex-shrink: 0; }
+    .it    { font-family: Arial, Helvetica, sans-serif; font-weight: 800;
+             font-size: 16px; line-height: 1.3; }
     .foot  { text-align: center; font-size: 9.5px; }
   `);
 }
