@@ -63,6 +63,11 @@ function todayIso(): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function timeLabel(): string {
+  const d = new Date();
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 /** Per-business visual identity. Distinct worlds for the three locals. */
 const BIZ_THEME: Record<BusinessId, {
   bg: string;
@@ -187,6 +192,15 @@ export default function PinLockView() {
   const allLabels    = (pinConfig?.pins ?? []).map(p => p.label);
   const hello        = useMemo(greeting, []);
   const eyebrow      = useMemo(dayLabel, []);
+
+  /** Live wall clock — the lock screen sits on the counter all day, so
+   *  it doubles as the room's clock. 15 s tick keeps minutes honest
+   *  without measurable cost. */
+  const [clock, setClock] = useState<string>(() => timeLabel());
+  useEffect(() => {
+    const id = window.setInterval(() => setClock(timeLabel()), 15_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   /** Compute "covers today" KPI per biz from the live reservations array. */
   const coversToday = useMemo<Record<BusinessId, number>>(() => {
@@ -424,7 +438,7 @@ export default function PinLockView() {
         <div className="pin-top-strip" aria-hidden="true">
           <div className="pin-top-strip__greeting">{hello}</div>
           <div className="pin-top-strip__meta">
-            <span className="pin-top-strip__date">{eyebrow}</span>
+            <span className="pin-top-strip__date">{eyebrow} · {clock}</span>
             {visibleBizs.length > 0 && (
               <>
                 <span className="pin-top-strip__sep" />
@@ -453,7 +467,10 @@ export default function PinLockView() {
           <div className="pin-lock__inner">
 
             <header className="pin-lock__header">
-              <span className="pin-lock__eyebrow">{eyebrow}</span>
+              <span className="pin-lock__eyebrow">
+                {eyebrow}
+                <span className="pin-lock__eyebrow-clock">· {clock}</span>
+              </span>
               <div className="pin-lock__brand">
                 <span className="pin-lock__monogram" aria-hidden="true">N</span>
                 <span className="pin-lock__wordmark">NCR Reserves</span>
@@ -723,6 +740,11 @@ export default function PinLockView() {
             gap: 36px;
             padding: 0;
           }
+          /* Desktop has room to let the serif greeting breathe.
+             Double class for specificity: the base .pin-lock__title
+             clamp() is declared later in this sheet and would win a
+             same-specificity tie. */
+          .pin-lock .pin-lock__title { font-size: 34px; }
         }
 
         /* Dim everything during book-opening except the chosen door.
@@ -815,6 +837,11 @@ export default function PinLockView() {
           letter-spacing: .22em;
           text-transform: uppercase;
           color: rgba(251,247,238,.62);
+        }
+        .pin-lock__eyebrow-clock {
+          margin-left: 4px;
+          font-variant-numeric: tabular-nums;
+          color: rgba(243,197,129,.85);
         }
 
         /* Brand: monogram centered, wordmark below as a small caps line. */
@@ -990,9 +1017,10 @@ export default function PinLockView() {
             transform   180ms var(--ease-out),
             background  220ms var(--ease-out),
             box-shadow  220ms var(--ease-out);
-          opacity: 0;
-          transform: translateY(6px);
-          animation: pin-key-in 360ms var(--ease-out) forwards;
+          /* Entrance lives entirely in the keyframe (backwards fill):
+             a forwards fill here would persist translateY(0) and
+             silently defeat the :active press + hover lift transforms. */
+          animation: pin-key-in 360ms var(--ease-out) backwards;
         }
         .pin-lock__key--del { font-size: clamp(17px, 4vw, 19px); color: var(--ink-600); }
         .pin-lock__key:disabled { opacity: .55; cursor: wait; }
@@ -1012,6 +1040,11 @@ export default function PinLockView() {
           .pin-lock__key:not(:disabled):hover {
             background: linear-gradient(180deg, #fdf6e5, #f1e5c9);
             border-color: rgba(60,40,20,.12);
+            transform: translateY(-1px);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,.7),
+              inset 0 -1px 0 rgba(60,40,20,.05),
+              0 3px 6px rgba(60,40,20,.08);
           }
         }
 
@@ -1065,9 +1098,24 @@ export default function PinLockView() {
             opacity     380ms var(--ease-cinema),
             filter      380ms var(--ease-cinema),
             box-shadow  720ms var(--ease-cinema);
+          /* Staggered entrance — each door resolves from a soft blur a
+             beat after the lock card, like lights coming on one by one.
+             Mobile (≤720px) overrides the animation with the breathe loop,
+             so the stagger only plays on tablet/desktop. Fill mode is
+             backwards (not both): a persisted final keyframe would
+             outrank the book-opening dim and the hover lift. */
+          animation: pin-door-in 640ms var(--ease-cinema) backwards;
+        }
+        .pin-door:nth-of-type(1) { animation-delay: 220ms; }
+        .pin-door:nth-of-type(2) { animation-delay: 340ms; }
+        .pin-door:nth-of-type(3) { animation-delay: 460ms; }
+        @keyframes pin-door-in {
+          from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); }
+          to   { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0); }
         }
         @media (hover: hover) and (pointer: fine) {
           .pin-door:hover {
+            transform: translateY(-2px);
             box-shadow:
               inset 0 1px 0 rgba(255,255,255,.7),
               0 0 0 1px rgba(60,40,20,.06),
@@ -1539,8 +1587,11 @@ export default function PinLockView() {
           }
 
           /* When keypad opens, cards dim slightly — focus shifts to the
-             keypad without losing context. */
+             keypad without losing context. The breathe loop must stop
+             here: its animated opacity (1→.92) outranks this .55 in the
+             cascade, so with the loop running the dim never showed. */
           .pin-lock-wrap[data-keypad="open"] .pin-door {
+            animation: none;
             opacity: .55;
             filter: saturate(.85);
             transition: opacity 340ms var(--ease-cinema), filter 340ms var(--ease-cinema);
@@ -1781,13 +1832,21 @@ export default function PinLockView() {
             color: var(--ink-700);
             letter-spacing: .015em;
           }
+          /* Button-in-button: the arrow sits in its own circular chip,
+             flush with the pill's right padding — never naked. */
           .pin-lock__cta-arrow {
-            font-size: 8px;
+            width: 18px; height: 18px;
+            margin-right: -6px;
+            display: grid; place-items: center;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(200,97,58,.16), rgba(200,97,58,.10));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+            font-size: 7px;
             color: var(--terra-600);
             animation: pin-cta-bounce 2.6s ease-in-out infinite;
           }
           @keyframes pin-cta-bounce {
-            0%, 100% { transform: translateY(0); opacity: .7; }
+            0%, 100% { transform: translateY(0); opacity: .8; }
             50%      { transform: translateY(-2px); opacity: 1; }
           }
         }
@@ -1838,7 +1897,7 @@ export default function PinLockView() {
           35%, 55% { transform: translateX(7px); }
         }
         @keyframes pin-key-in {
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(6px); }
         }
 
         /* ── Reduced motion ──────────────────────────────────────── */
