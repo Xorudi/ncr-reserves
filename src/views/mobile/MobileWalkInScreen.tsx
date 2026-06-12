@@ -672,7 +672,15 @@ export default function MobileWalkInScreen({ onSwitchTab }: { onSwitchTab: (tab:
                       </span>
                       {!isSeated && (
                         <button className="press"
-                          onClick={e => { e.stopPropagation(); handleConfirm(r.id); }}
+                          // Nested inside the row <button> (invalid HTML) —
+                          // click delivery is unreliable on the touchscreen.
+                          // Act on pointerdown and suppress the click echo
+                          // (same fix as the PIN keypad / notes expander).
+                          onPointerDown={e => {
+                            e.stopPropagation(); e.preventDefault();
+                            handleConfirm(r.id);
+                          }}
+                          onClick={e => { e.stopPropagation(); e.preventDefault(); }}
                           style={{
                             padding:'5px 10px', borderRadius:8, border:'none',
                             background:'linear-gradient(180deg, var(--terracotta-600) 0%, var(--terracotta-700) 100%)',

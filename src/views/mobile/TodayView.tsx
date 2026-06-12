@@ -1946,10 +1946,22 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
                 {expandable && (
                   <span
                     role="button"
-                    onClick={e => { e.stopPropagation(); setNotesOpen(o => !o); }}
+                    // Interactive span nested inside the row <button> —
+                    // click delivery is unreliable on the touchscreen
+                    // (same class of bug as the PIN keypad). Handle the
+                    // toggle on pointerdown (fires at finger contact,
+                    // before any click retargeting) and suppress the
+                    // synthesized click echo so it can't re-toggle or
+                    // bubble into the row's onSel.
+                    onPointerDown={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setNotesOpen(o => !o);
+                    }}
+                    onClick={e => { e.stopPropagation(); e.preventDefault(); }}
                     style={{
-                      display:'inline-block', marginTop:2, padding:'2px 0',
-                      fontSize:11, fontWeight:700, color:'var(--clay-700)',
+                      display:'inline-block', marginTop:4, padding:'6px 10px 6px 0',
+                      fontSize:11.5, fontWeight:700, color:'var(--clay-700)',
                       cursor:'pointer', letterSpacing:.02,
                     }}>
                     {notesOpen ? 'Veure menys ↑' : 'Veure tot ↓'}
