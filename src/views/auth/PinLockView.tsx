@@ -487,6 +487,7 @@ export default function PinLockView() {
               role={!keypadOpen ? 'button' : undefined}
               tabIndex={!keypadOpen ? 0 : undefined}
               onClick={!keypadOpen ? () => setKeypadOpen(true) : undefined}
+              data-any-filled={pin.length > 0}
             >
               {[0, 1, 2, 3].map(i => (
                 <span
@@ -920,13 +921,23 @@ export default function PinLockView() {
           transform: translateX(-50%) scaleX(0);
           transition: transform 320ms var(--ease-out);
         }
+        /* Same accent twice, in SEPARATE rules: an unsupported :has()
+           in a selector list would invalidate the whole rule, killing
+           the fallback exactly where it's needed (Samsung Internet
+           < 23, Chrome < 105). The data attribute is set by React. */
         .pin-lock__dots:has(.pin-lock__dot[data-filled="true"])::after {
+          transform: translateX(-50%) scaleX(1);
+        }
+        .pin-lock__dots[data-any-filled="true"]::after {
           transform: translateX(-50%) scaleX(1);
         }
 
         .pin-lock__dot {
           position: relative;
           width: clamp(40px, 10vw, 46px);
+          /* min-height keeps the dot from collapsing where aspect-ratio
+             is unsupported (Chrome < 88 / iOS < 15 WebViews). */
+          min-height: 48px;
           aspect-ratio: 1 / 1.2;
           border-radius: 13px;
           background: linear-gradient(180deg, var(--cream), #f7ecd6);
@@ -1098,20 +1109,26 @@ export default function PinLockView() {
             opacity     380ms var(--ease-cinema),
             filter      380ms var(--ease-cinema),
             box-shadow  720ms var(--ease-cinema);
-          /* Staggered entrance — each door resolves from a soft blur a
-             beat after the lock card, like lights coming on one by one.
-             Mobile (≤720px) overrides the animation with the breathe loop,
-             so the stagger only plays on tablet/desktop. Fill mode is
-             backwards (not both): a persisted final keyframe would
-             outrank the book-opening dim and the hover lift. */
-          animation: pin-door-in 640ms var(--ease-cinema) backwards;
         }
-        .pin-door:nth-of-type(1) { animation-delay: 220ms; }
-        .pin-door:nth-of-type(2) { animation-delay: 340ms; }
-        .pin-door:nth-of-type(3) { animation-delay: 460ms; }
+        /* Staggered entrance — each door fades up a beat after the lock
+           card, like lights coming on one by one. DESKTOP ONLY (hover +
+           fine pointer): on Android tablets the backwards fill proved
+           fragile — if Chrome/WebView never starts the delayed animation
+           (background-tab PWA launch, Mali GPU + animated filter), the
+           card stays frozen at the from-state, i.e. invisible. Content
+           must never depend on an animation running to exist, so touch
+           devices simply render the doors instantly. No blur in the
+           keyframes either: animated filters corrupt paint on some
+           mobile GPUs. */
+        @media (min-width: 1000px) and (hover: hover) and (pointer: fine) {
+          .pin-door { animation: pin-door-in 640ms var(--ease-cinema) backwards; }
+          .pin-door:nth-of-type(1) { animation-delay: 220ms; }
+          .pin-door:nth-of-type(2) { animation-delay: 340ms; }
+          .pin-door:nth-of-type(3) { animation-delay: 460ms; }
+        }
         @keyframes pin-door-in {
-          from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); }
-          to   { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0); }
+          from { opacity: 0; transform: translateY(14px) scale(0.985); }
+          to   { opacity: 1; transform: translateY(0)    scale(1); }
         }
         @media (hover: hover) and (pointer: fine) {
           .pin-door:hover {

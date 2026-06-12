@@ -987,7 +987,9 @@ body[data-fast-ui="0"] .sheet-backdrop {
     0 28px 72px -16px rgba(60, 40, 20, .30),
     0 10px 24px -8px  rgba(60, 40, 20, .14),
     0 0 0 1px rgba(60, 40, 20, .06);
-  /* Height ceiling so the modal never reaches the top of the viewport. */
+  /* Height ceiling so the modal never reaches the top of the viewport.
+     vh first as fallback — older Android/iOS browsers drop the dvh line. */
+  max-height: calc(100vh - 80px);
   max-height: calc(100dvh - 80px);
   /* Inner content can scroll if it overflows the cap. */
   display: flex;
