@@ -185,10 +185,13 @@ function renderStructured(lines: string[]): string {
     const line = raw.trim();
     if (!line) { closeItems(); continue; }
 
-    // Section header: "LABEL:" or "LABEL: content" (label must not start
-    // with a digit so "20:00 arriba el grup" stays prose).
+    // Section header: "LABEL:" or "LABEL: content". A label must not start
+    // with a digit ("20:00 arriba el grup" stays prose) NOR end with one —
+    // otherwise a clock time on its own line ("Juvenil A — 21:00h",
+    // "Dissabte, 20:10h") gets split at the colon into a fake header
+    // ("JUVENIL A — 21") plus a bogus quantity ("00 h").
     const header = /^([^:\n]{2,28}):\s*(.*)$/.exec(line);
-    if (header && !/^\d/.test(header[1])) {
+    if (header && !/^\d/.test(header[1]) && !/\d$/.test(header[1].trim())) {
       closeItems();
       const alert = isAlertLabel(header[1]);
       html += `<div class="sec-h${alert ? ' sec-h--alert' : ''}">${esc(header[1].trim().toUpperCase())}</div>`;
