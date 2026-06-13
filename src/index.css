@@ -18,8 +18,8 @@
   --ink-200: #e8dcc7;
   --ink-100: #f3ebdb;
   --ink-50:  #faf5ea;
-  --cream:   #fbf7ee;
-  --paper:   #ffffff;
+  --cream:   #f7efde;
+  --paper:   #fffaf1;
 
   --terracotta-700: #a84a2a;
   --terracotta-600: #c8613a;
@@ -104,7 +104,7 @@
      canvas); vespre swaps in the top-lit "liquid glass" gradient. No
      backdrop blur in either — blur on scrolling lists murders mobile
      framerate. */
-  --card-face: linear-gradient(180deg, #ffffff 0%, #fffdf8 70%, #fdf8ee 100%);
+  --card-face: linear-gradient(180deg, #fffaef 0%, #fdf4e3 70%, #faecd6 100%);
 
   /* ── Layered surface system (Phase 1 of the visual overhaul) ──────────────
      Five surface roles, each with its own material:
@@ -115,11 +115,11 @@
        floating  — popovers/sheets/modals — translucent paper + backdrop blur
      Existing --cream / --paper tokens stay valid for legacy code; new
      components opt into the surface-* tokens for a coherent layer order. */
-  --surface-app:       #f8efdd;
-  --surface-rail:      #f1e6cf;
-  --surface-base:      #fbf5e8;
-  --surface-elevated:  #ffffff;
-  --surface-floating:  rgba(255,255,255,.86);
+  --surface-app:       #f4e9d2;
+  --surface-rail:      #ecdcbd;
+  --surface-base:      #f7eedb;
+  --surface-elevated:  #fff8ec;
+  --surface-floating:  rgba(255,250,240,.90);
 
   /* Refined shadow scale — closer to Apple/Linear hierarchy. Each is a
      contact line + ambient diffusion. Lower numbers are "barely there",
