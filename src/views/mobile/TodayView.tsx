@@ -1733,13 +1733,29 @@ const ResRow = memo(function ResRow({ res: r, selected, onSel, plan, loyalty, mi
     effectiveStatus === 'pending'   ? 'var(--clay-500)'       :
     effectiveStatus === 'noshow'    ? 'var(--rose-500, #c24a4a)' :
     'transparent';
+  // Faint per-status wash layered UNDER the warm card-face — adds a touch
+  // of state colour to each row (confirmed→olive, pending→honey/clay,
+  // seated→terracotta) without the heavy full-tint that once made every
+  // row "a different mood". ~6-9% alpha over the card gradient; the left
+  // accent bar + pill still carry the primary signal.
+  const stateWash =
+    effectiveStatus === 'seated'    ? 'linear-gradient(0deg, rgba(200,97,58,.07), rgba(200,97,58,.07))' :
+    effectiveStatus === 'confirmed' ? 'linear-gradient(0deg, rgba(111,138,75,.08), rgba(111,138,75,.08))' :
+    effectiveStatus === 'pending'   ? 'linear-gradient(0deg, rgba(216,155,53,.09), rgba(216,155,53,.09))' :
+    effectiveStatus === 'noshow'    ? 'linear-gradient(0deg, rgba(185,74,58,.06), rgba(185,74,58,.06))' :
+    null;
   return (
     <button onClick={() => onSel(r)} className={`press${justArrived ? ' row-arrived' : ''}`}
       style={{
         position: 'relative',
         width: 'calc(100% - 16px)', margin: '0 8px 8px',
         textAlign: 'left',
-        background: selected ? 'var(--terracotta-50)' : 'var(--card-face)',
+        // Wash sits on top of the card-face gradient (comma-layered).
+        background: selected
+          ? 'var(--terracotta-50)'
+          : stateWash
+            ? `${stateWash}, var(--card-face)`
+            : 'var(--card-face)',
         border: 'none', borderRadius: 12,
         boxShadow: selected
           ? '0 0 0 1.5px var(--terracotta-500), var(--shadow-md), var(--shadow-inset-top)'

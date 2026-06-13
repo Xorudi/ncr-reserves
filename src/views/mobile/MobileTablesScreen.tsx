@@ -7,14 +7,17 @@ import type { FloorTable, TableStatus, Reservation } from '@/types';
 import { IS_FAST_UI } from '@/lib/uiMode';
 import EmptyState from '@/components/shared/EmptyState';
 
-const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; label: string }> = {
-  free:      { bg:'var(--olive-50)',       color:'var(--olive-700)',      label:'Lliure'    },
-  confirmed: { bg:'var(--clay-50)',        color:'var(--clay-700)',       label:'Confirmada'},
-  reserved:  { bg:'var(--clay-50)',        color:'var(--clay-700)',       label:'Reservada' },
-  pending:   { bg:'var(--clay-50)',        color:'var(--clay-700)',       label:'Pendent'   },
-  seated:    { bg:'var(--terracotta-50)', color:'var(--terracotta-700)', label:'Ocupada'   },
-  blocked:   { bg:'var(--ink-100)',        color:'var(--ink-500)',        label:'Bloquejada'},
-  playing:   { bg:'var(--terracotta-50)', color:'var(--terracotta-700)', label:'En joc'    },
+// Each state carries a soft surface + a matching border so the floor plan
+// reads at a glance: free→olive, reserved/pending→honey(clay), occupied→
+// terracotta, blocked→muted. Borders are ~28-32% alpha of the state hue.
+const STATUS_STYLE: Record<TableStatus, { bg: string; color: string; border: string; label: string }> = {
+  free:      { bg:'var(--olive-50)',      color:'var(--olive-700)',      border:'rgba(111,138,75,.30)', label:'Lliure'    },
+  confirmed: { bg:'var(--clay-50)',       color:'var(--clay-700)',       border:'rgba(216,155,53,.32)', label:'Confirmada'},
+  reserved:  { bg:'var(--clay-50)',       color:'var(--clay-700)',       border:'rgba(216,155,53,.32)', label:'Reservada' },
+  pending:   { bg:'var(--clay-50)',       color:'var(--clay-700)',       border:'rgba(216,155,53,.32)', label:'Pendent'   },
+  seated:    { bg:'var(--terracotta-50)', color:'var(--terracotta-700)', border:'rgba(200,95,62,.34)',  label:'Ocupada'   },
+  blocked:   { bg:'var(--ink-100)',       color:'var(--ink-500)',        border:'rgba(96,67,43,.18)',   label:'Bloquejada'},
+  playing:   { bg:'var(--terracotta-50)', color:'var(--terracotta-700)', border:'rgba(200,95,62,.34)',  label:'En joc'    },
 };
 
 export default function MobileTablesScreen() {
@@ -330,7 +333,7 @@ export default function MobileTablesScreen() {
                         ? '2px solid var(--ink-900)'
                         : isSeated
                           ? '1px solid var(--terracotta-500)'
-                          : '1px solid var(--line-soft)',
+                          : `1px solid ${st.border}`,
                       textAlign:'left', cursor:'pointer',
                       fontFamily:'inherit', display:'flex', flexDirection:'column',
                       justifyContent:'space-between', gap:2,
