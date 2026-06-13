@@ -150,10 +150,13 @@
   /* Glass header materials — translucent paper over the canvas. The
      opaque-* pair is the fast-UI variant (no backdrop blur). Tokenized so
      mode vespre can swap them for espresso glass in one place. */
-  --glass-soft:          rgba(255,255,255,.55);
-  --glass-strong:        rgba(255,255,255,.78);
-  --glass-opaque-soft:   rgba(253,249,242,.92);
-  --glass-opaque-strong: rgba(253,249,242,.96);
+  /* Header glass — warmed off near-white so the top band blends into the
+     Mediterranean-warm canvas instead of reading as a cold white strip.
+     Honey-cream tints matching the panel-header tone. */
+  --glass-soft:          rgba(247,233,206,.62);
+  --glass-strong:        rgba(247,233,206,.82);
+  --glass-opaque-soft:   rgba(244,228,200,.94);
+  --glass-opaque-strong: rgba(243,226,196,.97);
   --glass-edge: inset 0 -1px 0 rgba(40,28,16,.06), 0 1px 0 rgba(255,255,255,.4);
 }
 

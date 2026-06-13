@@ -50,33 +50,37 @@ function tonePalette(tone: InsightTone) {
   switch (tone) {
     case 'positive':
       return {
-        ring:    'rgba(116,133,74,.22)',
+        ring:    'rgba(116,133,74,.30)',
         accent:  'var(--olive-600)',
-        accentSoft: 'rgba(116,133,74,.10)',
+        accentSoft: 'rgba(116,133,74,.18)',
+        tint:    'rgba(116,133,74,.07)',   // full-card category wash
         fg:      'var(--olive-700)',
         glow:    'rgba(116,133,74,.12)',
       };
     case 'warning':
       return {
-        ring:    'rgba(176,118,54,.24)',
+        ring:    'rgba(216,155,53,.32)',
         accent:  'var(--clay-600)',
-        accentSoft: 'rgba(176,118,54,.10)',
+        accentSoft: 'rgba(216,155,53,.20)',
+        tint:    'rgba(216,155,53,.09)',
         fg:      'var(--clay-700)',
-        glow:    'rgba(176,118,54,.14)',
+        glow:    'rgba(216,155,53,.16)',
       };
     case 'alert':
       return {
-        ring:    'rgba(168,74,42,.28)',
+        ring:    'rgba(200,95,62,.34)',
         accent:  'var(--terracotta-600)',
-        accentSoft: 'rgba(168,74,42,.10)',
+        accentSoft: 'rgba(200,95,62,.20)',
+        tint:    'rgba(200,95,62,.08)',
         fg:      'var(--terracotta-700)',
-        glow:    'rgba(168,74,42,.18)',
+        glow:    'rgba(200,95,62,.18)',
       };
     default:
       return {
-        ring:    'rgba(60,40,20,.10)',
+        ring:    'rgba(60,40,20,.12)',
         accent:  'var(--ink-500)',
-        accentSoft: 'rgba(60,40,20,.04)',
+        accentSoft: 'rgba(60,40,20,.05)',
+        tint:    'rgba(60,40,20,.02)',
         fg:      'var(--ink-700)',
         glow:    'rgba(60,40,20,.05)',
       };
@@ -168,8 +172,9 @@ export default function InsightOfMoment({ compact = false, dismissTick = 0, side
           padding: `${padV}px ${padH}px`,
           borderRadius: 14,
           background: `
-            radial-gradient(140% 80% at 12% 0%, ${p.accentSoft} 0%, transparent 60%),
-            linear-gradient(180deg, var(--surface-elevated) 0%, var(--surface-elevated) 100%)
+            radial-gradient(150% 90% at 10% 0%, ${p.accentSoft} 0%, transparent 62%),
+            linear-gradient(0deg, ${p.tint}, ${p.tint}),
+            var(--surface-elevated)
           `,
           boxShadow: `
             0 0 0 1px ${p.ring} inset,
