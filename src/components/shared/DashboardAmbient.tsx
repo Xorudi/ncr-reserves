@@ -41,11 +41,15 @@ const BLOBS = [
   // and we were only seeing the panels' shadows) was actually a layout
   // bug. With the stacking fixed, the visible margin strips need very
   // little colour to register as warmth.
-  { id: 'terra',   baseX: 0.40, baseY: 0.55, w: 820, color: '200, 97, 58',   alpha: 0.10, orbitR: 50, orbitDur: 90 },
-  { id: 'ochre',   baseX: 0.78, baseY: 0.22, w: 620, color: '168, 112, 42',  alpha: 0.09, orbitR: 40, orbitDur: 78 },
-  { id: 'wine',    baseX: 0.86, baseY: 0.84, w: 560, color: '125,  46, 46',  alpha: 0.07, orbitR: 56, orbitDur: 104 },
-  { id: 'espresso',baseX: 0.08, baseY: 0.90, w: 640, color: ' 58,  42, 31',  alpha: 0.09, orbitR: 48, orbitDur: 110 },
-  { id: 'cream',   baseX: 0.22, baseY: 0.14, w: 720, color: '251, 234, 223', alpha: 0.16, orbitR: 42, orbitDur: 70 },
+  // Day alphas lifted ~50% (0.07-0.16 → 0.11-0.22): the warm pools were
+  // too faint to register on the real screen, leaving the dashboard pale.
+  // Still well below the login variant's 0.34-0.42 — warmth at the
+  // margins, never colour under content.
+  { id: 'terra',   baseX: 0.40, baseY: 0.55, w: 820, color: '200, 97, 58',   alpha: 0.16, orbitR: 50, orbitDur: 90 },
+  { id: 'ochre',   baseX: 0.78, baseY: 0.22, w: 620, color: '198, 130, 52',  alpha: 0.15, orbitR: 40, orbitDur: 78 },
+  { id: 'wine',    baseX: 0.86, baseY: 0.84, w: 560, color: '150,  58, 52',  alpha: 0.11, orbitR: 56, orbitDur: 104 },
+  { id: 'espresso',baseX: 0.08, baseY: 0.90, w: 640, color: '120,  78, 46',  alpha: 0.12, orbitR: 48, orbitDur: 110 },
+  { id: 'cream',   baseX: 0.22, baseY: 0.14, w: 720, color: '252, 228, 196', alpha: 0.22, orbitR: 42, orbitDur: 70 },
 ] as const;
 
 /** Sun position from the wall clock — same arc as the login screen but
@@ -176,7 +180,7 @@ export default function DashboardAmbient({ zIndex = 0, intensity = 0.5 }: Props)
             /* Almost imperceptible warmth. The centre stays the cream
                canvas; the rim shifts toward a very soft cream-amber
                that gives depth without saturation. */
-            radial-gradient(ellipse 120% 100% at 50% 40%, #fbf6ec 0%, #f4ecd6 60%, #e6dbbe 100%);
+            radial-gradient(ellipse 120% 100% at 50% 40%, #fbf3e2 0%, #f1e4c4 58%, #e2cd9e 100%);
           isolation: isolate;
         }
         .dashboard-ambient > * { pointer-events: none; }

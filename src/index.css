@@ -115,9 +115,9 @@
        floating  — popovers/sheets/modals — translucent paper + backdrop blur
      Existing --cream / --paper tokens stay valid for legacy code; new
      components opt into the surface-* tokens for a coherent layer order. */
-  --surface-app:       #fcf7ec;
-  --surface-rail:      #f5edda;
-  --surface-base:      #fdf9f0;
+  --surface-app:       #f8efdd;
+  --surface-rail:      #f1e6cf;
+  --surface-base:      #fbf5e8;
   --surface-elevated:  #ffffff;
   --surface-floating:  rgba(255,255,255,.86);
 
@@ -503,11 +503,14 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: "ss01","cv11";
   color: var(--ink-800);
-  /* Atmospheric canvas — a very subtle warm radial in the top-right and a
-     cool one in the bottom-left, mixed on the base surface. */
+  /* Atmospheric canvas — warm honey radial top-right + an earthy sage one
+     bottom-left (was a cool lilac that washed the palette out grey). Both
+     a touch stronger so the day canvas reads as warm Mediterranean light,
+     not pale cream. Cards stay paper-white for legibility; the colour
+     lives in the margins/canvas, never under text. */
   background:
-    radial-gradient(1200px 800px at 100% -10%, rgba(243,220,166,.32) 0%, transparent 55%),
-    radial-gradient(900px 700px  at -5% 110%, rgba(236,216,227,.22) 0%, transparent 55%),
+    radial-gradient(1200px 820px at 100% -10%, rgba(232,176,108,.40) 0%, transparent 56%),
+    radial-gradient(950px 720px  at -5% 110%, rgba(150,160,98,.18) 0%, transparent 58%),
     var(--surface-app);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
