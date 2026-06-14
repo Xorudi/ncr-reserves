@@ -1065,7 +1065,13 @@ export default function TouchShell() {
         boxShadow: '0 -8px 24px rgba(40,28,16,.05), 0 -1px 0 rgba(40,28,16,.06)',
         display: 'flex', alignItems: 'flex-start',
         paddingTop: 6,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        // Sit the labels JUST above the home indicator instead of reserving
+        // the full safe-area inset as empty space below them (which read as
+        // a big dead band on Face ID / Dynamic Island phones). We trim ~14px
+        // off the inset — the home indicator only needs ~8–13px clearance —
+        // and clamp to a 6px floor so home-button iPhones / Android (inset 0)
+        // still keep a little breathing room. One formula, every device.
+        paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) - 14px), 6px)',
         paddingLeft:  'env(safe-area-inset-left,  0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
       }}>

@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import ErrorBoundary from './components/shared/ErrorBoundary'
+import ZoomGuard from './components/shared/ZoomGuard'
 import './index.css'
 // Resolve fast-UI gate before the first render so the body data attribute
 // is in place when CSS selectors evaluate (sheet-backdrop blur, etc).
@@ -13,6 +14,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
       <App />
+      {/* Recovers any touch device left stuck zoomed-in (iOS ignores our
+          no-zoom viewport meta). Self-contained, touch-only, renders
+          nothing until the screen is actually magnified. */}
+      <ZoomGuard />
     </ErrorBoundary>
   </React.StrictMode>
 )

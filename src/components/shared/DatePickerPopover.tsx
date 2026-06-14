@@ -205,7 +205,10 @@ export default function DatePickerPopover({
           position: 'fixed',
           top: pos.top, left: pos.left,
           zIndex,
-          width: 340,
+          // Cap to the viewport so the panel never clips on a genuinely
+          // narrow or zoomed screen; on normal widths this stays 340.
+          width: 'min(340px, calc(100vw - 24px))',
+          maxWidth: 'calc(100vw - 24px)',
           background: 'var(--surface-elevated)',
           border: '1px solid var(--line)',
           borderRadius: 20,
